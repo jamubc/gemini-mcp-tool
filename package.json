@@ -11,7 +11,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "prepublishOnly": "npm run build"
+    "test": "echo \"No tests yet\" && exit 0",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build"
   },
   "keywords": [
     "mcp",
@@ -46,5 +48,8 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
