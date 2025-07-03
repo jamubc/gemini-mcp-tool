@@ -1,11 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.2] - UNRELEASED
 
-- Add dynamic tool loading system
-- Create tool loader in src/tools/index.ts
-- Update contribution templates to TypeScript
-- Plan minimal changes to index.ts for tool discovery
+- Modular architecture refactoring
+- Enhanced tool loading system  
+- Server management with auto-restart
+- Improved error handling
+- Added FileDiscovery, FileOperations, LightweightSearch, WebOperations tools
+- Added agent-delegate and field-aware-gemini tools
+- Added analyze-for-changes and enhanced help tools
 
 ## [1.1.1] - 2024-12-29
 
