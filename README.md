@@ -1,6 +1,7 @@
 **Share your experience!** [any wishes?](https://github.com/jamubc/gemini-mcp-tool/discussions/2) and help the community grow!
 
 > 📚 [Wiki documentation](https://github.com/jamubc/gemini-mcp-tool/wiki) is available with additional guides and examples.
+>
 > Update: using Gemini anslysis to triggef Claude's editing tools.
 # Gemini MCP Tool
 
