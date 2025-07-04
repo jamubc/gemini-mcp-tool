@@ -2,7 +2,7 @@
 
 > 📚 [Wiki documentation](https://github.com/jamubc/gemini-mcp-tool/wiki) is available with additional guides and examples.
 >
-> Update: using Gemini anslysis to triggef Claude's editing tools.
+> Update: using Gemini anslysis to trigger Claude's editing tools.
 # Gemini MCP Tool
 
 <div align="center">
