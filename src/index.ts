@@ -17,12 +17,14 @@ import { createStructuredResponse, validateToolResponse } from './utils/structur
 import { sanitize, sanitizeError } from './utils/error-sanitizer.js';
 import { PromptExecutionError, ToolExecutionError } from './types/errors.js';
 import { parseNotifications } from './utils/notification-parser.js';
+import { transformStructuredResponse } from './utils/response-transformer.js';
+import { guardRails } from './utils/guard-rails.js';
 
 // Create server instance
 const server = new Server(
   {
     name: "gemini-cli-mcp",
-    version: "1.1.2",
+    version: "2.0.0",
   },
   {
     capabilities: {
@@ -47,7 +49,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
-// // Handle list prompts request (for slash commands)
+// Handle list prompts request (for slash commands)
 // server.setRequestHandler(ListPromptsRequestSchema, async () => {
 //   return {
 //     prompts: [
@@ -517,12 +519,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const toolName = request.params.name;
   
   try {
-    console.warn(`[Gemini MCP] === TOOL INVOCATION ===`);
-    console.warn(`[Gemini MCP] Tool: "${toolName}"`);
-    console.warn(
-      `[Gemini MCP] Raw arguments:`,
-      JSON.stringify(request.params.arguments, null, 2),
-    );
+    // Only log tool invocation details if not launched via MCP
+    const isMCPLaunched = process.env.GEMINI_MCP_LAUNCHED === '1';
+    
+    if (!isMCPLaunched) {
+      console.warn(`[Gemini MCP] === TOOL INVOCATION ===`);
+      console.warn(`[Gemini MCP] Tool: "${toolName}"`);
+      console.warn(
+        `[Gemini MCP] Raw arguments:`,
+        JSON.stringify(request.params.arguments, null, 2),
+      );
+    }
 
     // Try to find the tool
     const tool = toolLoader.getTool(toolName);
@@ -558,15 +565,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const validation = validateToolResponse(toolName, cleanedResponse);
 
     // Add validation instructions as a comment for AI guidance
-    const finalResult = validation.instructions
+    const validatedResult = validation.instructions
       ? `${cleanedResponse}\n\n<!-- AI_INSTRUCTIONS: ${validation.instructions} -->`
       : cleanedResponse;
+    
+    // Apply response transformation (phrase rewriting and action sentence)
+    const transformedResult = transformStructuredResponse(validatedResult);
+    
+    // Process through guard rails
+    const processedResult = guardRails.processResponse(transformedResult, toolName);
+    
+    // Check if we need to append a write reminder
+    if (guardRails.shouldAppendWriteReminder() && guardRails.responseContainsEditSuggestion(processedResult)) {
+      const finalResult = processedResult + guardRails.getWriteReminderMessage();
+      return {
+        content: [
+          {
+            type: "text",
+            text: finalResult,
+          },
+        ],
+        isError: false,
+      };
+    }
 
     return {
       content: [
         {
           type: "text",
-          text: finalResult,
+          text: processedResult,
         },
       ],
       isError: false,
@@ -594,16 +621,40 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 // Start the server
 async function main() {
-  console.warn("{start gemini-mcp-tool");
+  // Only log initialization messages if not launched via MCP
+  const isMCPLaunched = process.env.GEMINI_MCP_LAUNCHED === '1';
+  
+  if (!isMCPLaunched) {
+    console.warn("{start gemini-mcp-tool");
+  }
 
   // Load all tools
   await toolLoader.loadTools();
-  console.warn(`[Gemini MCP] Loaded ${toolLoader.getTools().length} tools`);
+  
+  if (!isMCPLaunched) {
+    console.warn(`[Gemini MCP] Loaded ${toolLoader.getTools().length} tools`);
+  }
+  
+  // Start guard rails session
+  guardRails.startSession();
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  console.warn("Gemini CLI MCP server is running on stdio");
+  if (!isMCPLaunched) {
+    console.warn("Gemini CLI MCP server is running on stdio");
+  }
+  
+  // Handle graceful shutdown
+  process.on('SIGINT', () => {
+    guardRails.endSession();
+    process.exit(0);
+  });
+  
+  process.on('SIGTERM', () => {
+    guardRails.endSession();
+    process.exit(0);
+  });
 }
 
 // Handle errors

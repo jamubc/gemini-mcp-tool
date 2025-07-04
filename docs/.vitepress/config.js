@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import container from 'markdown-it-container'
 
 export default defineConfig({
   title: 'Gemini MCP Tool Documentation',
@@ -8,12 +9,30 @@ export default defineConfig({
   // Force dark mode by default
   appearance: 'dark',
   
+  markdown: {
+    config: (md) => {
+      // Register custom container for unstable features
+      md.use(container, 'unstable', {
+        render: function (tokens, idx) {
+          const token = tokens[idx]
+          if (token.nesting === 1) {
+            // Opening tag
+            return `<div class="custom-container unstable">\n<p class="custom-container-title">Unstable Feature</p>\n`
+          } else {
+            // Closing tag
+            return `</div>\n`
+          }
+        }
+      })
+    }
+  },
+  
   themeConfig: {
     logo: '🚀',
     
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/getting-started' },
+      { text: 'Guide', link: '/getting-started/' },
       { text: 'API', link: '/api-reference' },
       { text: 'GitHub', link: 'https://github.com/jamubc/gemini-mcp-tool' }
     ],
@@ -24,9 +43,9 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: 'Overview', link: '/' },
-          { text: 'Quick Start', link: '/getting-started' },
-          { text: 'Installation', link: '/installation' },
-          { text: 'First Steps', link: '/first-steps' }
+          { text: 'Quick Start', link: '/getting-started/' },
+          { text: 'Installation', link: '/installation/' },
+          { text: 'First Steps', link: '/first-steps/' }
         ]
       },
       {

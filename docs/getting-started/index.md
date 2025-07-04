@@ -1,6 +1,6 @@
 :::warning Work in Progress
 This page is currently under development and may be incomplete. 
-For quick start instruction, please refer to our [**TLDR**](https://github.com/jamubc/gemini-mcp-tool#readme).
+For quick start instructions, please refer to our [Installation Guide](/installation/) or the [**GitHub README**](https://github.com/jamubc/gemini-mcp-tool#readme).
 :::
 
 <br />
@@ -21,19 +21,34 @@ For quick start instruction, please refer to our [**TLDR**](https://github.com/j
 
 Welcome to the Gemini MCP Tool! This guide will help you get up and running in minutes.
 
-## TLDR Quick Start
+## Quick Start Guide
 
-1. **Install** - Ask Claude naturally to use Gemini, save tokens
-2. **Configure** - Add this to your Claude config:
-   ```json
-   "gemini-cli": {
-     "command": "npx",
-     "args": ["-y", "gemini-mcp-tool"]
-   }
-   ```
-3. **Use** - Run `claude mcp add-from-claude-desktop` where you want to use gemini-cli as an MCP
-4. **Select** - Make sure you've selected the MCPs you want to import (defaults to all)
-5. **Run** - Execute `claude code` in the same directory - it's now configured!
+Get Gemini MCP Tool running in 3 simple steps:
+
+### Step 1: Setup Prerequisites
+Ensure you have the Gemini CLI installed:
+```bash
+pip install google-generativeai-cli
+gemini config set api_key YOUR_API_KEY
+```
+
+### Step 2: Configure Claude Desktop
+Add to your Claude Desktop config file:
+```json
+{
+  "mcpServers": {
+    "gemini-cli": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"]
+    }
+  }
+}
+```
+
+### Step 3: Start Using
+Restart Claude Desktop and try:
+- "Use Gemini to analyze this file"
+- `/gemini-cli:ping "Hello Gemini!"`
 
 ## Prerequisites
 
@@ -172,14 +187,19 @@ On macOS/Linux, you might need to make scripts executable:
 chmod +x contribution/*.sh
 ```
 
-## Next Steps
+## What's Next?
 
-Now that you're set up:
-- Learn about file analysis with @ syntax
-- Explore sandbox mode for safe code execution
-- Check out real-world examples in the README
-- Join the community for support
+Now that you're set up, explore these resources:
+
+- **[Complete Installation Guide](/installation/)** - Detailed setup for all platforms  
+- **[Commands Reference](/usage/commands)** - Full command documentation
+- **[File Analysis Guide](/concepts/file-analysis)** - Master the @syntax for file processing
+- **[How It Works](/concepts/how-it-works)** - Understanding the architecture
+- **[Examples](/usage/examples)** - Real-world use cases
+- **[Troubleshooting](/resources/troubleshooting)** - Common issues and solutions
 
 ::: info Need Help?
 If you run into issues, [open an issue](https://github.com/jamubc/gemini-mcp-tool/issues) on GitHub.
 :::
+
+

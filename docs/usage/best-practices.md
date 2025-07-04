@@ -2,6 +2,20 @@
 
 Get the most out of Gemini MCP Tool with these proven practices.
 
+## Tool Selection
+
+### Choose the Right Tool
+Use search for pattern matching, analyze for understanding:
+```bash
+# Use search for
+/gemini-cli:search find "TODO" in @src/*.js        # Find patterns
+/gemini-cli:search count "console.log" in @src/*.js # Count occurrences
+
+# Use analyze for
+/gemini-cli:analyze @src/auth.js explain this code # Understanding
+/gemini-cli:analyze @src/*.js find security issues # Complex analysis
+```
+
 ## File Selection
 
 ### Start Specific
@@ -158,19 +172,23 @@ Always include full error messages and stack traces when debugging.
 
 ## Common Pitfalls to Avoid
 
-### 1. Over-broad Queries
+### 1. Wrong Tool Choice
+❌ Using analyze for simple pattern matching
+✅ Using search for finding patterns, analyze for understanding
+
+### 2. Over-broad Queries
 ❌ `@**/* "fix all issues"`
 ✅ `@src/auth/*.js "fix security issues in authentication"`
 
-### 2. Missing Context
+### 3. Missing Context
 ❌ `"why doesn't this work?"`
 ✅ `@error.log @config.js "why doesn't database connection work?"`
 
-### 3. Ignoring Model Limits
+### 4. Ignoring Model Limits
 ❌ Trying to analyze 5M tokens with Flash model
 ✅ Using Pro for large codebases, Flash for single files
 
-### 4. Vague Success Criteria
+### 5. Vague Success Criteria
 ❌ "make it better"
 ✅ "improve performance to handle 1000 requests/second"
 
@@ -178,14 +196,124 @@ Always include full error messages and stack traces when debugging.
 
 ### Pre-commit Reviews
 ```bash
+# Quick search before committing
+alias search-todos='/gemini-cli:search find "TODO" in @src/*.js'
+
+# Full review
 alias gemini-review='/gemini-cli:analyze @$(git diff --staged --name-only) review staged changes'
 ```
 
-### Daily Development
-1. Morning: Architecture review
-2. Before PR: Code review
-3. When stuck: Debugging help
-4. End of day: Documentation updates
+:::unstable
+## Workflow Optimization
+
+### When to Use Delegation
+delegate excels at complex, context-heavy tasks that would be inefficient for Claude to process directly:
+
+#### Good Candidates for Delegation
+```bash
+# Large file processing (>100k tokens)
+/gemini-cli:agent-delegate {
+  "task": {
+    "type": "analyze",
+    "description": "Review entire codebase architecture",
+    "files": ["src/**/*.js", "tests/**/*.js", "docs/**/*.md"],
+    "requirements": ["identify architectural patterns", "find inconsistencies", "suggest improvements"]
+  }
+}
+
+# Multi-file coordinated changes
+/gemini-cli:agent-delegate {
+  "task": {
+    "type": "transform",
+    "description": "Implement new error handling across services",
+    "files": ["services/*/src/*.js"],
+    "requirements": ["consistent error format", "preserve existing APIs", "add logging"]
+  }
+}
+```
+
+#### Poor Candidates for Delegation
+```bash
+# Simple single-file tasks (use analyze instead)
+❌ agent-delegate for "explain this function"
+✅ /gemini-cli:analyze @utils.js explain the hashPassword function
+
+# Quick searches (use search instead)
+❌ agent-delegate for "find all TODO comments"
+✅ /gemini-cli:search find "TODO" in @src/*.js
+```
+
+### Optimizing Delegation Costs
+Claude + Gemini delegation can reduce overall costs when used strategically:
+
+1. **Context Window Efficiency**
+   - Claude: Expensive for large contexts
+   - Gemini: Cost-effective for 100k-2M token tasks
+   - Strategy: Let Claude orchestrate, Gemini process
+
+2. **Task Batching**
+   ```bash
+   # Batch related changes in one delegation
+   /gemini-cli:agent-delegate {
+     "task": {
+       "type": "transform",
+       "description": "Modernize all API endpoints",
+       "files": ["api/**/*.js"],
+       "requirements": [
+         "Convert callbacks to async/await",
+         "Add input validation",
+         "Standardize error responses",
+         "Update JSDoc comments"
+       ]
+     }
+   }
+   ```
+
+3. **Protocol Selection**
+   - **standard**: Quick, simple tasks
+   - **pareto-lang**: Structured operations with field control
+   - **context-engineering**: Complex boundary management
+
+### Field Integrity Strategies
+
+Choose the right field integrity setting for your use case:
+
+```bash
+# Preserve: No modifications to original structure
+"field_integrity": "preserve"  # Documentation, analysis
+
+# Merge: Blend changes with original
+"field_integrity": "merge"     # Story enhancement, refactoring
+
+# Reconstruct: Complete rewrite allowed
+"field_integrity": "reconstruct"  # Modernization, conversions
+```
+
+### Context Boundary Management
+
+Control information flow between agents:
+
+```bash
+# Direct: Full file access
+"context_boundary": "direct"  # Most common, full transparency
+
+# Mediated: Controlled access with markers
+"context_boundary": "mediated"  # Sensitive data, partial access
+
+# Isolated: Sandboxed execution
+"context_boundary": "isolated"  # Security reviews, untrusted code
+```
+
+### Agent-Delegate vs Other Tools
+
+| Scenario | Best Tool | Why |
+|----------|-----------|-----|
+| Find error patterns | search | Fast pattern matching |
+| Explain complex logic | analyze | Direct AI understanding |
+| Refactor entire module | agent-delegate | Multi-file coordination |
+| Current tech news | WebOperations | Real-time information |
+| Generate test suite | agent-delegate | Complex requirements |
+| Quick code review | analyze | Single file, immediate |
 
 ## Advanced Tips
 
@@ -214,4 +342,19 @@ When Gemini suggests improvements, ask:
 ```bash
 "explain why this approach is better"
 "show me more examples of this pattern"
+```
+
+### 4. Leverage A2A Delegation Chains
+```bash
+# Step 1: Analyze with delegation
+/gemini-cli:agent-delegate analyze entire codebase
+
+# Step 2: Process response in Claude
+Review the architecture issues found
+
+# Step 3: Delegate fixes
+/gemini-cli:agent-delegate implement the improvements
+
+# Step 4: Validate changes
+/gemini-cli:analyze verify the changes are correct
 ```
