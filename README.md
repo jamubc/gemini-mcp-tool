@@ -1,11 +1,33 @@
-> **This version introduces major changes to the architecture of gemini-mcp-tool.**
+> **This version introduces *major* changes to the architecture of gemini-mcp-tool! --> TLDR: modular "drop in" tool loader + beta testing of hooks for deterministic behavoir. + gemini reads => claude edits (with visual diffs)**
+>
+> Note: You ***can*** test **gemini-mcp-tool:[2.0.0 beta]** *WITHOUT* hooks.
+>
+>.
 
-**Share your experience!** [any wishes?](https://github.com/jamubc/gemini-mcp-tool/discussions/2) and help the community grow!
+**Thank you for trying the beta!, please consider**  [>giving feedback<](https://github.com/jamubc/gemini-mcp-tool/discussions/2)
 
 > 📚 [Wiki documentation](https://github.com/jamubc/gemini-mcp-tool/wiki) is available with additional guides and examples.
 >
 > Update: using Gemini anslysis to trigger Claude's editing tools.
-# Gemini MCP Tool
+# Gemini MCP Tool [2.0.0 beta]
+
+## Hook System (Beta) - Deterministic Smart Routing
+
+The gemini-mcp-tool is testing a deterministic routing system that automatically delegates complex operations to Gemini CLI based on objective criteria (file count, size, token estimates). This eliminates prompt engineering in favor of measurable decision-making. We are using hooks to accomplish this.
+
+### Quick Start
+**Acknowledgment:** This feature is in **BETA** and may behave unexpectedly.
+
+**Local Testing (Recommended) ~ [global installer is not ready!]:**
+```bash
+cp install-local-hooks.sh /your/project/
+chmod +x install-local-hooks.sh
+./install-local-hooks.sh
+---
+```
+
+---
+
 
 <div align="center">
 

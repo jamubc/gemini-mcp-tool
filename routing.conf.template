@@ -1,0 +1,96 @@
+# gemini-mcp-tool Routing Configuration
+# This file controls how the deterministic router decides when to delegate to Gemini
+# Copy this file to ~/.gemini-mcp/routing.conf and customize as needed
+
+# ============================================================================
+# ROUTING THRESHOLDS
+# ============================================================================
+
+# Minimum number of files to trigger Gemini delegation
+# Default: 3 files
+FILE_COUNT_THRESHOLD=3
+
+# Minimum total size in bytes to trigger delegation
+# Default: 10485760 (10MB)
+# Examples:
+#   1048576    = 1MB
+#   5242880    = 5MB
+#   10485760   = 10MB
+#   52428800   = 50MB
+#   104857600  = 100MB
+SIZE_THRESHOLD=10485760
+
+# Minimum estimated tokens to trigger delegation
+# Default: 50000 tokens (~200KB of text)
+# Note: Estimation uses ~4 characters per token
+TOKEN_THRESHOLD=50000
+
+# ============================================================================
+# PERFORMANCE SETTINGS
+# ============================================================================
+
+# Maximum time for routing decision in milliseconds
+# Default: 100ms
+# If analysis takes longer, it will be terminated to avoid blocking
+ROUTING_TIMEOUT=100
+
+# Analysis cache validity in minutes
+# Default: 5 minutes
+# Cached file analysis results are reused within this time window
+ANALYSIS_CACHE_VALIDITY=5
+
+# ============================================================================
+# LOGGING AND TRANSPARENCY
+# ============================================================================
+
+# Enable verbose routing logs
+# Default: true
+# Shows detailed routing decisions in stderr
+ROUTING_VERBOSE=true
+
+# ============================================================================
+# FALLBACK BEHAVIOR
+# ============================================================================
+
+# What to do when Gemini delegation fails
+# Options:
+#   passthrough - Continue to MCP server (default)
+#   error       - Return error to Claude
+# Default: passthrough
+FALLBACK_MODE=passthrough
+
+# ============================================================================
+# CIRCUIT BREAKER SETTINGS
+# ============================================================================
+
+# Number of consecutive failures before opening circuit
+# Default: 3
+# After this many failures, delegation is temporarily disabled
+CIRCUIT_BREAKER_THRESHOLD=3
+
+# How long to wait before retrying after circuit opens (seconds)
+# Default: 300 (5 minutes)
+CIRCUIT_BREAKER_TIMEOUT=300
+
+# ============================================================================
+# ADVANCED SETTINGS
+# ============================================================================
+
+# Debug level (0-3)
+# 0 = Errors only
+# 1 = Warnings and errors
+# 2 = Info, warnings, and errors
+# 3 = Debug, info, warnings, and errors
+DEBUG_LEVEL=1
+
+# ============================================================================
+# PROJECT-SPECIFIC OVERRIDES
+# ============================================================================
+# You can override any of these settings using environment variables:
+#
+# export GEMINI_MCP_FILE_THRESHOLD=5
+# export GEMINI_MCP_SIZE_THRESHOLD=20971520  # 20MB
+# export GEMINI_MCP_TOKEN_THRESHOLD=100000
+#
+# Environment variables take precedence over this configuration file
+# ============================================================================

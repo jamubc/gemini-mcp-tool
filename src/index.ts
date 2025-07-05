@@ -19,6 +19,7 @@ import { PromptExecutionError, ToolExecutionError } from './types/errors.js';
 import { parseNotifications } from './utils/notification-parser.js';
 import { transformStructuredResponse } from './utils/response-transformer.js';
 import { guardRails } from './utils/guard-rails.js';
+import { toolEnhancer } from './utils/tool-enhancer.js';
 
 // Create server instance
 const server = new Server(
@@ -531,8 +532,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
     }
 
-    // Try to find the tool
-    const tool = toolLoader.getTool(toolName);
+    // Try to find the tool and enhance it
+    const tool = toolEnhancer.enhance(toolLoader.getTool(toolName));
     
     if (!tool) {
       throw new Error(`Unknown tool: ${toolName}`);

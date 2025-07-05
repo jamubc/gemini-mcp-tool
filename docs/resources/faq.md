@@ -3,7 +3,7 @@
 ## General
 
 ### What is Gemini MCP Tool?
-A bridge between Claude Desktop and Google's Gemini AI, enabling you to use Gemini's powerful capabilities directly within Claude.
+A bridge between Claude Desktop and Google's Gemini CLI, enabling you to use Gemini's large context directly within Claude.
 
 ### Why use this instead of Gemini directly?
 - Integrated into your Claude workflow

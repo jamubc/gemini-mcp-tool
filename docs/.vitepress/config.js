@@ -3,7 +3,7 @@ import container from 'markdown-it-container'
 
 export default defineConfig({
   title: 'Gemini MCP Tool Documentation',
-  description: 'Bridge Gemini models with Claude Desktop',
+  description: 'Connect Gemini CLI to Claude and other MCP clients',
   base: '/gemini-mcp-tool/',
   
   // Force dark mode by default

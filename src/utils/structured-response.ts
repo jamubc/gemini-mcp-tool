@@ -8,7 +8,17 @@ import { transformResponse } from './response-transformer.js';
 export function createStructuredResponse(
   toolOutput: string,
   behavior: ToolBehavior,
-  metadata?: { status: string; timing?: number; execution_details?: string },
+  metadata?: { 
+    status: string; 
+    timing?: number; 
+    execution_details?: string;
+    cache_hit?: boolean;
+    security_validated?: boolean;
+    performance_metrics?: {
+      execution_time_ms: number;
+      memory_usage_mb: number;
+    };
+  },
   notifications?: string[],
 ): string {
   // Apply transformation to the tool output
@@ -174,7 +184,17 @@ export interface StandardizedResponseSections {
 export function createStandardizedResponse(
   sections: StandardizedResponseSections,
   behavior: ToolBehavior,
-  metadata?: { status: string; timing?: number; execution_details?: string },
+  metadata?: { 
+    status: string; 
+    timing?: number; 
+    execution_details?: string;
+    cache_hit?: boolean;
+    security_validated?: boolean;
+    performance_metrics?: {
+      execution_time_ms: number;
+      memory_usage_mb: number;
+    };
+  },
   notifications?: string[],
 ): string {
   // Build the standardized output
