@@ -29,6 +29,12 @@ features:
 ---
 
 <div style="text-align: center; margin-top: -10px; margin-bottom: 20px;">
+  <div style="margin-bottom: 16px;">
+    <a href="https://github.com/jamubc/gemini-mcp-tool/releases"><img src="https://img.shields.io/github/v/release/jamubc/gemini-mcp-tool?logo=github&label=GitHub" alt="GitHub Release"></a>
+    <a href="https://www.npmjs.com/package/gemini-mcp-tool"><img src="https://img.shields.io/npm/v/gemini-mcp-tool" alt="npm version"></a>
+    <a href="https://www.npmjs.com/package/gemini-mcp-tool"><img src="https://img.shields.io/npm/dt/gemini-mcp-tool" alt="npm downloads"></a>
+    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  </div>
   <span style="font-size: 13px; font-weight: 500; color: var(--vp-c-text-2); background-color: var(--vp-c-bg-soft); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--vp-c-divider);">
     Inspired by the needs of the Claude community
   </span>
@@ -37,6 +43,11 @@ features:
 <div style="margin-top: 48px;">
 
 ## Quick Start
+
+<div style="background: var(--vp-c-bg-soft); padding: 16px; border-radius: 8px; border: 1px solid var(--vp-c-divider); margin-bottom: 24px;">
+  <h4 style="margin: 0 0 8px 0; color: var(--vp-c-brand); font-size: 16px;">🎉 Version 1.1.2 Now Available!</h4>
+  <p style="margin: 0; font-size: 14px; line-height: 1.5;">Enhanced reliability with automatic fallback from Gemini Pro to Flash when quota limits are exceeded.</p>
+</div>
 </div>
 
 For installation and setup instructions, please refer to our [GitHub repository](https://github.com/jamubc/gemini-mcp-tool#readme) which contains the most up-to-date installation guide.
