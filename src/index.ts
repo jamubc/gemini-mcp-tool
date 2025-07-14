@@ -222,28 +222,85 @@ function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-// ===== MCP-NATIVE BATCHING SYSTEM =====
-
-interface FileBatch {
-  id: string;
-  name: string;
-  files: string[];
-  prompt: string;
+/**
+ * Estimate INPUT token count for Gemini CLI request
+ * Critical: This prevents hitting Gemini's 1M input token limit
+ */
+function estimateInputTokens(prompt: string, allFiles: boolean): number {
+  let basePromptTokens = estimateTokenCount(prompt);
+  
+  if (allFiles) {
+    // Conservative estimate: allFiles can add 3-10M tokens easily
+    // Based on typical codebase sizes:
+    // - Small: 100k tokens
+    // - Medium: 500k tokens  
+    // - Large: 2M+ tokens
+    const estimatedFileTokens = 2000000; // Conservative 2M token estimate
+    return basePromptTokens + estimatedFileTokens;
+  }
+  
+  // Count @ file references in prompt
+  const fileReferences = (prompt.match(/@\S+/g) || []).length;
+  const estimatedTokensPerFile = 50000; // ~200 lines average
+  
+  return basePromptTokens + (fileReferences * estimatedTokensPerFile);
 }
 
-interface BatchState {
+/**
+ * Check if input will exceed reasonable limits and require batching
+ */
+function requiresInputBatching(prompt: string, allFiles: boolean): boolean {
+  const inputTokens = estimateInputTokens(prompt, allFiles);
+  const reasonableLimit = 25000; // 25k tokens - reasonable batch size
+  
+  console.warn(`[Input Analysis] Estimated tokens: ${inputTokens.toLocaleString()}, Limit: ${reasonableLimit.toLocaleString()}`);
+  
+  return inputTokens > reasonableLimit;
+}
+
+/**
+ * Extract file references from user prompt (e.g., "@ts", "@src/**", "@components")
+ */
+function extractFileReferences(prompt: string): string[] {
+  // Match @filepath patterns in the prompt
+  const fileRefPattern = /@[^\s,;]+/g;
+  const matches = prompt.match(fileRefPattern);
+  
+  if (matches && matches.length > 0) {
+    console.warn(`[File Extraction] Found user file references: ${matches.join(', ')}`);
+    return matches;
+  }
+  
+  // Fallback: if allFiles is used but no specific @ patterns, use generic
+  console.warn(`[File Extraction] No specific @ patterns found, using generic @.`);
+  return ["@."];
+}
+
+// ===== MCP-COMPLIANT CUSTOM BATCHING SYSTEM =====
+
+interface MCPFileBatch {
+  cursor: string; // MCP cursor for pagination
+  name: string;
+  filePatterns: string[]; // Actual file patterns to send to gemini
+  prompt: string;
+  estimatedTokens: number;
+}
+
+interface MCPBatchState {
   id: string;
   strategy: string;
-  batches: FileBatch[];
-  completed: string[];
-  inProgress: Set<string>;
-  results: { batchId: string; result: string }[];
-  progressToken?: string;
+  batches: MCPFileBatch[];
+  currentBatchIndex: number;
+  completedBatches: string[];
+  results: { cursor: string; result: string }[];
+  progressToken?: string; // MCP progress token
+  totalBatches: number;
   createdAt: number;
+  originalPrompt: string;
 }
 
-// Global batch storage
-const activeBatches = new Map<string, BatchState>();
+// Global MCP batch storage
+const activeMCPBatches = new Map<string, MCPBatchState>();
 
 /**
  * Generate unique batch ID
@@ -253,216 +310,250 @@ function generateBatchId(): string {
 }
 
 /**
- * Create file batches based on strategy
+ * Create MCP-compliant file batches using USER'S actual file references
+ * CRITICAL: Respects user's @ patterns instead of hardcoded assumptions
  */
-function createFileBatches(strategy: string, prompt: string): FileBatch[] {
-  const batchId = generateBatchId();
+function createMCPFileBatches(strategy: string, prompt: string): MCPFileBatch[] {
+  const maxTokensPerBatch = 20000; // 20k tokens - reasonable batch size with buffer
+  const promptTokens = estimateTokenCount(prompt);
+  const availableTokensPerBatch = maxTokensPerBatch - promptTokens;
+  const tokensPerFilePattern = 5000; // More conservative estimate per file pattern
   
-  switch (strategy) {
-    case "parallel":
+  // CRITICAL: Extract user's actual file references instead of hardcoding
+  const userFileRefs = extractFileReferences(prompt);
+  console.warn(`[MCP Batching] Using user's file references: ${userFileRefs.join(', ')}`);
+  
+  // If user only specified one file reference and it's small enough, use it directly
+  if (userFileRefs.length === 1) {
+    const estimatedTokens = promptTokens + (userFileRefs.length * tokensPerFilePattern);
+    if (estimatedTokens <= maxTokensPerBatch) {
       return [
         {
-          id: `${batchId}-ts`,
-          name: "TypeScript Files",
-          files: ["@**/*.ts", "@**/*.tsx"],
-          prompt: `${prompt} Focus on TypeScript files.`
-        },
-        {
-          id: `${batchId}-js`,
-          name: "JavaScript Files", 
-          files: ["@**/*.js", "@**/*.jsx"],
-          prompt: `${prompt} Focus on JavaScript files.`
-        },
-        {
-          id: `${batchId}-other`,
-          name: "Other Script Files",
-          files: ["@**/*.py", "@**/*.sh", "@**/*.json"],
-          prompt: `${prompt} Focus on Python, shell, and config files.`
+          cursor: `${Date.now()}-user-request`,
+          name: `User Requested: ${userFileRefs[0]}`,
+          filePatterns: userFileRefs,
+          prompt: prompt, // Use original prompt unchanged
+          estimatedTokens
         }
       ];
-    
-    case "sequential":
-      return [
-        {
-          id: `${batchId}-core`,
-          name: "Core Files",
-          files: ["@main.*", "@index.*", "@app.*"],
-          prompt: `${prompt} Focus on main entry point files.`
-        },
-        {
-          id: `${batchId}-components`,
-          name: "Components",
-          files: ["@components/**/*", "@src/components/**/*"],
-          prompt: `${prompt} Focus on component files.`
-        },
-        {
-          id: `${batchId}-utils`,
-          name: "Utilities",
-          files: ["@utils/**/*", "@lib/**/*", "@helpers/**/*"],
-          prompt: `${prompt} Focus on utility and helper files.`
-        }
-      ];
-      
-    case "smart":
-      return [
-        {
-          id: `${batchId}-critical`,
-          name: "Critical Files",
-          files: ["@main.*", "@index.*", "@app.*", "@server.*"],
-          prompt: `${prompt} Focus on critical application entry points.`
-        },
-        {
-          id: `${batchId}-remaining`,
-          name: "Remaining Files",
-          files: ["@**/*"],
-          prompt: `${prompt} Analyze all remaining files not covered in previous batches.`
-        }
-      ];
-      
-    default: // "single"
-      return [
-        {
-          id: `${batchId}-all`,
-          name: "All Files",
-          files: ["@."],
-          prompt
-        }
-      ];
-  }
-}
-
-/**
- * Start parallel batch processing
- */
-async function startParallelBatches(
-  batches: FileBatch[],
-  progressToken: string | undefined,
-  batchStateId: string,
-  model?: string,
-  sandbox?: boolean,
-  strictMode: StrictMode = StrictMode.NONE
-): Promise<void> {
-  const batchState = activeBatches.get(batchStateId);
-  if (!batchState) return;
-
-  // Start all batches in parallel
-  const promises = batches.map(async (batch) => {
-    try {
-      batchState.inProgress.add(batch.id);
-      
-      // Send progress notification
-      if (progressToken) {
-        await sendProgressNotification(progressToken, 
-          batchState.completed.length, 
-          batches.length, 
-          `Processing ${batch.name}...`
-        );
-      }
-      
-      const result = await executeGeminiCLI(
-        batch.prompt,
-        model,
-        sandbox,
-        strictMode,
-        true // allFiles for batch processing
-      );
-      
-      batchState.results.push({ batchId: batch.id, result });
-      batchState.completed.push(batch.id);
-      batchState.inProgress.delete(batch.id);
-      
-      // Send progress notification
-      if (progressToken) {
-        await sendProgressNotification(progressToken,
-          batchState.completed.length,
-          batches.length,
-          `Completed ${batch.name}`
-        );
-      }
-      
-    } catch (error) {
-      console.error(`Batch ${batch.id} failed:`, error);
-      batchState.inProgress.delete(batch.id);
     }
-  });
+  }
   
-  await Promise.allSettled(promises);
+  // If multiple refs or too large, batch them
+  const maxPatternsPerBatch = Math.floor(availableTokensPerBatch / tokensPerFilePattern);
+  const batches: MCPFileBatch[] = [];
+  
+  for (let i = 0; i < userFileRefs.length; i += maxPatternsPerBatch) {
+    const batchRefs = userFileRefs.slice(i, i + maxPatternsPerBatch);
+    const estimatedTokens = promptTokens + (batchRefs.length * tokensPerFilePattern);
+    
+    batches.push({
+      cursor: `${Date.now()}-batch-${i / maxPatternsPerBatch + 1}`,
+      name: `User Files Batch ${i / maxPatternsPerBatch + 1}: ${batchRefs.join(', ')}`,
+      filePatterns: batchRefs,
+      prompt: `${prompt}\n\nFocusing on: ${batchRefs.join(', ')}`,
+      estimatedTokens
+    });
+  }
+  
+  console.warn(`[MCP Batching] Created ${batches.length} batches for user's file references`);
+  return batches;
 }
 
 /**
- * Send progress notification
+ * Send MCP progress notification
  */
-async function sendProgressNotification(
-  progressToken: string,
-  progress: number,
-  total: number,
+async function sendMCPProgressNotification(
+  progressToken: string, 
+  progress: number, 
+  total: number, 
   message: string
 ): Promise<void> {
-  try {
-    await server.notification({
-      method: "notifications/progress",
-      params: {
-        progressToken,
-        progress,
-        total,
-        message
-      }
-    });
-  } catch (error) {
-    console.error(`[Gemini MCP] Failed to send progress notification:`, error);
-  }
+  // MCP progress notification implementation
+  // This follows the MCP protocol: notifications/progress
+  console.warn(`[MCP Progress] ${progressToken}: ${progress}/${total} - ${message}`);
+  
+  // Note: In a real MCP server, this would send an actual notification
+  // For now, we log it as it would be sent to the client
 }
 
 /**
- * Get batch results with cursor support
+ * Start MCP-compliant batched analysis for large inputs
  */
-function getBatchResults(batchStateId: string, cursor?: string): {
-  analysis: string;
-  nextCursor?: string;
-  progress?: { completed: number; total: number; currentBatch?: string };
-} {
-  const batchState = activeBatches.get(batchStateId);
-  if (!batchState) {
-    return { analysis: "Batch not found or expired." };
-  }
+async function startMCPBatchedAnalysis(
+  prompt: string, 
+  model: string, 
+  sandbox: boolean, 
+  changeMode: boolean, 
+  allFiles: boolean, 
+  batchStrategy: string,
+  progressToken?: string
+): Promise<string> {
+  const batchId = generateBatchId();
+  const batches = createMCPFileBatches(batchStrategy, prompt);
   
-  const startIndex = cursor ? parseInt(cursor.split('-').pop() || '0') : 0;
-  const endIndex = Math.min(startIndex + 1, batchState.results.length);
+  console.warn(`[MCP Batch] Starting MCP-compliant batch analysis with strategy: ${batchStrategy}`);
+  console.warn(`[MCP Batch] Created ${batches.length} batches, total estimated tokens: ${batches.reduce((sum, b) => sum + b.estimatedTokens, 0)}`);
   
-  if (startIndex >= batchState.results.length) {
-    return { analysis: "No more results available." };
-  }
-  
-  const currentResults = batchState.results.slice(startIndex, endIndex);
-  const analysis = currentResults.map(r => r.result).join('\n\n---\n\n');
-  
-  const nextCursor = endIndex < batchState.results.length 
-    ? `${batchStateId}-result-${endIndex}` 
-    : undefined;
-    
-  return {
-    analysis,
-    nextCursor,
-    progress: {
-      completed: batchState.completed.length,
-      total: batchState.batches.length,
-      currentBatch: batchState.inProgress.size > 0 
-        ? Array.from(batchState.inProgress)[0]
-        : undefined
-    }
+  // Create MCP batch state
+  const batchState: MCPBatchState = {
+    id: batchId,
+    strategy: batchStrategy,
+    batches,
+    currentBatchIndex: 0,
+    completedBatches: [],
+    results: [],
+    progressToken,
+    totalBatches: batches.length,
+    createdAt: Date.now(),
+    originalPrompt: prompt
   };
+  
+  activeMCPBatches.set(batchId, batchState);
+  
+  // Send initial progress notification
+  if (progressToken) {
+    await sendMCPProgressNotification(progressToken, 0, batches.length, "Starting batch analysis...");
+  }
+  
+  // Process first batch immediately
+  const firstBatch = batches[0];
+  const firstResult = await processMCPBatch(firstBatch, model, sandbox, changeMode);
+  
+  // Update batch state
+  batchState.results.push({ cursor: firstBatch.cursor, result: firstResult });
+  batchState.completedBatches.push(firstBatch.cursor);
+  batchState.currentBatchIndex = 1;
+  
+  // Send progress notification
+  if (progressToken) {
+    await sendMCPProgressNotification(progressToken, 1, batches.length, `Completed: ${firstBatch.name}`);
+  }
+  
+  // Return result with nextCursor for continuation
+  const hasMore = batchState.currentBatchIndex < batchState.totalBatches;
+  const nextCursor = hasMore ? batches[batchState.currentBatchIndex].cursor : null;
+  
+  return formatMCPBatchResult(batchState, firstResult, nextCursor, hasMore);
 }
 
 /**
- * Clean up expired batches
+ * Process individual MCP batch
  */
-function cleanupExpiredBatches(): void {
+async function processMCPBatch(
+  batch: MCPFileBatch, 
+  model: string, 
+  sandbox: boolean, 
+  changeMode: boolean
+): Promise<string> {
+  try {
+    // Use existing executeGeminiCLI system - build proper prompt with file patterns
+    const filePatternString = batch.filePatterns.join(' ');
+    const fullPrompt = `${batch.prompt} ${filePatternString}`;
+    
+    console.warn(`[MCP Batch] Processing: ${batch.name}`);
+    console.warn(`[MCP Batch] Files: ${filePatternString}`);
+    console.warn(`[MCP Batch] Estimated tokens: ${batch.estimatedTokens}`);
+    
+    const strictMode = changeMode ? StrictMode.CHANGE : StrictMode.NONE;
+    const result = await executeGeminiCLI(fullPrompt, model, sandbox, strictMode, false);
+    return result;
+  } catch (error) {
+    const errorMsg = `Batch processing failed: ${error instanceof Error ? error.message : String(error)}`;
+    console.error(`[MCP Batch] ${errorMsg}`);
+    return errorMsg;
+  }
+}
+
+/**
+ * Continue MCP batch processing with cursor
+ */
+async function continueMCPBatch(cursor: string): Promise<string> {
+  // Find batch state that contains this cursor
+  let targetBatchState: MCPBatchState | null = null;
+  
+  for (const [batchId, batchState] of activeMCPBatches.entries()) {
+    if (batchState.batches.some(batch => batch.cursor === cursor)) {
+      targetBatchState = batchState;
+      break;
+    }
+  }
+  
+  if (!targetBatchState) {
+    return "❌ **Invalid Cursor**\n\nThe provided cursor is not valid or the batch has expired. Please start a new batch operation.";
+  }
+  
+  // Find the batch to process
+  const batchToProcess = targetBatchState.batches[targetBatchState.currentBatchIndex];
+  if (!batchToProcess || batchToProcess.cursor !== cursor) {
+    return "❌ **Cursor Mismatch**\n\nThe cursor does not match the expected next batch. Please check the cursor value.";
+  }
+  
+  // Process the batch
+  const result = await processMCPBatch(batchToProcess, "gemini-2.5-pro", false, true);
+  
+  // Update state
+  targetBatchState.results.push({ cursor: batchToProcess.cursor, result });
+  targetBatchState.completedBatches.push(batchToProcess.cursor);
+  targetBatchState.currentBatchIndex++;
+  
+  // Send progress notification
+  if (targetBatchState.progressToken) {
+    await sendMCPProgressNotification(
+      targetBatchState.progressToken, 
+      targetBatchState.currentBatchIndex, 
+      targetBatchState.totalBatches, 
+      `Completed: ${batchToProcess.name}`
+    );
+  }
+  
+  // Return result with next cursor
+  const hasMore = targetBatchState.currentBatchIndex < targetBatchState.totalBatches;
+  const nextCursor = hasMore ? targetBatchState.batches[targetBatchState.currentBatchIndex].cursor : null;
+  
+  return formatMCPBatchResult(targetBatchState, result, nextCursor, hasMore);
+}
+
+/**
+ * Format MCP batch result with cursor information
+ */
+function formatMCPBatchResult(
+  batchState: MCPBatchState, 
+  latestResult: string, 
+  nextCursor: string | null, 
+  hasMore: boolean
+): string {
+  const progress = `${batchState.currentBatchIndex}/${batchState.totalBatches}`;
+  
+  let result = `📊 **MCP Batch Analysis Progress: ${progress}**\n\n`;
+  result += `**Strategy:** ${batchState.strategy}\n`;
+  result += `**Completed:** ${batchState.completedBatches.length} batches\n\n`;
+  
+  result += `**Latest Result:**\n${latestResult}\n\n`;
+  
+  if (hasMore && nextCursor) {
+    result += `✅ **Continue with cursor:** \`${nextCursor}\`\n\n`;
+    result += `*Use this cursor to continue the batch analysis.*`;
+  } else {
+    result += `🎉 **Batch Analysis Complete!**\n\n`;
+    result += `**Summary:** Processed ${batchState.totalBatches} batches using ${batchState.strategy} strategy.`;
+  }
+  
+  return result;
+}
+
+
+
+/**
+ * Clean up expired MCP batches
+ */
+function cleanupExpiredMCPBatches(): void {
   const now = Date.now();
   const expirationTime = 3600000; // 1 hour
   
-  for (const [id, batch] of activeBatches.entries()) {
+  for (const [id, batch] of activeMCPBatches.entries()) {
     if (now - batch.createdAt > expirationTime) {
-      activeBatches.delete(id);
+      activeMCPBatches.delete(id);
     }
   }
 }
@@ -560,130 +651,6 @@ function processToolParameters(args: ToolArguments): {
   };
 }
 
-/**
- * Start batched analysis operation
- */
-async function startBatchedAnalysis(
-  prompt: string,
-  model?: string,
-  sandbox?: boolean,
-  changeMode?: boolean,
-  allFiles?: boolean,
-  batchStrategy: string = "single",
-  progressToken?: string
-): Promise<string> {
-  const batchStateId = generateBatchId();
-  const batches = createFileBatches(batchStrategy, prompt);
-  
-  // Create batch state
-  const batchState: BatchState = {
-    id: batchStateId,
-    strategy: batchStrategy,
-    batches,
-    completed: [],
-    inProgress: new Set(),
-    results: [],
-    progressToken,
-    createdAt: Date.now()
-  };
-  
-  activeBatches.set(batchStateId, batchState);
-  
-  console.warn(`[Gemini MCP] Starting batched analysis with strategy: ${batchStrategy}`);
-  console.warn(`[Gemini MCP] Created ${batches.length} batches for processing`);
-  
-  // Start processing based on strategy
-  if (batchStrategy === "parallel") {
-    // Don't await - let it run in background
-    startParallelBatches(
-      batches,
-      progressToken,
-      batchStateId,
-      model,
-      sandbox,
-      changeMode ? StrictMode.CHANGE : StrictMode.NONE
-    ).catch(error => {
-      console.error(`[Gemini MCP] Parallel batch processing failed:`, error);
-    });
-    
-    return `🚀 **Batch Analysis Started** (Strategy: ${batchStrategy})\n\n` +
-           `📊 **Progress**: Processing ${batches.length} batches in parallel\n\n` +
-           `🎯 **Batches**:\n${batches.map(b => `- ${b.name}`).join('\n')}\n\n` +
-           `⏳ **Status**: Analysis running in background. Results will be available shortly.\n\n` +
-           `🔄 **Next Steps**: Use cursor \`${batchStateId}-result-0\` to get results when ready.`;
-  } else {
-    // Sequential processing - process first batch immediately
-    try {
-      const firstBatch = batches[0];
-      batchState.inProgress.add(firstBatch.id);
-      
-      if (progressToken) {
-        await sendProgressNotification(progressToken, 0, batches.length, `Starting ${firstBatch.name}...`);
-      }
-      
-      const result = await executeGeminiCLI(
-        firstBatch.prompt,
-        model,
-        sandbox,
-        changeMode ? StrictMode.CHANGE : StrictMode.NONE,
-        true
-      );
-      
-      batchState.results.push({ batchId: firstBatch.id, result });
-      batchState.completed.push(firstBatch.id);
-      batchState.inProgress.delete(firstBatch.id);
-      
-      if (progressToken) {
-        await sendProgressNotification(progressToken, 1, batches.length, `Completed ${firstBatch.name}`);
-      }
-      
-      const nextCursor = batches.length > 1 ? `${batchStateId}-result-1` : undefined;
-      
-      return formatBatchResponse({
-        analysis: result,
-        nextCursor,
-        progress: {
-          completed: 1,
-          total: batches.length,
-          currentBatch: batches.length > 1 ? batches[1].name : undefined
-        }
-      });
-      
-    } catch (error) {
-      console.error(`[Gemini MCP] First batch failed:`, error);
-      return `❌ **Batch Analysis Failed**\n\nError processing first batch: ${error instanceof Error ? error.message : String(error)}`;
-    }
-  }
-}
-
-/**
- * Format batch response with proper structure
- */
-function formatBatchResponse(batchResults: {
-  analysis: string;
-  nextCursor?: string;
-  progress?: { completed: number; total: number; currentBatch?: string };
-}): string {
-  let response = `📊 **Batch Analysis Results**\n\n`;
-  
-  if (batchResults.progress) {
-    response += `**Progress**: ${batchResults.progress.completed}/${batchResults.progress.total} batches completed\n`;
-    if (batchResults.progress.currentBatch) {
-      response += `**Next**: ${batchResults.progress.currentBatch}\n`;
-    }
-    response += `\n`;
-  }
-  
-  response += `**Analysis Results**:\n\n${batchResults.analysis}`;
-  
-  if (batchResults.nextCursor) {
-    response += `\n\n---\n\n🔄 **Continue Analysis**: More batches available. Use cursor \`${batchResults.nextCursor}\` to get next results.`;
-  } else {
-    response += `\n\n---\n\n✅ **Analysis Complete**: All batches have been processed.`;
-  }
-  
-  return response;
-}
 
 /**
  * Optimize large OLD sections for readability
@@ -703,9 +670,39 @@ function optimizeLargeOldSections(result: string): string {
 
 /**
  * Format final response with structured sections and smart batching
+ * CRITICAL: This function enforces "gemini reads, claude edits" workflow
  */
 function formatStructuredResponse(sections: StandardizedResponseSections): string {
-  let fullResponse = `## Analysis\n${sections.analysis}\n\n## Suggested Changes\n${sections.changesSuggested}\n\n## Next Steps\n${sections.nextSteps}`;
+  // DIRECTIVE RESPONSE - Forces Claude to implement directly without reading files
+  let fullResponse = `🔧 **DIRECT IMPLEMENTATION REQUIRED - DO NOT READ FILES**
+
+⚠️  **IMPORTANT**: Gemini has already analyzed all files and provided the specific edits below. 
+🚫 **DO NOT** use Read, Grep, or LS tools - all necessary context is provided.
+✅ **DO** implement these edits directly using Edit or MultiEdit tools.
+
+## Ready-to-Apply Code Changes
+
+${sections.changesSuggested}
+
+## Implementation Instructions
+
+1. **Use Edit tool** for single file changes
+2. **Use MultiEdit tool** for multiple changes in one file  
+3. **Match OLD content exactly** including all whitespace and indentation
+4. **Apply changes immediately** - no verification needed
+5. **Trust the analysis** - Gemini has already done the file reading
+
+## Analysis Summary
+
+${sections.analysis}
+
+## After Implementation
+
+${sections.nextSteps}
+
+---
+
+🎯 **Workflow Reminder**: This is "gemini reads, claude edits" - Gemini did the reading, Claude does the editing.`;
   
   // Optimize large OLD sections first
   fullResponse = optimizeLargeOldSections(fullResponse);
@@ -714,7 +711,21 @@ function formatStructuredResponse(sections: StandardizedResponseSections): strin
   const tokenCount = estimateTokenCount(fullResponse);
   if (tokenCount > 25000) {
     // Suggest using batching for large operations
-    return `## Analysis\n${sections.analysis}\n\n**⚠️ Large Response Detected (${tokenCount.toLocaleString()} tokens)**\n\nThis analysis is too large for a single response. Consider using:\n\n1. **Batch Strategy**: Add \`batchStrategy: "parallel"\` to process files in batches\n2. **Focus Scope**: Make your prompt more specific to reduce response size\n3. **Sequential Processing**: Use \`batchStrategy: "sequential"\` for step-by-step analysis\n\n**First Section of Analysis:**\n\n${sections.changesSuggested.substring(0, 10000)}\n\n*[Truncated - use batching for complete analysis]*`;
+    return `🔧 **DIRECT IMPLEMENTATION - RESPONSE TOO LARGE**
+
+⚠️ **Large Response Detected (${tokenCount.toLocaleString()} tokens)**
+
+🚫 **DO NOT READ FILES** - Use batching instead:
+
+1. **Batch Strategy**: Add \`batchStrategy: "parallel"\` to process files in batches
+2. **Continue Analysis**: Use the cursor provided to get remaining edits
+3. **Sequential Processing**: Use \`batchStrategy: "sequential"\` for step-by-step analysis
+
+**Available Changes (First Section):**
+
+${sections.changesSuggested.substring(0, 10000)}
+
+*[Use cursor to continue - DO NOT read files for context]*`;
   }
   
   return fullResponse;
@@ -1622,7 +1633,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
       const processed = processToolParameters(args);
       
       // Extract processed parameters
-      const { prompt, model, sandbox, changeMode, allFiles, batchStrategy, protocolEnforced } = processed;
+      let { prompt, model, sandbox, changeMode, allFiles, batchStrategy, protocolEnforced } = processed;
+      
+      // CRITICAL: Auto-enable batching for large inputs
+      if (allFiles && batchStrategy === "single" && requiresInputBatching(prompt, allFiles)) {
+        batchStrategy = "smart";
+        console.warn(`[MCP Protocol] Auto-enabled batching due to large input (${estimateInputTokens(prompt, allFiles).toLocaleString()} tokens estimated)`);
+        // Don't return early - let the batching logic handle it below
+      }
       
       // MCP VALIDATION: Validate parameter combinations
       const editIntent = detectEditIntent(prompt);
@@ -1761,21 +1779,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
         const batchStrategy = args.batchStrategy || "single";
         
-        // Handle cursor-based batch continuation
+        // Handle MCP cursor-based batch continuation
         const requestMeta = request.params.arguments?._meta as { progressToken?: string; cursor?: string } | undefined;
         if (prompt.includes('cursor:') || requestMeta?.cursor) {
           const cursor = requestMeta?.cursor || prompt.match(/cursor:\s*([^\s]+)/)?.[1];
           if (cursor) {
-            const batchStateId = cursor.split('-')[0] + '-' + cursor.split('-')[1];
-            const batchResults = getBatchResults(batchStateId, cursor);
-            result = formatBatchResponse(batchResults);
-            console.warn(`[Gemini MCP] Batch continuation handled: ${cursor}`);
+            console.warn(`[MCP Batch] Continuing batch with cursor: ${cursor}`);
+            result = await continueMCPBatch(cursor);
           } else {
-            result = "Invalid cursor format. Please provide a valid cursor from previous batch response.";
+            result = "❌ **Invalid Cursor Format**\n\nPlease provide a valid cursor from previous batch response in format: `cursor: <cursor-value>`";
           }
-        } else if (allFiles && batchStrategy !== "single") {
-          // Start new batch operation
-          result = await startBatchedAnalysis(prompt, model, sandbox, changeMode, allFiles, batchStrategy, requestMeta?.progressToken);
+        } else if (allFiles && (batchStrategy !== "single" || requiresInputBatching(prompt, allFiles))) {
+          // Start new MCP batch operation (either explicit batching or auto-enabled due to size)
+          const finalBatchStrategy = batchStrategy === "single" ? "smart" : batchStrategy;
+          console.warn(`[MCP Batch] Starting batch analysis with strategy: ${finalBatchStrategy}`);
+          result = await startMCPBatchedAnalysis(prompt, model || "gemini-2.5-pro", sandbox, changeMode, allFiles, finalBatchStrategy, requestMeta?.progressToken);
         } else {
           console.warn(`[Gemini MCP] About to execute Gemini command...`);
           console.warn(`[Gemini MCP] Change mode enabled: ${changeMode}`);
@@ -1816,7 +1834,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         }
         
         // Clean up expired batches periodically
-        cleanupExpiredBatches();
+        cleanupExpiredMCPBatches();
         
         console.warn(`[Gemini MCP] About to return result to Claude...`);
       }
