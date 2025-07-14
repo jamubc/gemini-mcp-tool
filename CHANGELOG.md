@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.4]
+- Fixed token limit bug: gemini-2.5-pro returning 45k+ tokens for small prompts now automatically falls back to gemini-2.5-flash
+- Added proper token counting (character-to-token estimation) instead of character length checking
+- Enhanced MCP progress notifications every 25 seconds to mitigate connection timeouts during long operations
+- Replaced chunking with intelligent token limit detection and user guidance for large responses
+
 ## [1.1.3]
 - "gemini reads, claude edits"
 - Added `changeMode` parameter to ask-gemini tool for structured edit responses using claude edit diff.

@@ -207,39 +207,38 @@ function buildStructuredResponse(result: string, originalPrompt: string, strictM
 }
 
 /**
- * Intelligent chunking for large edit responses
+ * Estimate token count (rough approximation: 1 token ≈ 4 characters for English)
  */
-function chunkLargeEdits(result: string): string[] {
-  const chunks: string[] = [];
-  const maxChunkSize = 20000; // ~5k tokens per chunk
+function estimateTokenCount(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+/**
+ * Check if response would exceed MCP token limits and provide guidance
+ */
+function checkTokenLimits(result: string): { exceedsLimit: boolean; tokenCount: number; guidance: string } {
+  const tokenCount = estimateTokenCount(result);
+  const mcpTokenLimit = 25000;
   
-  // If small enough, return as single chunk
-  if (result.length <= maxChunkSize) {
-    return [result];
+  if (tokenCount > mcpTokenLimit) {
+    const guidance = `⚠️ **Large Response Detected** (${tokenCount.toLocaleString()} tokens > ${mcpTokenLimit.toLocaleString()} limit)
+
+**This response exceeds MCP token limits and will be truncated.**
+
+**Solutions:**
+1. **Be more specific**: Ask for changes to specific functions/sections instead of entire files
+2. **Use Flash model**: Try \`-m gemini-2.5-flash\` for smaller responses  
+3. **Break into parts**: Ask for changes in smaller batches
+
+**Example focused prompts:**
+- "@file.js focus on the authentication function only"
+- "@file.js show me just the error handling changes"
+- "@file.js update only the validation logic"`;
+
+    return { exceedsLimit: true, tokenCount, guidance };
   }
   
-  // Split by logical edit boundaries - keep OLD/NEW pairs together
-  const sections = result.split(/(?=\n## |\n\*\*File:)/);
-  let currentChunk = '';
-  let chunkNumber = 1;
-  
-  for (const section of sections) {
-    if ((currentChunk + section).length > maxChunkSize && currentChunk) {
-      // Add chunk header and close current chunk
-      chunks.push(`## Edit Batch ${chunkNumber}/${Math.ceil(result.length / maxChunkSize)}\n\n${currentChunk}`);
-      currentChunk = section;
-      chunkNumber++;
-    } else {
-      currentChunk += section;
-    }
-  }
-  
-  // Add final chunk
-  if (currentChunk) {
-    chunks.push(`## Edit Batch ${chunkNumber}/${Math.ceil(result.length / maxChunkSize)}\n\n${currentChunk}`);
-  }
-  
-  return chunks;
+  return { exceedsLimit: false, tokenCount, guidance: '' };
 }
 
 /**
@@ -259,21 +258,20 @@ function optimizeLargeOldSections(result: string): string {
 }
 
 /**
- * Format final response with structured sections and chunking
+ * Format final response with structured sections and token limit checking
  */
 function formatStructuredResponse(sections: StandardizedResponseSections): string {
   let fullResponse = `## Analysis\n${sections.analysis}\n\n## Suggested Changes\n${sections.changesSuggested}\n\n## Next Steps\n${sections.nextSteps}`;
   
-  // Optimize large OLD sections
+  // Optimize large OLD sections first
   fullResponse = optimizeLargeOldSections(fullResponse);
   
-  // Check if chunking is needed
-  if (fullResponse.length > 25000) {
-    const chunks = chunkLargeEdits(fullResponse);
-    if (chunks.length > 1) {
-      // Return first chunk with continuation info
-      return `${chunks[0]}\n\n---\n\n**📄 Large Response Detected:** This response was split into ${chunks.length} parts to avoid token limits. Use the tool again to get the next batch of edits.\n\n**💡 Tip:** For very large changes, consider asking Gemini to focus on specific sections or functions.`;
-    }
+  // Check token limits and provide guidance if needed
+  const tokenCheck = checkTokenLimits(fullResponse);
+  if (tokenCheck.exceedsLimit) {
+    // Prepend guidance and truncate to a reasonable size
+    const truncatedResponse = fullResponse.substring(0, 20000); // ~5k tokens
+    return `${tokenCheck.guidance}\n\n---\n\n## Partial Response (Truncated)\n${truncatedResponse}\n\n---\n\n**Response was truncated due to size limits. Please use more specific prompts.**`;
   }
   
   return fullResponse;
@@ -436,7 +434,7 @@ function createContextSuppressionInstructions(toolName: string): string {
 const server = new Server(
   {
     name: "gemini-cli-mcp",
-    version: "1.1.3",
+    version: "1.1.4",
   },
   {
     capabilities: {
@@ -509,13 +507,27 @@ async function executeCommand(
     let stderr = "";
     let isResolved = false;
 
-    // Monitor progress every 5 seconds
-    const progressInterval = setInterval(() => {
+    // Monitor progress every 25 seconds to keep MCP connection alive
+    const progressInterval = setInterval(async () => {
       if (!isResolved) {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.warn(
           `[Gemini MCP] [${elapsed}s] Still running... stdout: ${stdout.length} bytes, stderr: ${stderr.length} bytes`,
         );
+
+        // Send progress notification to prevent timeout (MCP spec recommendation)
+        try {
+          await server.notification({
+            method: "notifications/progress",
+            params: {
+              progressToken: `gemini-${startTime}`,
+              progress: parseInt(elapsed),
+              message: `Gemini processing... (${elapsed}s elapsed)`,
+            },
+          });
+        } catch (error) {
+          console.warn(`[Gemini MCP] Failed to send progress notification:`, error);
+        }
 
         // Show a sample of what we've received so far
         if (stdout.length > 0) {
@@ -525,7 +537,7 @@ async function executeCommand(
           console.warn(`[Gemini MCP] Latest stderr: "${stderr.slice(-100)}"`);
         }
       }
-    }, 5000);
+    }, 25000); // 25 seconds to keep connection alive per MCP spec
     // Listen for data from stdout
     childProcess.stdout.on("data", (data) => {
       const chunk = data.toString();
@@ -619,7 +631,35 @@ async function executeGeminiCLI(
   
   try {
     // Try with the specified model or default
-    return await executeCommand("gemini", args);
+    const result = await executeCommand("gemini", args);
+    
+    // Check if the response is suspiciously large (like the 45k token bug)
+    const tokenCount = estimateTokenCount(result);
+    if (tokenCount > 40000 && model !== "gemini-2.5-flash") {
+      console.warn(`[Gemini MCP] Large response detected (${tokenCount} tokens), likely gemini-2.5-pro bug. Falling back to Flash.`);
+      
+      await sendStatusMessage("⚠️ Large response detected, retrying with Flash model...");
+      
+      // Rebuild args with Flash model
+      const fallbackArgs = [];
+      fallbackArgs.push("-m", "gemini-2.5-flash");
+      if (sandbox) {
+        fallbackArgs.push("-s");
+      }
+      fallbackArgs.push("-p", enhancedPrompt);
+      
+      try {
+        const flashResult = await executeCommand("gemini", fallbackArgs);
+        console.warn("[Gemini MCP] Flash model provided reasonable response size.");
+        await sendStatusMessage("✅ Flash model completed with normal response size");
+        return flashResult;
+      } catch (fallbackError) {
+        console.warn("[Gemini MCP] Flash fallback failed, returning original large response with warning");
+        return `⚠️ **Large Response Warning**: This response (${tokenCount.toLocaleString()} tokens) may exceed MCP limits due to a known gemini-2.5-pro issue. Consider using \`-m gemini-2.5-flash\` for normal-sized responses.\n\n---\n\n${result}`;
+      }
+    }
+    
+    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     
