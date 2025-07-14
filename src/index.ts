@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
   ListPromptsRequestSchema,
   GetPromptRequestSchema,
+  CompleteRequestSchema,
   ListToolsRequest,
   ListPromptsRequest,
   GetPromptRequest,
@@ -492,6 +493,7 @@ function detectEditIntent(prompt: string): boolean {
 
 /**
  * MCP protocol validation for tool parameters
+ * Enforces correct parameter combinations at the protocol level
  */
 function validateToolParameters(params: {
   prompt: string;
@@ -499,19 +501,19 @@ function validateToolParameters(params: {
   changeMode: boolean;
   editIntent: boolean;
 }): string | null {
-  // Rule 1: allFiles with edit intent requires changeMode
-  if (params.allFiles && params.editIntent && !params.changeMode) {
-    return "When using allFiles=true with edit requests, changeMode=true is required for structured responses.";
-  }
-  
-  // Rule 2: Strong edit intent without changeMode
-  if (params.editIntent && !params.changeMode) {
-    return "Edit requests require changeMode=true to enable structured 'gemini reads, claude edits' workflow.";
-  }
-  
-  // Rule 3: Validate prompt quality
+  // Rule 1: Validate prompt quality first
   if (params.prompt.length < 10) {
     return "Prompt must be at least 10 characters for meaningful analysis.";
+  }
+  
+  // Rule 2: Strong validation - this should be rare now due to auto-enable
+  if (params.allFiles && params.editIntent && !params.changeMode) {
+    return "CRITICAL: allFiles=true with edit patterns detected requires changeMode=true. This should have been auto-enabled by MCP protocol.";
+  }
+  
+  // Rule 3: Warn if edit intent detected but not handled
+  if (params.editIntent && !params.changeMode) {
+    return "Edit patterns detected in prompt. changeMode=true is required for structured edit responses. This should have been auto-enabled.";
   }
   
   return null; // Validation passed
@@ -882,6 +884,7 @@ const server = new Server(
       tools: {},
       prompts: {},
       notifications: {},
+      completion: {},
     },
   },
 );
@@ -1150,6 +1153,49 @@ async function executeGeminiCLI(
   }
 }
 
+// Handle completion requests for intelligent parameter suggestions
+server.setRequestHandler(CompleteRequestSchema, async (request): Promise<{ completion: { values: string[]; total?: number; hasMore?: boolean } }> => {
+  const ref = request.params.ref;
+  const argument = request.params.argument;
+  
+  // Provide intelligent autocomplete for changeMode parameter
+  if (argument.name === "changeMode" && ref.type === "ref/prompt") {
+    // If we could access the current prompt, we'd analyze it
+    // For now, suggest true for changeMode since it's the common case
+    return {
+      completion: {
+        values: ["true"],
+        total: 1,
+        hasMore: false
+      }
+    };
+  }
+  
+  // Provide suggestions for batchStrategy
+  if (argument.name === "batchStrategy") {
+    const strategies = ["single", "parallel", "sequential", "smart"];
+    const currentValue = argument.value || "";
+    const filtered = strategies.filter(s => s.startsWith(currentValue.toLowerCase()));
+    
+    return {
+      completion: {
+        values: filtered,
+        total: filtered.length,
+        hasMore: false
+      }
+    };
+  }
+  
+  // Default empty completion
+  return {
+    completion: {
+      values: [],
+      total: 0,
+      hasMore: false
+    }
+  };
+});
+
 // Handle list tools request
 server.setRequestHandler(ListToolsRequestSchema, async (request: ListToolsRequest): Promise<{ tools: Tool[] }> => {
   return {
@@ -1180,13 +1226,13 @@ server.setRequestHandler(ListToolsRequestSchema, async (request: ListToolsReques
             changeMode: {
               type: "boolean",
               description:
-                "REQUIRED when requesting code edits or changes. Enables structured edit responses for 'gemini reads, claude edits' workflow.",
+                "Enable structured edit responses. Auto-enabled when edit patterns detected or allFiles=true.",
               default: false,
             },
             allFiles: {
               type: "boolean",
               description:
-                "Include ALL files in project context. When true, changeMode is automatically enabled for proper edit workflow.",
+                "Include ALL files in project context. Automatically enables changeMode for structured edits.",
               default: false,
             },
             batchStrategy: {
