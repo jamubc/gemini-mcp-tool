@@ -213,32 +213,142 @@ function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
+// Global job storage for handling large editing tasks
+const activeJobs = new Map();
+
 /**
- * Check if response would exceed MCP token limits and provide guidance
+ * Job system for handling large editing tasks that exceed token limits
+ */
+class EditJob {
+  public id: string;
+  public originalPrompt: string;
+  public fullResponse: string;
+  public chunkSize: number;
+  public chunks: string[];
+  public currentChunk: number;
+  public createdAt: number;
+
+  constructor(id: string, originalPrompt: string, fullResponse: string, chunkSize: number = 20000) {
+    this.id = id;
+    this.originalPrompt = originalPrompt;
+    this.fullResponse = fullResponse;
+    this.chunkSize = chunkSize;
+    this.chunks = this.createChunks();
+    this.currentChunk = 0;
+    this.createdAt = Date.now();
+  }
+
+  createChunks(): string[] {
+    const chunks: string[] = [];
+    // Split by logical edit boundaries - prioritize keeping OLD/NEW pairs together
+    const sections = this.fullResponse.split(/(?=\n## |\n\*\*File:)/);
+    let currentChunk = '';
+    
+    for (const section of sections) {
+      if ((currentChunk + section).length > this.chunkSize && currentChunk) {
+        chunks.push(currentChunk.trim());
+        currentChunk = section;
+      } else {
+        currentChunk += section;
+      }
+    }
+    
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    return chunks.length > 0 ? chunks : [this.fullResponse];
+  }
+
+  getNextChunk(): string | null {
+    if (this.currentChunk >= this.chunks.length) {
+      return null;
+    }
+    
+    const chunk = this.chunks[this.currentChunk];
+    this.currentChunk++;
+    
+    const header = `## Edit Job ${this.id} - Part ${this.currentChunk}/${this.chunks.length}\n\n`;
+    const footer = this.currentChunk < this.chunks.length 
+      ? `\n\n---\n\n**📄 More edits available:** Use \`ask-gemini\` with prompt: \`continue job ${this.id}\` to get the next batch of edits.`
+      : `\n\n---\n\n**✅ Job complete:** All edit suggestions have been provided for job ${this.id}.`;
+    
+    return header + chunk + footer;
+  }
+
+  isComplete(): boolean {
+    return this.currentChunk >= this.chunks.length;
+  }
+}
+
+/**
+ * Check if response would exceed MCP token limits and handle with job system
  */
 function checkTokenLimits(result: string): { exceedsLimit: boolean; tokenCount: number; guidance: string } {
   const tokenCount = estimateTokenCount(result);
   const mcpTokenLimit = 25000;
   
   if (tokenCount > mcpTokenLimit) {
-    const guidance = `⚠️ **Large Response Detected** (${tokenCount.toLocaleString()} tokens > ${mcpTokenLimit.toLocaleString()} limit)
+    // Create a job for this large response
+    const jobId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+    const job = new EditJob(jobId, '', result);
+    activeJobs.set(jobId, job);
+    
+    // Clean up old jobs (older than 1 hour)
+    for (const [id, existingJob] of activeJobs.entries()) {
+      if (Date.now() - existingJob.createdAt > 3600000) {
+        activeJobs.delete(id);
+      }
+    }
+    
+    const firstChunk = job.getNextChunk();
+    const guidance = `📦 **Large Response Management** (${tokenCount.toLocaleString()} tokens → Job ${jobId})
 
-**This response exceeds MCP token limits and will be truncated.**
-
-**Solutions:**
-1. **Be more specific**: Ask for changes to specific functions/sections instead of entire files
-2. **Use Flash model**: Try \`-m gemini-2.5-flash\` for smaller responses  
-3. **Break into parts**: Ask for changes in smaller batches
-
-**Example focused prompts:**
-- "@file.js focus on the authentication function only"
-- "@file.js show me just the error handling changes"
-- "@file.js update only the validation logic"`;
+${firstChunk}`;
 
     return { exceedsLimit: true, tokenCount, guidance };
   }
   
   return { exceedsLimit: false, tokenCount, guidance: '' };
+}
+
+/**
+ * Handle job continuation requests
+ */
+function handleJobContinuation(prompt: string): { isJobRequest: boolean; jobId?: string; response?: string } {
+  const jobMatch = prompt.match(/continue\s+job\s+([a-z0-9]+)/i);
+  if (!jobMatch) {
+    return { isJobRequest: false };
+  }
+  
+  const jobId = jobMatch[1];
+  const job = activeJobs.get(jobId);
+  
+  if (!job) {
+    return {
+      isJobRequest: true,
+      response: `❌ Job ${jobId} not found or expired. Jobs expire after 1 hour.`
+    };
+  }
+  
+  if (job.isComplete()) {
+    activeJobs.delete(jobId);
+    return {
+      isJobRequest: true,
+      response: `✅ Job ${jobId} was already completed. All edit suggestions have been provided.`
+    };
+  }
+  
+  const nextChunk = job.getNextChunk();
+  if (job.isComplete()) {
+    activeJobs.delete(jobId);
+  }
+  
+  return {
+    isJobRequest: true,
+    jobId,
+    response: nextChunk
+  };
 }
 
 /**
@@ -1208,7 +1318,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
           `[Gemini MCP] About to return sandbox result to Claude...`,
         );
       } else {
-        // For ask-gemini tool, check if prompt is provided and includes @ syntaxcl
+        // For ask-gemini tool, check if prompt is provided
         if (!prompt.trim()) {
           return {
             content: [
@@ -1221,35 +1331,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
           };
         }
 
-        console.warn(`[Gemini MCP] About to execute Gemini command...`);
-        console.warn(`[Gemini MCP] Change mode enabled: ${changeMode}`);
+        // Check if this is a job continuation request
+        const jobContinuation = handleJobContinuation(prompt);
+        if (jobContinuation.isJobRequest) {
+          result = jobContinuation.response || "Job continuation error";
+          console.warn(`[Gemini MCP] Job continuation handled: ${jobContinuation.jobId || 'unknown'}`);
+        } else {
+          console.warn(`[Gemini MCP] About to execute Gemini command...`);
+          console.warn(`[Gemini MCP] Change mode enabled: ${changeMode}`);
 
-        try {
-          const strictMode = changeMode ? StrictMode.CHANGE : StrictMode.NONE;
-          const rawResult = await executeGeminiCLI(prompt, model, sandbox, strictMode);
+          try {
+            const strictMode = changeMode ? StrictMode.CHANGE : StrictMode.NONE;
+            const rawResult = await executeGeminiCLI(prompt, model, sandbox, strictMode);
 
-          if (changeMode) {
-            // Use structured response for change mode
-            const sections = buildStructuredResponse(rawResult, prompt, strictMode);
-            result = formatStructuredResponse(sections);
+            if (changeMode) {
+              // Use structured response for change mode
+              const sections = buildStructuredResponse(rawResult, prompt, strictMode);
+              result = formatStructuredResponse(sections);
+              
+              console.warn(`[Gemini MCP] Structured change response generated`);
+            } else {
+              // Standard response
+              result = `🤖 **Gemini Response:**\n${rawResult}`;
+            }
+
+            console.warn(
+              `[Gemini MCP] Gemini command completed successfully, result length: ${result.length}`,
+            );
+          } catch (error) {
+            console.error(`[Gemini MCP] Command failed:`, error);
+            const errorMessage = error instanceof Error ? error.message : "Unknown error";
             
-            console.warn(`[Gemini MCP] Structured change response generated`);
-          } else {
-            // Standard response
-            result = `🤖 **Gemini Response:**\n${rawResult}`;
-          }
-
-          console.warn(
-            `[Gemini MCP] Gemini command completed successfully, result length: ${result.length}`,
-          );
-        } catch (error) {
-          console.error(`[Gemini MCP] Command failed:`, error);
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          
-          if (errorMessage.includes("Quota exceeded for quota metric 'Gemini 2.5 Pro Requests'")) {
-            result = "Try again with gemini-2.5-flash, gemini-2.5-pro exceeded quota";
-          } else {
-            result = `Error: ${errorMessage}`;
+            if (errorMessage.includes("Quota exceeded for quota metric 'Gemini 2.5 Pro Requests'")) {
+              result = "Try again with gemini-2.5-flash, gemini-2.5-pro exceeded quota";
+            } else {
+              result = `Error: ${errorMessage}`;
+            }
           }
         }
         console.warn(`[Gemini MCP] About to return result to Claude...`);
