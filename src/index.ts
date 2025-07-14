@@ -37,19 +37,27 @@ interface StandardizedResponseSections {
 // ===== ENHANCED TYPES =====
 
 interface PromptArguments {
-  [key: string]: string | boolean | undefined;
+  [key: string]: string | boolean | object | undefined;
   prompt?: string;
   model?: string;
   sandbox?: boolean | string;
   message?: string;
-  changeMode?: boolean | string; // NEW: Enable structured change responses
+  changeMode?: boolean | string; // Enable structured change responses
+  allFiles?: boolean | string; // Include all files in project context
+  batchStrategy?: string; // Batching strategy for large operations
+  _meta?: {
+    progressToken?: string;
+    cursor?: string;
+  };
 }
 
 interface ToolArguments {
   prompt?: string;
   model?: string;
   sandbox?: boolean | string;
-  changeMode?: boolean | string; // NEW: Enable structured change responses
+  changeMode?: boolean | string; // Enable structured change responses
+  allFiles?: boolean | string; // Include all files in project context
+  batchStrategy?: string; // Batching strategy: "single", "parallel", "sequential", "smart"
 }
 
 // Structured response interface for robust AI-tool interaction
@@ -213,142 +221,466 @@ function estimateTokenCount(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-// Global job storage for handling large editing tasks
-const activeJobs = new Map();
+// ===== MCP-NATIVE BATCHING SYSTEM =====
+
+interface FileBatch {
+  id: string;
+  name: string;
+  files: string[];
+  prompt: string;
+}
+
+interface BatchState {
+  id: string;
+  strategy: string;
+  batches: FileBatch[];
+  completed: string[];
+  inProgress: Set<string>;
+  results: { batchId: string; result: string }[];
+  progressToken?: string;
+  createdAt: number;
+}
+
+// Global batch storage
+const activeBatches = new Map<string, BatchState>();
 
 /**
- * Job system for handling large editing tasks that exceed token limits
+ * Generate unique batch ID
  */
-class EditJob {
-  public id: string;
-  public originalPrompt: string;
-  public fullResponse: string;
-  public chunkSize: number;
-  public chunks: string[];
-  public currentChunk: number;
-  public createdAt: number;
+function generateBatchId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
-  constructor(id: string, originalPrompt: string, fullResponse: string, chunkSize: number = 20000) {
-    this.id = id;
-    this.originalPrompt = originalPrompt;
-    this.fullResponse = fullResponse;
-    this.chunkSize = chunkSize;
-    this.chunks = this.createChunks();
-    this.currentChunk = 0;
-    this.createdAt = Date.now();
-  }
-
-  createChunks(): string[] {
-    const chunks: string[] = [];
-    // Split by logical edit boundaries - prioritize keeping OLD/NEW pairs together
-    const sections = this.fullResponse.split(/(?=\n## |\n\*\*File:)/);
-    let currentChunk = '';
+/**
+ * Create file batches based on strategy
+ */
+function createFileBatches(strategy: string, prompt: string): FileBatch[] {
+  const batchId = generateBatchId();
+  
+  switch (strategy) {
+    case "parallel":
+      return [
+        {
+          id: `${batchId}-ts`,
+          name: "TypeScript Files",
+          files: ["@**/*.ts", "@**/*.tsx"],
+          prompt: `${prompt} Focus on TypeScript files.`
+        },
+        {
+          id: `${batchId}-js`,
+          name: "JavaScript Files", 
+          files: ["@**/*.js", "@**/*.jsx"],
+          prompt: `${prompt} Focus on JavaScript files.`
+        },
+        {
+          id: `${batchId}-other`,
+          name: "Other Script Files",
+          files: ["@**/*.py", "@**/*.sh", "@**/*.json"],
+          prompt: `${prompt} Focus on Python, shell, and config files.`
+        }
+      ];
     
-    for (const section of sections) {
-      if ((currentChunk + section).length > this.chunkSize && currentChunk) {
-        chunks.push(currentChunk.trim());
-        currentChunk = section;
-      } else {
-        currentChunk += section;
-      }
-    }
-    
-    if (currentChunk.trim()) {
-      chunks.push(currentChunk.trim());
-    }
-    
-    return chunks.length > 0 ? chunks : [this.fullResponse];
-  }
-
-  getNextChunk(): string | null {
-    if (this.currentChunk >= this.chunks.length) {
-      return null;
-    }
-    
-    const chunk = this.chunks[this.currentChunk];
-    this.currentChunk++;
-    
-    const header = `## Edit Job ${this.id} - Part ${this.currentChunk}/${this.chunks.length}\n\n`;
-    const footer = this.currentChunk < this.chunks.length 
-      ? `\n\n---\n\n**📄 More edits available:** Use \`ask-gemini\` with prompt: \`continue job ${this.id}\` to get the next batch of edits.`
-      : `\n\n---\n\n**✅ Job complete:** All edit suggestions have been provided for job ${this.id}.`;
-    
-    return header + chunk + footer;
-  }
-
-  isComplete(): boolean {
-    return this.currentChunk >= this.chunks.length;
+    case "sequential":
+      return [
+        {
+          id: `${batchId}-core`,
+          name: "Core Files",
+          files: ["@main.*", "@index.*", "@app.*"],
+          prompt: `${prompt} Focus on main entry point files.`
+        },
+        {
+          id: `${batchId}-components`,
+          name: "Components",
+          files: ["@components/**/*", "@src/components/**/*"],
+          prompt: `${prompt} Focus on component files.`
+        },
+        {
+          id: `${batchId}-utils`,
+          name: "Utilities",
+          files: ["@utils/**/*", "@lib/**/*", "@helpers/**/*"],
+          prompt: `${prompt} Focus on utility and helper files.`
+        }
+      ];
+      
+    case "smart":
+      return [
+        {
+          id: `${batchId}-critical`,
+          name: "Critical Files",
+          files: ["@main.*", "@index.*", "@app.*", "@server.*"],
+          prompt: `${prompt} Focus on critical application entry points.`
+        },
+        {
+          id: `${batchId}-remaining`,
+          name: "Remaining Files",
+          files: ["@**/*"],
+          prompt: `${prompt} Analyze all remaining files not covered in previous batches.`
+        }
+      ];
+      
+    default: // "single"
+      return [
+        {
+          id: `${batchId}-all`,
+          name: "All Files",
+          files: ["@."],
+          prompt
+        }
+      ];
   }
 }
 
 /**
- * Check if response would exceed MCP token limits and handle with job system
+ * Start parallel batch processing
  */
-function checkTokenLimits(result: string): { exceedsLimit: boolean; tokenCount: number; guidance: string } {
-  const tokenCount = estimateTokenCount(result);
-  const mcpTokenLimit = 25000;
-  
-  if (tokenCount > mcpTokenLimit) {
-    // Create a job for this large response
-    const jobId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-    const job = new EditJob(jobId, '', result);
-    activeJobs.set(jobId, job);
-    
-    // Clean up old jobs (older than 1 hour)
-    for (const [id, existingJob] of activeJobs.entries()) {
-      if (Date.now() - existingJob.createdAt > 3600000) {
-        activeJobs.delete(id);
+async function startParallelBatches(
+  batches: FileBatch[],
+  progressToken: string | undefined,
+  batchStateId: string,
+  model?: string,
+  sandbox?: boolean,
+  strictMode: StrictMode = StrictMode.NONE
+): Promise<void> {
+  const batchState = activeBatches.get(batchStateId);
+  if (!batchState) return;
+
+  // Start all batches in parallel
+  const promises = batches.map(async (batch) => {
+    try {
+      batchState.inProgress.add(batch.id);
+      
+      // Send progress notification
+      if (progressToken) {
+        await sendProgressNotification(progressToken, 
+          batchState.completed.length, 
+          batches.length, 
+          `Processing ${batch.name}...`
+        );
       }
+      
+      const result = await executeGeminiCLI(
+        batch.prompt,
+        model,
+        sandbox,
+        strictMode,
+        true // allFiles for batch processing
+      );
+      
+      batchState.results.push({ batchId: batch.id, result });
+      batchState.completed.push(batch.id);
+      batchState.inProgress.delete(batch.id);
+      
+      // Send progress notification
+      if (progressToken) {
+        await sendProgressNotification(progressToken,
+          batchState.completed.length,
+          batches.length,
+          `Completed ${batch.name}`
+        );
+      }
+      
+    } catch (error) {
+      console.error(`Batch ${batch.id} failed:`, error);
+      batchState.inProgress.delete(batch.id);
     }
-    
-    const firstChunk = job.getNextChunk();
-    const guidance = `📦 **Large Response Management** (${tokenCount.toLocaleString()} tokens → Job ${jobId})
-
-${firstChunk}`;
-
-    return { exceedsLimit: true, tokenCount, guidance };
-  }
+  });
   
-  return { exceedsLimit: false, tokenCount, guidance: '' };
+  await Promise.allSettled(promises);
 }
 
 /**
- * Handle job continuation requests
+ * Send progress notification
  */
-function handleJobContinuation(prompt: string): { isJobRequest: boolean; jobId?: string; response?: string } {
-  const jobMatch = prompt.match(/continue\s+job\s+([a-z0-9]+)/i);
-  if (!jobMatch) {
-    return { isJobRequest: false };
+async function sendProgressNotification(
+  progressToken: string,
+  progress: number,
+  total: number,
+  message: string
+): Promise<void> {
+  try {
+    await server.notification({
+      method: "notifications/progress",
+      params: {
+        progressToken,
+        progress,
+        total,
+        message
+      }
+    });
+  } catch (error) {
+    console.error(`[Gemini MCP] Failed to send progress notification:`, error);
+  }
+}
+
+/**
+ * Get batch results with cursor support
+ */
+function getBatchResults(batchStateId: string, cursor?: string): {
+  analysis: string;
+  nextCursor?: string;
+  progress?: { completed: number; total: number; currentBatch?: string };
+} {
+  const batchState = activeBatches.get(batchStateId);
+  if (!batchState) {
+    return { analysis: "Batch not found or expired." };
   }
   
-  const jobId = jobMatch[1];
-  const job = activeJobs.get(jobId);
+  const startIndex = cursor ? parseInt(cursor.split('-').pop() || '0') : 0;
+  const endIndex = Math.min(startIndex + 1, batchState.results.length);
   
-  if (!job) {
-    return {
-      isJobRequest: true,
-      response: `❌ Job ${jobId} not found or expired. Jobs expire after 1 hour.`
-    };
+  if (startIndex >= batchState.results.length) {
+    return { analysis: "No more results available." };
   }
   
-  if (job.isComplete()) {
-    activeJobs.delete(jobId);
-    return {
-      isJobRequest: true,
-      response: `✅ Job ${jobId} was already completed. All edit suggestions have been provided.`
-    };
+  const currentResults = batchState.results.slice(startIndex, endIndex);
+  const analysis = currentResults.map(r => r.result).join('\n\n---\n\n');
+  
+  const nextCursor = endIndex < batchState.results.length 
+    ? `${batchStateId}-result-${endIndex}` 
+    : undefined;
+    
+  return {
+    analysis,
+    nextCursor,
+    progress: {
+      completed: batchState.completed.length,
+      total: batchState.batches.length,
+      currentBatch: batchState.inProgress.size > 0 
+        ? Array.from(batchState.inProgress)[0]
+        : undefined
+    }
+  };
+}
+
+/**
+ * Clean up expired batches
+ */
+function cleanupExpiredBatches(): void {
+  const now = Date.now();
+  const expirationTime = 3600000; // 1 hour
+  
+  for (const [id, batch] of activeBatches.entries()) {
+    if (now - batch.createdAt > expirationTime) {
+      activeBatches.delete(id);
+    }
+  }
+}
+
+// ===== MCP PROTOCOL ENFORCEMENT =====
+
+/**
+ * Detect edit intent in prompts using MCP protocol analysis
+ */
+function detectEditIntent(prompt: string): boolean {
+  const editPatterns = [
+    /implement.*without.*reading/i,
+    /provide.*edits?/i,
+    /code.*changes?/i,
+    /find.*replace/i,
+    /specific.*edits?/i,
+    /apply.*changes?/i,
+    /modify.*code/i,
+    /update.*code/i,
+    /fix.*code/i,
+    /refactor/i,
+    /OLD.*NEW/i,
+    /replace.*with/i
+  ];
+  
+  return editPatterns.some(pattern => pattern.test(prompt));
+}
+
+/**
+ * MCP protocol validation for tool parameters
+ */
+function validateToolParameters(params: {
+  prompt: string;
+  allFiles: boolean;
+  changeMode: boolean;
+  editIntent: boolean;
+}): string | null {
+  // Rule 1: allFiles with edit intent requires changeMode
+  if (params.allFiles && params.editIntent && !params.changeMode) {
+    return "When using allFiles=true with edit requests, changeMode=true is required for structured responses.";
   }
   
-  const nextChunk = job.getNextChunk();
-  if (job.isComplete()) {
-    activeJobs.delete(jobId);
+  // Rule 2: Strong edit intent without changeMode
+  if (params.editIntent && !params.changeMode) {
+    return "Edit requests require changeMode=true to enable structured 'gemini reads, claude edits' workflow.";
+  }
+  
+  // Rule 3: Validate prompt quality
+  if (params.prompt.length < 10) {
+    return "Prompt must be at least 10 characters for meaningful analysis.";
+  }
+  
+  return null; // Validation passed
+}
+
+/**
+ * MCP protocol-compliant parameter processing
+ */
+function processToolParameters(args: ToolArguments): {
+  prompt: string;
+  model?: string;
+  sandbox: boolean;
+  changeMode: boolean;
+  allFiles: boolean;
+  batchStrategy: string;
+  protocolEnforced: boolean;
+} {
+  const prompt = args.prompt || "";
+  const model = args.model;
+  const sandbox = typeof args.sandbox === "boolean" ? args.sandbox : false;
+  let changeMode = typeof args.changeMode === "boolean" ? args.changeMode : false;
+  const allFiles = typeof args.allFiles === "boolean" ? args.allFiles : false;
+  const batchStrategy = args.batchStrategy || "single";
+  
+  // MCP Protocol Enforcement
+  const editIntent = detectEditIntent(prompt);
+  let protocolEnforced = false;
+  
+  // Auto-enable changeMode based on MCP protocol analysis
+  if ((allFiles || editIntent) && !changeMode) {
+    changeMode = true;
+    protocolEnforced = true;
+    console.warn(`[MCP Protocol] Auto-enabled changeMode: editIntent=${editIntent}, allFiles=${allFiles}`);
   }
   
   return {
-    isJobRequest: true,
-    jobId,
-    response: nextChunk
+    prompt,
+    model,
+    sandbox,
+    changeMode,
+    allFiles,
+    batchStrategy,
+    protocolEnforced
   };
+}
+
+/**
+ * Start batched analysis operation
+ */
+async function startBatchedAnalysis(
+  prompt: string,
+  model?: string,
+  sandbox?: boolean,
+  changeMode?: boolean,
+  allFiles?: boolean,
+  batchStrategy: string = "single",
+  progressToken?: string
+): Promise<string> {
+  const batchStateId = generateBatchId();
+  const batches = createFileBatches(batchStrategy, prompt);
+  
+  // Create batch state
+  const batchState: BatchState = {
+    id: batchStateId,
+    strategy: batchStrategy,
+    batches,
+    completed: [],
+    inProgress: new Set(),
+    results: [],
+    progressToken,
+    createdAt: Date.now()
+  };
+  
+  activeBatches.set(batchStateId, batchState);
+  
+  console.warn(`[Gemini MCP] Starting batched analysis with strategy: ${batchStrategy}`);
+  console.warn(`[Gemini MCP] Created ${batches.length} batches for processing`);
+  
+  // Start processing based on strategy
+  if (batchStrategy === "parallel") {
+    // Don't await - let it run in background
+    startParallelBatches(
+      batches,
+      progressToken,
+      batchStateId,
+      model,
+      sandbox,
+      changeMode ? StrictMode.CHANGE : StrictMode.NONE
+    ).catch(error => {
+      console.error(`[Gemini MCP] Parallel batch processing failed:`, error);
+    });
+    
+    return `🚀 **Batch Analysis Started** (Strategy: ${batchStrategy})\n\n` +
+           `📊 **Progress**: Processing ${batches.length} batches in parallel\n\n` +
+           `🎯 **Batches**:\n${batches.map(b => `- ${b.name}`).join('\n')}\n\n` +
+           `⏳ **Status**: Analysis running in background. Results will be available shortly.\n\n` +
+           `🔄 **Next Steps**: Use cursor \`${batchStateId}-result-0\` to get results when ready.`;
+  } else {
+    // Sequential processing - process first batch immediately
+    try {
+      const firstBatch = batches[0];
+      batchState.inProgress.add(firstBatch.id);
+      
+      if (progressToken) {
+        await sendProgressNotification(progressToken, 0, batches.length, `Starting ${firstBatch.name}...`);
+      }
+      
+      const result = await executeGeminiCLI(
+        firstBatch.prompt,
+        model,
+        sandbox,
+        changeMode ? StrictMode.CHANGE : StrictMode.NONE,
+        true
+      );
+      
+      batchState.results.push({ batchId: firstBatch.id, result });
+      batchState.completed.push(firstBatch.id);
+      batchState.inProgress.delete(firstBatch.id);
+      
+      if (progressToken) {
+        await sendProgressNotification(progressToken, 1, batches.length, `Completed ${firstBatch.name}`);
+      }
+      
+      const nextCursor = batches.length > 1 ? `${batchStateId}-result-1` : undefined;
+      
+      return formatBatchResponse({
+        analysis: result,
+        nextCursor,
+        progress: {
+          completed: 1,
+          total: batches.length,
+          currentBatch: batches.length > 1 ? batches[1].name : undefined
+        }
+      });
+      
+    } catch (error) {
+      console.error(`[Gemini MCP] First batch failed:`, error);
+      return `❌ **Batch Analysis Failed**\n\nError processing first batch: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+}
+
+/**
+ * Format batch response with proper structure
+ */
+function formatBatchResponse(batchResults: {
+  analysis: string;
+  nextCursor?: string;
+  progress?: { completed: number; total: number; currentBatch?: string };
+}): string {
+  let response = `📊 **Batch Analysis Results**\n\n`;
+  
+  if (batchResults.progress) {
+    response += `**Progress**: ${batchResults.progress.completed}/${batchResults.progress.total} batches completed\n`;
+    if (batchResults.progress.currentBatch) {
+      response += `**Next**: ${batchResults.progress.currentBatch}\n`;
+    }
+    response += `\n`;
+  }
+  
+  response += `**Analysis Results**:\n\n${batchResults.analysis}`;
+  
+  if (batchResults.nextCursor) {
+    response += `\n\n---\n\n🔄 **Continue Analysis**: More batches available. Use cursor \`${batchResults.nextCursor}\` to get next results.`;
+  } else {
+    response += `\n\n---\n\n✅ **Analysis Complete**: All batches have been processed.`;
+  }
+  
+  return response;
 }
 
 /**
@@ -368,7 +700,7 @@ function optimizeLargeOldSections(result: string): string {
 }
 
 /**
- * Format final response with structured sections and token limit checking
+ * Format final response with structured sections and smart batching
  */
 function formatStructuredResponse(sections: StandardizedResponseSections): string {
   let fullResponse = `## Analysis\n${sections.analysis}\n\n## Suggested Changes\n${sections.changesSuggested}\n\n## Next Steps\n${sections.nextSteps}`;
@@ -376,12 +708,11 @@ function formatStructuredResponse(sections: StandardizedResponseSections): strin
   // Optimize large OLD sections first
   fullResponse = optimizeLargeOldSections(fullResponse);
   
-  // Check token limits and provide guidance if needed
-  const tokenCheck = checkTokenLimits(fullResponse);
-  if (tokenCheck.exceedsLimit) {
-    // Prepend guidance and truncate to a reasonable size
-    const truncatedResponse = fullResponse.substring(0, 20000); // ~5k tokens
-    return `${tokenCheck.guidance}\n\n---\n\n## Partial Response (Truncated)\n${truncatedResponse}\n\n---\n\n**Response was truncated due to size limits. Please use more specific prompts.**`;
+  // Check if response is too large for MCP
+  const tokenCount = estimateTokenCount(fullResponse);
+  if (tokenCount > 25000) {
+    // Suggest using batching for large operations
+    return `## Analysis\n${sections.analysis}\n\n**⚠️ Large Response Detected (${tokenCount.toLocaleString()} tokens)**\n\nThis analysis is too large for a single response. Consider using:\n\n1. **Batch Strategy**: Add \`batchStrategy: "parallel"\` to process files in batches\n2. **Focus Scope**: Make your prompt more specific to reduce response size\n3. **Sequential Processing**: Use \`batchStrategy: "sequential"\` for step-by-step analysis\n\n**First Section of Analysis:**\n\n${sections.changesSuggested.substring(0, 10000)}\n\n*[Truncated - use batching for complete analysis]*`;
   }
   
   return fullResponse;
@@ -726,6 +1057,7 @@ async function executeGeminiCLI(
   model?: string,
   sandbox?: boolean,
   strictMode: StrictMode = StrictMode.NONE,
+  allFiles?: boolean,
 ): Promise<string> {
   // Format prompt based on strict mode
   const enhancedPrompt = formatPromptForChanges(prompt, strictMode);
@@ -736,6 +1068,10 @@ async function executeGeminiCLI(
   }
   if (sandbox) {
     args.push("-s");
+  }
+  if (allFiles) {
+    args.push("-a"); // Include ALL files in project context
+    console.warn(`[Gemini MCP] All files mode enabled`);
   }
   args.push("-p", enhancedPrompt);
   
@@ -756,6 +1092,9 @@ async function executeGeminiCLI(
       if (sandbox) {
         fallbackArgs.push("-s");
       }
+      if (allFiles) {
+        fallbackArgs.push("-a"); // Preserve allFiles in fallback
+      }
       fallbackArgs.push("-p", enhancedPrompt);
       
       try {
@@ -764,8 +1103,8 @@ async function executeGeminiCLI(
         await sendStatusMessage("✅ Flash model completed with normal response size");
         return flashResult;
       } catch (fallbackError) {
-        console.warn("[Gemini MCP] Flash fallback failed, returning original large response with warning");
-        return `⚠️ **Large Response Warning**: This response (${tokenCount.toLocaleString()} tokens) may exceed MCP limits due to a known gemini-2.5-pro issue. Consider using \`-m gemini-2.5-flash\` for normal-sized responses.\n\n---\n\n${result}`;
+        console.warn("[Gemini MCP] Flash fallback failed, returning original response - job system will handle if too large");
+        return result; // Let the job system handle large responses downstream
       }
     }
     
@@ -787,6 +1126,9 @@ async function executeGeminiCLI(
       fallbackArgs.push("-m", "gemini-2.5-flash");
       if (sandbox) {
         fallbackArgs.push("-s");
+      }
+      if (allFiles) {
+        fallbackArgs.push("-a"); // Preserve allFiles in fallback
       }
       fallbackArgs.push("-p", enhancedPrompt);
       
@@ -838,11 +1180,25 @@ server.setRequestHandler(ListToolsRequestSchema, async (request: ListToolsReques
             changeMode: {
               type: "boolean",
               description:
-                "Enable structured change mode - formats prompts to prevent tool errors and returns structured edit suggestions that Claude can apply directly",
+                "REQUIRED when requesting code edits or changes. Enables structured edit responses for 'gemini reads, claude edits' workflow.",
               default: false,
+            },
+            allFiles: {
+              type: "boolean",
+              description:
+                "Include ALL files in project context. When true, changeMode is automatically enabled for proper edit workflow.",
+              default: false,
+            },
+            batchStrategy: {
+              type: "string",
+              description:
+                "Batching strategy: 'single' (default), 'parallel', 'sequential', 'smart'",
+              enum: ["single", "parallel", "sequential", "smart"],
+              default: "single",
             },
           },
           required: ["prompt"],
+          additionalProperties: false,
         },
       },
       {
@@ -989,7 +1345,13 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
       }
       try {
         const model: string | undefined = args.model;
-        const result: string = await executeGeminiCLI(sandboxPrompt, model, true); // Always use sandbox mode
+        const allFiles: boolean =
+          typeof args.allFiles === "boolean"
+            ? args.allFiles
+            : typeof args.allFiles === "string"
+              ? args.allFiles === "true"
+              : false;
+        const result: string = await executeGeminiCLI(sandboxPrompt, model, true, StrictMode.NONE, allFiles); // Always use sandbox mode
         return {
           description: "Sandbox testing complete",
           messages: [
@@ -1047,9 +1409,15 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
             : typeof args.changeMode === "string"
               ? args.changeMode === "true"
               : false;
+        const allFiles: boolean =
+          typeof args.allFiles === "boolean"
+            ? args.allFiles
+            : typeof args.allFiles === "string"
+              ? args.allFiles === "true"
+              : false;
               
         const strictMode = changeMode ? StrictMode.CHANGE : StrictMode.NONE;
-        const rawResult = await executeGeminiCLI(prompt, model, sandbox, strictMode);
+        const rawResult = await executeGeminiCLI(prompt, model, sandbox, strictMode, allFiles);
         
         let finalResult: string;
         if (changeMode) {
@@ -1203,28 +1571,40 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         JSON.stringify(request.params.arguments, null, 2),
       );
 
-      // Get prompt and other parameters from arguments with proper typing
+      // MCP PROTOCOL-COMPLIANT PARAMETER PROCESSING
       const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
-      const prompt: string = args.prompt || "";
-      const model: string | undefined = args.model;
-      const sandbox: boolean =
-        typeof args.sandbox === "boolean"
-          ? args.sandbox
-          : typeof args.sandbox === "string"
-            ? args.sandbox === "true"
-            : false;
-      const changeMode: boolean =
-        typeof args.changeMode === "boolean"
-          ? args.changeMode
-          : typeof args.changeMode === "string"
-            ? args.changeMode === "true"
-            : false;
+      const processed = processToolParameters(args);
+      
+      // Extract processed parameters
+      const { prompt, model, sandbox, changeMode, allFiles, batchStrategy, protocolEnforced } = processed;
+      
+      // MCP VALIDATION: Validate parameter combinations
+      const editIntent = detectEditIntent(prompt);
+      const validationError = validateToolParameters({ prompt, allFiles, changeMode, editIntent });
+      if (validationError) {
+        return {
+          content: [{
+            type: "text",
+            text: `🚫 **MCP Protocol Validation Error**\n\n${validationError}\n\n**Correct Usage:**\n- For code edits: Use \`changeMode: true\`\n- For file analysis with edits: Use \`allFiles: true, changeMode: true\`\n\n**Auto-Detection:** The MCP server can auto-enable changeMode when edit patterns are detected.`
+          }],
+          isError: true
+        };
+      }
+      
+      // Log MCP protocol enforcement
+      if (protocolEnforced) {
+        console.warn(`[MCP Protocol] Enforced changeMode=true for edit workflow`);
+      }
 
-      console.warn(`[Gemini MCP] Parsed prompt: "${prompt}"`);
-      console.warn(`[Gemini MCP] Parsed model: ${model || "default"}`);
-      console.warn(`[Gemini MCP] Parsed sandbox: ${sandbox || false}`);
-      console.warn(`[Gemini MCP] Parsed changeMode: ${changeMode || false}`);
-      console.warn(`[Gemini MCP] ========================`);
+      console.warn(`[Gemini MCP] === MCP PROTOCOL PROCESSING ===`);
+      console.warn(`[Gemini MCP] Prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
+      console.warn(`[Gemini MCP] Model: ${model || "default"}`);
+      console.warn(`[Gemini MCP] Sandbox: ${sandbox}`);
+      console.warn(`[Gemini MCP] ChangeMode: ${changeMode} ${protocolEnforced ? '(auto-enabled)' : ''}`);
+      console.warn(`[Gemini MCP] AllFiles: ${allFiles}`);
+      console.warn(`[Gemini MCP] BatchStrategy: ${batchStrategy}`);
+      console.warn(`[Gemini MCP] EditIntent: ${editIntent}`);
+      console.warn(`[Gemini MCP] ================================`);
 
       // Skip notifications for now to ensure fast response
       console.warn(`[Gemini MCP] ${toolName} tool starting...`);
@@ -1295,7 +1675,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
           "🔒 Executing Gemini CLI command in sandbox mode...\n\n";
 
         try {
-          result = await executeGeminiCLI(prompt, model, true); // Always use sandbox mode
+          result = await executeGeminiCLI(prompt, model, true, StrictMode.NONE, allFiles); // Always use sandbox mode
 
           console.warn(
             `[Gemini MCP] Sandbox command completed successfully, result length: ${result.length}`,
@@ -1331,25 +1711,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
           };
         }
 
-        // Check if this is a job continuation request
-        const jobContinuation = handleJobContinuation(prompt);
-        if (jobContinuation.isJobRequest) {
-          result = jobContinuation.response || "Job continuation error";
-          console.warn(`[Gemini MCP] Job continuation handled: ${jobContinuation.jobId || 'unknown'}`);
+        // Check if this is a batch continuation request (cursor-based)
+        const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
+        const batchStrategy = args.batchStrategy || "single";
+        
+        // Handle cursor-based batch continuation
+        const requestMeta = request.params.arguments?._meta as { progressToken?: string; cursor?: string } | undefined;
+        if (prompt.includes('cursor:') || requestMeta?.cursor) {
+          const cursor = requestMeta?.cursor || prompt.match(/cursor:\s*([^\s]+)/)?.[1];
+          if (cursor) {
+            const batchStateId = cursor.split('-')[0] + '-' + cursor.split('-')[1];
+            const batchResults = getBatchResults(batchStateId, cursor);
+            result = formatBatchResponse(batchResults);
+            console.warn(`[Gemini MCP] Batch continuation handled: ${cursor}`);
+          } else {
+            result = "Invalid cursor format. Please provide a valid cursor from previous batch response.";
+          }
+        } else if (allFiles && batchStrategy !== "single") {
+          // Start new batch operation
+          result = await startBatchedAnalysis(prompt, model, sandbox, changeMode, allFiles, batchStrategy, requestMeta?.progressToken);
         } else {
           console.warn(`[Gemini MCP] About to execute Gemini command...`);
           console.warn(`[Gemini MCP] Change mode enabled: ${changeMode}`);
 
           try {
             const strictMode = changeMode ? StrictMode.CHANGE : StrictMode.NONE;
-            const rawResult = await executeGeminiCLI(prompt, model, sandbox, strictMode);
+            const rawResult = await executeGeminiCLI(prompt, model, sandbox, strictMode, allFiles);
 
             if (changeMode) {
               // Use structured response for change mode
               const sections = buildStructuredResponse(rawResult, prompt, strictMode);
               result = formatStructuredResponse(sections);
               
-              console.warn(`[Gemini MCP] Structured change response generated`);
+              // Add MCP protocol notice if auto-enabled
+              if (protocolEnforced) {
+                result = `🔧 **MCP Protocol Auto-Enabled ChangeMode**\n\nDetected edit intent in prompt - automatically enabled structured edit responses for optimal 'gemini reads, claude edits' workflow.\n\n---\n\n${result}`;
+              }
+              
+              console.warn(`[Gemini MCP] Structured change response generated (changeMode=${changeMode}, auto-enabled=${protocolEnforced})`);
             } else {
               // Standard response
               result = `🤖 **Gemini Response:**\n${rawResult}`;
@@ -1369,6 +1768,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
             }
           }
         }
+        
+        // Clean up expired batches periodically
+        cleanupExpiredBatches();
+        
         console.warn(`[Gemini MCP] About to return result to Claude...`);
       }
 
