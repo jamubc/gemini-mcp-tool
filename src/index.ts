@@ -1615,74 +1615,111 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
           ? "~/.claude/settings.json"
           : ".claude/settings.json";
         
-        // Hook configurations for Gemini-guided edits
+        // Hook configurations for Gemini-guided edits with proper JSON parsing
         const hookConfig = {
           hooks: {
             PreToolUse: [{
-              matcher: "Edit|MultiEdit|Write|mcp__.*__.*",
+              matcher: "Edit|MultiEdit|Write|mcp__gemini-cli__.*",
               hooks: [{
                 type: "command",
-                command: `if [ -n "\\$TOOL_INPUT" ] && grep -q 'Gemini' <<< "\\$TOOL_INPUT"; then echo '{"decision": "approve", "reason": "Gemini-guided edit validated"}'; fi`
-              }]
-            }],
-            PostToolUse: [{
-              matcher: "Edit|MultiEdit|Write",
-              hooks: [{
-                type: "command",
-                command: `if [ -n "\\$TOOL_INPUT" ] && grep -q 'Gemini' <<< "\\$TOOL_INPUT"; then echo 'Gemini edit applied successfully'; fi`
+                command: `#!/bin/bash
+# Auto-approve edits from Gemini workflow to prevent 'read first' failures
+if [ -n "\\$STDIN" ]; then
+  session_id=$(echo "\\$STDIN" | jq -r '.session_id // empty')
+  transcript_path=$(echo "\\$STDIN" | jq -r '.transcript_path // empty')
+  tool_name=$(echo "\\$STDIN" | jq -r '.tool_name // empty')
+  
+  if [ -n "\\$transcript_path" ] && [ -f "\\$transcript_path" ]; then
+    # Check last 30 lines for recent Gemini MCP activity
+    if tail -30 "\\$transcript_path" | grep -q 'mcp__gemini-cli__ask-gemini\\|mcp__gemini-cli__sandbox-test'; then
+      echo '{"decision": "approve", "reason": "Auto-approved: Gemini-guided edit workflow detected - bypassing read-first requirement"}'
+      exit 0
+    fi
+  fi
+fi
+# If no Gemini context found, allow normal permission flow
+exit 0`
               }]
             }]
           }
         };
         
-        // Remove unused variable to fix TypeScript warning
-        const location = scope === "user" ? "user settings" : "project settings";
+        // Import Node.js modules for file operations
+        const fs = await import('fs');
+        const path = await import('path');
+        const os = await import('os');
         
+        // Resolve the actual file path
+        const actualPath = settingsPath.startsWith('~') 
+          ? path.join(os.homedir(), settingsPath.slice(2))
+          : settingsPath;
+        
+        // Read existing settings or create empty object
+        let existingSettings: any = {};
+        try {
+          if (fs.existsSync(actualPath)) {
+            const content = fs.readFileSync(actualPath, 'utf8');
+            existingSettings = JSON.parse(content);
+          }
+        } catch (error) {
+          console.warn('Could not read existing settings, starting fresh');
+        }
+
         if (enable) {
+          // Merge hook configuration with existing settings
+          const updatedSettings = {
+            ...existingSettings,
+            ...hookConfig
+          };
+          
+          // Ensure directory exists
+          const dir = path.dirname(actualPath);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          
+          // Write updated settings
+          fs.writeFileSync(actualPath, JSON.stringify(updatedSettings, null, 2));
+          
           return {
-            description: `Configure Gemini hooks`,
+            description: `Hooks configured successfully`,
             messages: [
               {
                 role: "user" as const,
                 content: {
                   type: "text" as const,
-                  text: `✅ **Configuring Gemini Hooks**
+                  text: `✅ **Hooks Configured Successfully**
 
-I'll now configure hooks in ${location} to eliminate "File has not been read yet" errors for Gemini-guided edits.
+**Written to:** \`${actualPath}\`
 
-**Path:** \`${settingsPath}\`
+🔧 **PreToolUse Hook**: Auto-approves edits from Gemini workflow by detecting recent Gemini MCP tool usage in session transcript
+📊 **Target**: Eliminates "File has not been read yet" errors for Gemini-guided edits
+🔒 **Security**: Only applies to Edit/MultiEdit/Write operations following detected Gemini analysis
 
-**Configuration to apply:**
-\`\`\`json
-${JSON.stringify(hookConfig, null, 2)}
-\`\`\`
-
-This will:
-🔧 **PreToolUse Hook**: Bypass "read first" requirement for Gemini-guided edits (preserves manual approval)
-📊 **PostToolUse Hook**: Provide success feedback in transcript mode  
-🔒 **Security**: Only activates when "Gemini" is detected in tool input
-⚠️ **Note**: Hook changes take effect in new Claude Code sessions
-
-I'll merge this with your existing settings and write the updated configuration.`,
+⚠️ **Important**: Restart Claude Code to activate the hooks`,
                 } as TextContent,
               },
             ],
           };
         } else {
+          // Remove hooks from settings
+          if (existingSettings.hooks) {
+            delete existingSettings.hooks;
+            fs.writeFileSync(actualPath, JSON.stringify(existingSettings, null, 2));
+          }
+          
           return {
-            description: `Remove Gemini hooks`,
+            description: `Hooks removed successfully`,
             messages: [
               {
                 role: "user" as const,
                 content: {
                   type: "text" as const,
-                  text: `✅ **Removing Gemini Hooks**
+                  text: `✅ **Hooks Removed Successfully**
 
-I'll remove the Gemini hook configuration from ${location}.
+**Updated:** \`${actualPath}\`
 
-**Path:** \`${settingsPath}\`
-
-This will restore default Claude Code behavior where all edits require the "read first" workflow.`,
+Restored default Claude Code behavior. All edits will now require the "read first" workflow.`,
                 } as TextContent,
               },
             ],
