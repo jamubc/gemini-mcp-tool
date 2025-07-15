@@ -567,6 +567,7 @@ function detectEditIntent(prompt: string): boolean {
   const editPatterns = [
     /implement.*without.*reading/i,
     /provide.*edits?/i,
+    /provide.*fixes?/i,
     /code.*changes?/i,
     /find.*replace/i,
     /specific.*edits?/i,
