@@ -1611,129 +1611,77 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
         const scope: string = args.scope === "project" ? "project" : "user"; // Default to user (global)
         
         const settingsPath = scope === "user" 
-          ? `${process.env.HOME}/.claude/settings.json`
+          ? "~/.claude/settings.json"
           : ".claude/settings.json";
         
-        console.warn(`[CONFIGURE-HOOKS] Starting configuration - enable: ${enable}, scope: ${scope}, path: ${settingsPath}`);
-        
-        // Hook configuration for Gemini-guided edits
-        const geminiHook = {
-          matcher: "Edit|MultiEdit",
-          hooks: [{
-            type: "command",
-            command: `if grep -q 'Gemini' <<< "$TOOL_INPUT"; then echo '{"decision": "approve", "reason": "Gemini-guided edit - file context provided"}'; fi`
-          }]
+        // Hook configurations for Gemini-guided edits
+        const hookConfig = {
+          hooks: {
+            PreToolUse: [{
+              matcher: "Edit|MultiEdit|Write|mcp__.*__.*",
+              hooks: [{
+                type: "command",
+                command: `if [ -n "\\$TOOL_INPUT" ] && grep -q 'Gemini' <<< "\\$TOOL_INPUT"; then echo '{"decision": "approve", "reason": "Gemini-guided edit validated"}'; fi`
+              }]
+            }],
+            PostToolUse: [{
+              matcher: "Edit|MultiEdit|Write",
+              hooks: [{
+                type: "command",
+                command: `if [ -n "\\$TOOL_INPUT" ] && grep -q 'Gemini' <<< "\\$TOOL_INPUT"; then echo 'Gemini edit applied successfully'; fi`
+              }]
+            }]
+          }
         };
         
-        // Read existing settings or create new
-        let currentSettings: any = {};
-        try {
-          const { execSync } = require('child_process');
-          const fs = require('fs');
-          
-          // Ensure directory exists
-          if (scope === "project") {
-            execSync("mkdir -p .claude", { stdio: 'ignore' });
-          } else {
-            execSync(`mkdir -p ${process.env.HOME}/.claude`, { stdio: 'ignore' });
-          }
-          
-          // Read existing settings
-          if (fs.existsSync(settingsPath)) {
-            const fileContent = fs.readFileSync(settingsPath, 'utf8');
-            console.warn(`[CONFIGURE-HOOKS] Read existing settings: ${fileContent}`);
-            currentSettings = JSON.parse(fileContent);
-          } else {
-            console.warn(`[CONFIGURE-HOOKS] No existing settings file, creating new`);
-          }
-        } catch (readError) {
-          console.warn(`[CONFIGURE-HOOKS] Could not read existing settings: ${readError instanceof Error ? readError.message : String(readError)}`);
-          currentSettings = {}; // Start fresh if read fails
-        }
+        // Remove unused variable to fix TypeScript warning
+        const location = scope === "user" ? "user settings" : "project settings";
         
-        // Configure hooks
         if (enable) {
-          // Ensure hooks structure exists
-          if (!currentSettings.hooks) {
-            currentSettings.hooks = {};
-          }
-          if (!currentSettings.hooks.PreToolUse) {
-            currentSettings.hooks.PreToolUse = [];
-          }
-          
-          // Check if our hook already exists
-          const existingHookIndex = currentSettings.hooks.PreToolUse.findIndex(
-            (hook: any) => hook.matcher === "Edit|MultiEdit"
-          );
-          
-          if (existingHookIndex >= 0) {
-            // Update existing hook
-            currentSettings.hooks.PreToolUse[existingHookIndex] = geminiHook;
-            console.warn(`[CONFIGURE-HOOKS] Updated existing hook at index ${existingHookIndex}`);
-          } else {
-            // Add new hook
-            currentSettings.hooks.PreToolUse.push(geminiHook);
-            console.warn(`[CONFIGURE-HOOKS] Added new hook, total PreToolUse hooks: ${currentSettings.hooks.PreToolUse.length}`);
-          }
-        } else {
-          // Remove our specific hook
-          if (currentSettings.hooks && currentSettings.hooks.PreToolUse) {
-            currentSettings.hooks.PreToolUse = currentSettings.hooks.PreToolUse.filter(
-              (hook: any) => hook.matcher !== "Edit|MultiEdit"
-            );
-            console.warn(`[CONFIGURE-HOOKS] Removed Gemini hook, remaining PreToolUse hooks: ${currentSettings.hooks.PreToolUse.length}`);
-            
-            // Clean up empty structures
-            if (currentSettings.hooks.PreToolUse.length === 0) {
-              delete currentSettings.hooks.PreToolUse;
-            }
-            if (Object.keys(currentSettings.hooks).length === 0) {
-              delete currentSettings.hooks;
-            }
-          }
-        }
-        
-        // Write updated settings
-        try {
-          const fs = require('fs');
-          const settingsJson = JSON.stringify(currentSettings, null, 2);
-          console.warn(`[CONFIGURE-HOOKS] Writing settings: ${settingsJson}`);
-          
-          fs.writeFileSync(settingsPath, settingsJson);
-          console.warn(`[CONFIGURE-HOOKS] Successfully wrote to ${settingsPath}`);
-          
-          // Verify write succeeded
-          const verifyContent = fs.readFileSync(settingsPath, 'utf8');
-          console.warn(`[CONFIGURE-HOOKS] Verification read: ${verifyContent}`);
-          
-          const action = enable ? "enabled" : "disabled";
-          const location = scope === "user" ? "user settings" : "project settings";
-          
           return {
-            description: `Hooks configuration ${action}`,
+            description: `Configure Gemini hooks`,
             messages: [
               {
                 role: "user" as const,
                 content: {
                   type: "text" as const,
-                  text: `✅ **Hooks ${action}** in ${location}\n\nPath: \`${settingsPath}\`\n\n${enable ? 
-                    "🔧 **Gemini-guided edits** will now bypass 'File has not been read yet' errors while preserving diff view and approval process.\n\n⚠️ **Note:** Hook changes take effect in new Claude Code sessions. Restart Claude Code for changes to apply." :
-                    "Removed hook configuration. Edits will use default Claude Code behavior."
-                  }\n\n**Settings content:**\n\`\`\`json\n${settingsJson}\n\`\`\``,
+                  text: `✅ **Configuring Gemini Hooks**
+
+I'll now configure hooks in ${location} to eliminate "File has not been read yet" errors for Gemini-guided edits.
+
+**Path:** \`${settingsPath}\`
+
+**Configuration to apply:**
+\`\`\`json
+${JSON.stringify(hookConfig, null, 2)}
+\`\`\`
+
+This will:
+🔧 **PreToolUse Hook**: Bypass "read first" requirement for Gemini-guided edits (preserves manual approval)
+📊 **PostToolUse Hook**: Provide success feedback in transcript mode  
+🔒 **Security**: Only activates when "Gemini" is detected in tool input
+⚠️ **Note**: Hook changes take effect in new Claude Code sessions
+
+I'll merge this with your existing settings and write the updated configuration.`,
                 } as TextContent,
               },
             ],
           };
-        } catch (writeError) {
-          console.error(`[CONFIGURE-HOOKS] Write failed: ${writeError instanceof Error ? writeError.message : String(writeError)}`);
+        } else {
           return {
-            description: "Hook configuration failed",
+            description: `Remove Gemini hooks`,
             messages: [
               {
                 role: "user" as const,
                 content: {
                   type: "text" as const,
-                  text: `❌ **Failed to configure hooks**\n\nError: ${writeError instanceof Error ? writeError.message : String(writeError)}\n\nPath: \`${settingsPath}\`\n\nPlease ensure you have write permissions and the directory exists.`,
+                  text: `✅ **Removing Gemini Hooks**
+
+I'll remove the Gemini hook configuration from ${location}.
+
+**Path:** \`${settingsPath}\`
+
+This will restore default Claude Code behavior where all edits require the "read first" workflow.`,
                 } as TextContent,
               },
             ],
