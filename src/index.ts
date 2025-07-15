@@ -1753,12 +1753,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
   if (validTools.includes(toolName)) {
     try {
-      console.warn(`[Gemini MCP] === TOOL INVOCATION ===`);
-      console.warn(`[Gemini MCP] Tool: "${toolName}"`);
-      console.warn(
-        `[Gemini MCP] Raw arguments:`,
-        JSON.stringify(request.params.arguments, null, 2),
-      );
+      console.warn(`[Gemini MCP] ${toolName} invoked`);
 
       // MCP PROTOCOL-COMPLIANT PARAMETER PROCESSING
       const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
@@ -1792,15 +1787,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         console.warn(`[MCP Protocol] Enforced changeMode=true for edit workflow`);
       }
 
-      console.warn(`[Gemini MCP] === MCP PROTOCOL PROCESSING ===`);
-      console.warn(`[Gemini MCP] Prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
-      console.warn(`[Gemini MCP] Model: ${model || "default"}`);
-      console.warn(`[Gemini MCP] Sandbox: ${sandbox}`);
-      console.warn(`[Gemini MCP] ChangeMode: ${changeMode} ${protocolEnforced ? '(auto-enabled)' : ''}`);
-      console.warn(`[Gemini MCP] AllFiles: ${allFiles}`);
-      console.warn(`[Gemini MCP] BatchStrategy: ${batchStrategy}`);
-      console.warn(`[Gemini MCP] EditIntent: ${editIntent}`);
-      console.warn(`[Gemini MCP] ================================`);
+      // Verbose logging - commented out to reduce noise
+      // console.warn(`[Gemini MCP] === MCP PROTOCOL PROCESSING ===`);
+      // console.warn(`[Gemini MCP] Prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
+      // console.warn(`[Gemini MCP] Model: ${model || "default"}`);
+      // console.warn(`[Gemini MCP] Sandbox: ${sandbox}`);
+      // console.warn(`[Gemini MCP] ChangeMode: ${changeMode} ${protocolEnforced ? '(auto-enabled)' : ''}`);
+      // console.warn(`[Gemini MCP] AllFiles: ${allFiles}`);
+      // console.warn(`[Gemini MCP] BatchStrategy: ${batchStrategy}`);
+      // console.warn(`[Gemini MCP] EditIntent: ${editIntent}`);
+      // console.warn(`[Gemini MCP] ================================`);
 
       // Skip notifications for now to ensure fast response
       console.warn(`[Gemini MCP] ${toolName} tool starting...`);
