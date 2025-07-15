@@ -1356,7 +1356,7 @@ server.setRequestHandler(ListPromptsRequestSchema, async (request: ListPromptsRe
       {
         name: "configure-hooks",
         description:
-          "Configure Claude Code hooks to eliminate 'File has not been read yet' errors for Gemini-guided edits. Creates/updates .claude/settings.json automatically.",
+          "One-time global setup: Configure Claude Code hooks to eliminate 'File has not been read yet' errors for Gemini-guided edits everywhere. Updates ~/.claude/settings.json by default.",
         arguments: [
           {
             name: "enable",
@@ -1608,56 +1608,103 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
     case "configure-hooks":
       try {
         const enable: boolean = args.enable === "false" ? false : true; // Default to true
-        const scope: string = args.scope === "user" ? "user" : "project"; // Default to project
+        const scope: string = args.scope === "project" ? "project" : "user"; // Default to user (global)
         
         const settingsPath = scope === "user" 
           ? `${process.env.HOME}/.claude/settings.json`
           : ".claude/settings.json";
         
-        const hookConfig = {
-          hooks: {
-            PreToolUse: [{
-              matcher: "Edit|MultiEdit",
-              hooks: [{
-                type: "command",
-                command: `if grep -q 'Gemini' <<< "$TOOL_INPUT"; then echo '{"decision": "approve", "reason": "Gemini-guided edit - file context provided"}'; fi`
-              }]
-            }]
-          }
+        console.warn(`[CONFIGURE-HOOKS] Starting configuration - enable: ${enable}, scope: ${scope}, path: ${settingsPath}`);
+        
+        // Hook configuration for Gemini-guided edits
+        const geminiHook = {
+          matcher: "Edit|MultiEdit",
+          hooks: [{
+            type: "command",
+            command: `if grep -q 'Gemini' <<< "$TOOL_INPUT"; then echo '{"decision": "approve", "reason": "Gemini-guided edit - file context provided"}'; fi`
+          }]
         };
         
         // Read existing settings or create new
         let currentSettings: any = {};
         try {
           const { execSync } = require('child_process');
+          const fs = require('fs');
+          
+          // Ensure directory exists
           if (scope === "project") {
             execSync("mkdir -p .claude", { stdio: 'ignore' });
           } else {
             execSync(`mkdir -p ${process.env.HOME}/.claude`, { stdio: 'ignore' });
           }
           
-          const fs = require('fs');
+          // Read existing settings
           if (fs.existsSync(settingsPath)) {
-            currentSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            const fileContent = fs.readFileSync(settingsPath, 'utf8');
+            console.warn(`[CONFIGURE-HOOKS] Read existing settings: ${fileContent}`);
+            currentSettings = JSON.parse(fileContent);
+          } else {
+            console.warn(`[CONFIGURE-HOOKS] No existing settings file, creating new`);
           }
         } catch (readError) {
-          console.warn(`Could not read existing settings: ${readError instanceof Error ? readError.message : String(readError)}`);
+          console.warn(`[CONFIGURE-HOOKS] Could not read existing settings: ${readError instanceof Error ? readError.message : String(readError)}`);
+          currentSettings = {}; // Start fresh if read fails
         }
         
-        // Merge or remove hook configuration
+        // Configure hooks
         if (enable) {
-          currentSettings = { ...currentSettings, ...hookConfig };
+          // Ensure hooks structure exists
+          if (!currentSettings.hooks) {
+            currentSettings.hooks = {};
+          }
+          if (!currentSettings.hooks.PreToolUse) {
+            currentSettings.hooks.PreToolUse = [];
+          }
+          
+          // Check if our hook already exists
+          const existingHookIndex = currentSettings.hooks.PreToolUse.findIndex(
+            (hook: any) => hook.matcher === "Edit|MultiEdit"
+          );
+          
+          if (existingHookIndex >= 0) {
+            // Update existing hook
+            currentSettings.hooks.PreToolUse[existingHookIndex] = geminiHook;
+            console.warn(`[CONFIGURE-HOOKS] Updated existing hook at index ${existingHookIndex}`);
+          } else {
+            // Add new hook
+            currentSettings.hooks.PreToolUse.push(geminiHook);
+            console.warn(`[CONFIGURE-HOOKS] Added new hook, total PreToolUse hooks: ${currentSettings.hooks.PreToolUse.length}`);
+          }
         } else {
-          // Remove hooks configuration
-          if (currentSettings.hooks) {
-            delete currentSettings.hooks;
+          // Remove our specific hook
+          if (currentSettings.hooks && currentSettings.hooks.PreToolUse) {
+            currentSettings.hooks.PreToolUse = currentSettings.hooks.PreToolUse.filter(
+              (hook: any) => hook.matcher !== "Edit|MultiEdit"
+            );
+            console.warn(`[CONFIGURE-HOOKS] Removed Gemini hook, remaining PreToolUse hooks: ${currentSettings.hooks.PreToolUse.length}`);
+            
+            // Clean up empty structures
+            if (currentSettings.hooks.PreToolUse.length === 0) {
+              delete currentSettings.hooks.PreToolUse;
+            }
+            if (Object.keys(currentSettings.hooks).length === 0) {
+              delete currentSettings.hooks;
+            }
           }
         }
         
         // Write updated settings
         try {
           const fs = require('fs');
-          fs.writeFileSync(settingsPath, JSON.stringify(currentSettings, null, 2));
+          const settingsJson = JSON.stringify(currentSettings, null, 2);
+          console.warn(`[CONFIGURE-HOOKS] Writing settings: ${settingsJson}`);
+          
+          fs.writeFileSync(settingsPath, settingsJson);
+          console.warn(`[CONFIGURE-HOOKS] Successfully wrote to ${settingsPath}`);
+          
+          // Verify write succeeded
+          const verifyContent = fs.readFileSync(settingsPath, 'utf8');
+          console.warn(`[CONFIGURE-HOOKS] Verification read: ${verifyContent}`);
           
           const action = enable ? "enabled" : "disabled";
           const location = scope === "user" ? "user settings" : "project settings";
@@ -1670,14 +1717,15 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
                 content: {
                   type: "text" as const,
                   text: `✅ **Hooks ${action}** in ${location}\n\nPath: \`${settingsPath}\`\n\n${enable ? 
-                    "Gemini-guided edits will now bypass 'File has not been read yet' errors while preserving diff view and approval process." :
+                    "🔧 **Gemini-guided edits** will now bypass 'File has not been read yet' errors while preserving diff view and approval process.\n\n⚠️ **Note:** Hook changes take effect in new Claude Code sessions. Restart Claude Code for changes to apply." :
                     "Removed hook configuration. Edits will use default Claude Code behavior."
-                  }`,
+                  }\n\n**Settings content:**\n\`\`\`json\n${settingsJson}\n\`\`\``,
                 } as TextContent,
               },
             ],
           };
         } catch (writeError) {
+          console.error(`[CONFIGURE-HOOKS] Write failed: ${writeError instanceof Error ? writeError.message : String(writeError)}`);
           return {
             description: "Hook configuration failed",
             messages: [
@@ -1685,7 +1733,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
                 role: "user" as const,
                 content: {
                   type: "text" as const,
-                  text: `❌ **Failed to configure hooks**\n\nError: ${writeError instanceof Error ? writeError.message : String(writeError)}\n\nPlease ensure you have write permissions for: \`${settingsPath}\``,
+                  text: `❌ **Failed to configure hooks**\n\nError: ${writeError instanceof Error ? writeError.message : String(writeError)}\n\nPath: \`${settingsPath}\`\n\nPlease ensure you have write permissions and the directory exists.`,
                 } as TextContent,
               },
             ],
