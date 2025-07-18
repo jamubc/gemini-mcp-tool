@@ -1,19 +1,48 @@
 <template>
   <Layout>
+    <template #nav-bar-title-after>
+      <span v-if="!isHomePage" class="short-title">Documentation</span>
+    </template>
     <template #nav-bar-content-before>
       <div class="nav-warning">
-        🚧 <span>Docs under construction</span>
+        🏷️ <span>1.1.3</span>
       </div>
     </template>
   </Layout>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
+
 const { Layout } = DefaultTheme
+const route = useRoute()
+
+const isHomePage = computed(() => route.path === '/' || route.path === '/gemini-mcp-tool/')
 </script>
 
 <style>
+.short-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Hide original title on non-home pages */
+.has-sidebar .VPNavBarTitle .text {
+  display: none;
+}
+
+/* Position the nav bar title container for replacement */
+.has-sidebar .VPNavBarTitle {
+  position: relative;
+}
+
 .nav-warning {
   display: inline-flex;
   align-items: center;

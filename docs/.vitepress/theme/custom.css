@@ -195,11 +195,13 @@ html.dark {
 
 /* Content width optimization */
 .VPDoc .content {
-  max-width: 860px;
+  max-width: 1140px;
+  margin: 0 auto;
 }
 
 .VPDoc.has-aside .content {
-  max-width: 740px;
+  max-width: 1140px;
+  margin: 0 auto;
 }
 
 /* Info boxes - more subtle */
@@ -222,6 +224,29 @@ html.dark {
 /* Modern hero section */
 .VPHero {
   padding: 80px 24px;
+  text-align: center;
+}
+
+.VPHero .container {
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.VPHero .actions {
+  justify-content: center;
+  gap: 12px;
+}
+
+.VPHero .action {
+  padding: 8px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+}
+
+.VPHero .action:hover {
+  opacity: 1;
 }
 
 .VPHome .name {
