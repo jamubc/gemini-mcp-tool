@@ -1,6 +1,10 @@
 # Installation
 
-Multiple ways to install Gemini MCP Tool, depending on your needs.
+Multiple ways to install Gemini MCP Tool v1.1.2, depending on your needs.
+
+<div style="background: var(--vp-c-bg-soft); padding: 12px; border-radius: 6px; border: 1px solid var(--vp-c-divider); margin-bottom: 20px;">
+  <strong>Current Version:</strong> 1.1.2 with enhanced reliability and automatic fallback support
+</div>
 
 ## Prerequisites
 
