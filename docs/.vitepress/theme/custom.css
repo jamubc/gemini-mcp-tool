@@ -112,20 +112,7 @@ html.dark {
   margin: 16px 0;
 }
 
-/* Modern code blocks */
-pre {
-  background-color: var(--vp-c-bg-soft) !important;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
-  padding: 20px !important;
-  overflow-x: auto;
-}
-
-pre code {
-  font-size: 14px;
-  line-height: 1.6;
-  font-family: var(--vp-font-family-mono);
-}
+/* Code blocks - use VitePress defaults */
 
 /* Inline code */
 .vp-doc p code,
@@ -155,16 +142,6 @@ pre code {
   color: var(--vp-c-text-2);
 }
 
-/* Code blocks - more readable */
-.vp-doc div[class*='language-'] {
-  margin: 16px 0;
-  border-radius: 6px;
-}
-
-.vp-doc div[class*='language-'] code {
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
 
 /* Tables - wiki style */
 .vp-doc table {
@@ -186,9 +163,23 @@ pre code {
   border: 1px solid var(--vp-c-divider);
 }
 
-/* Remove emoji from logo if desired */
+/* Enhanced logo styling */
 .VPNavBarTitle .logo {
-  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  padding: 6px;
+  background: linear-gradient(135deg, rgba(66, 184, 131, 0.1) 0%, rgba(53, 73, 94, 0.1) 100%);
+  border: 1px solid rgba(66, 184, 131, 0.2);
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.VPNavBarTitle .logo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(66, 184, 131, 0.4);
+  background: linear-gradient(135deg, rgba(66, 184, 131, 0.15) 0%, rgba(53, 73, 94, 0.15) 100%);
 }
 
 /* Simplify footer */
@@ -291,3 +282,5 @@ pre code {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--vp-c-text-3);
 }
+
+

@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
-export default defineConfig({
+export default withMermaid({
   title: 'Gemini MCP Tool Documentation',
   description: 'Bridge Gemini models with Claude Desktop',
   base: '/gemini-mcp-tool/',
@@ -9,7 +10,7 @@ export default defineConfig({
   appearance: 'dark',
   
   themeConfig: {
-    logo: '🚀',
+    logo: '/icon.png',
     
     nav: [
       { text: 'Home', link: '/' },
