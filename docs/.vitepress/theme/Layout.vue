@@ -1,12 +1,26 @@
 <template>
   <Layout>
     <template #nav-bar-title-after>
-      <span v-if="!isHomePage" class="short-title">Documentation</span>
+      <span v-if="!isHomePage" class="replacement-title">Documentation</span>
     </template>
     <template #nav-bar-content-before>
       <div class="nav-warning">
         🏷️ <span>1.1.3</span>
       </div>
+    </template>
+    <template #sidebar-nav-after>
+      <!-- Sidebar ad placement - most non-intrusive -->
+      <AdBanner 
+        v-if="!isHomePage"
+        type="carbon" 
+        position="sidebar"
+        :dismissible="true"
+        :hide-on-paths="['/', '/getting-started']"
+      />
+    </template>
+    <template #doc-footer-before>
+      <!-- Footer support section - shown after users find value -->
+      <SupportSection v-if="!isHomePage" />
     </template>
   </Layout>
 </template>
@@ -15,6 +29,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
+import AdBanner from './components/AdBanner.vue'
+import SupportSection from './components/SupportSection.vue'
 
 const { Layout } = DefaultTheme
 const route = useRoute()
@@ -23,24 +39,26 @@ const isHomePage = computed(() => route.path === '/' || route.path === '/gemini-
 </script>
 
 <style>
-.short-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--vp-c-text-1);
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* Hide original title on non-home pages */
-.has-sidebar .VPNavBarTitle .text {
+/* Hide original title text when sidebar is present */
+.VPNavBar.has-sidebar .VPNavBarTitle .title > span:not(.replacement-title) {
   display: none;
 }
 
-/* Position the nav bar title container for replacement */
-.has-sidebar .VPNavBarTitle {
+/* Style the replacement title */
+.replacement-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+/* Ensure the nav bar title container accommodates our custom title */
+.VPNavBar.has-sidebar .VPNavBarTitle {
   position: relative;
+}
+
+/* Restore original title on home page (no sidebar) */
+.VPNavBar:not(.has-sidebar) .VPNavBarTitle .title > span {
+  display: inline;
 }
 
 .nav-warning {
