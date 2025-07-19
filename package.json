@@ -17,7 +17,9 @@
     "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "bundle": "esbuild dist/index.js --bundle --platform=node --format=cjs --outfile=dist/bundle.cjs",
+    "package": "pkg dist/bundle.cjs --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output bin/gemini-mcp"
   },
   "keywords": [
     "mcp",
@@ -57,9 +59,15 @@
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
-    "vitepress": "^1.6.3"
+    "vitepress": "^1.6.3",
+    "esbuild": "^0.21.0",        
+    "pkg": "^5.8.1"              
   },
   "publishConfig": {
     "access": "public"
+  },
+  "pkg": {
+    "scripts": "dist",
+    "assets": "dist/**/*"
   }
 }

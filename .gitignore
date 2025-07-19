@@ -1,5 +1,6 @@
 node_modules/
 dist/
+bin/
 *.log
 .env
 .DS_Store
