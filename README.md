@@ -1,3 +1,34 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=it">Itapano</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=jamubc&project=gemini-mcp-tool&lang=id">Bahasa Indonesia</a>
+      </div>
+    </div>
+  </details>
+</div>
+
 ## New Feature: Read with Gemini, Edit with Claude + Diffs
 
 <div align="center">
