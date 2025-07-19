@@ -6,17 +6,10 @@
 </div>
 
 ---
-
-> **Note:** 
-> - If your Gemini CLI installation already includes other MCP tools, they may interact with gemini-mcp-tool, leading to conflicts or unexpected console output if those MCPs write directly to stdout.  
-> - You can nest prompts by asking Gemini to invoke itself (e.g., `ask gemini to ask gemini`), but it won’t fall back automatically if the request exceeds your quota.  
-> - To use the faster, lower-cost flash model, append `flash` (e.g., `... using flash ...`).
-
 > 🚀 **Share your experience!** [Tell us how it went](https://github.com/jamubc/gemini-mcp-tool/discussions/2) and help the community grow!
 
-> 📚 [Wiki documentation](https://github.com/jamubc/gemini-mcp-tool/wiki) is available with additional guides and examples.
+> 📚 [Thorough documentation](https://github.com/jamubc/gemini-mcp-tool/wiki) is available with searching.
 > 
-> The contribution framework is currently in testing. Our goal is to use Gemini to create gemini-mcp-tool extensions, automate tool creation, and provide a TUI-based tool generator.
 
 # Gemini MCP Tool
 
@@ -43,6 +36,14 @@ This is a simple Model Context Protocol (MCP) server that allows AI assistants t
 
 
 **Goal**: Use Gemini's powerful analysis capabilities directly in Claude Code to save tokens and analyze large files.
+
+## Prerequisites
+
+Before using this tool, ensure you have:
+
+1. **[Node.js](https://nodejs.org/)** (v16.0.0 or higher)
+2. **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured
+
 
 ### One-Line Setup
 
@@ -71,23 +72,6 @@ If you already have it configured in Claude Desktop:
 2. Import to Claude Code:
 ```bash
 claude mcp add-from-claude-desktop
-```
-
-## Prerequisites
-
-Before using this tool, ensure you have:
-
-1. **[Node.js](https://nodejs.org/)** (v16.0.0 or higher)
-2. **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured
-
-## Installation Options
-
-### Option 1: NPX (Recommended)
-No installation required - the tool runs directly via `npx`.
-
-### Option 2: Global Installation
-```bash
-npm install -g gemini-mcp-tool
 ```
 
 ## Configuration
