@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "Gemini MCP Tool"
-  text: "Connecting the Gemini CLI to the MCP Ecosystem"
-  tagline: "Leverage Google's Gemini models in any MCP-compatible client—optimized for Claude Desktop and code workflows"
+  text: "Connect the Gemini CLI to the MCP Ecosystem"
+  tagline: "Leverage Google's Gemini models in any client that supports the standardized MCP protocol—<span style='color: #FFFFFF; background-color: #D97706; padding: 2px 8px; border-radius: 6px; font-size: 14px; font-weight: 600; margin-left: 4px; display: inline-block; vertical-align: middle;'>built for Claude Code</span>"
   actions:
     - theme: brand
       text: Get Started
@@ -14,18 +14,25 @@ hero:
       link: https://github.com/jamubc/gemini-mcp-tool
 
 features:
-  - icon: 🔌
-    title: Broad Compatibility
-    details: Built on the standardized MCP protocol. Seamless integration is tested with Claude Code; compatibility with other MCP clients may vary.
-  - icon: 📁
+  - icon: 📂
     title: File Analysis
-    details: Use @filename syntax for intelligent file processing with Gemini's multimodal capabilities.
-  - icon: 🎯
+    details: With @filename syntax integration, you decide where the focus is.
+  - icon: 🌱
+    title: Native Integrations
+    details: We dont re-invent the wheel.
+  - icon: 🤝
+    title: Claude's new best friend
+    details: Let Claude use Gemini naturally, because 3 is a party. 
+  - icon: 🔌
+    title: MCP Standards
+    details: |
+      <span style="color: #3b82f6;">Built on MCP protocol.</span><br><span style="color: #ef4444;">Tested with MCP standard.</span><br><span style="color: #22c55e;"><em>Benchmarked</em> with <span style="color: #f97316;">Claude Code</span>.</span>
+  - icon: 🔐
+    title: No keys!
+    details: Gemini-mcp-tool does not require any extra keys.
+  - icon: 🚦
     title: Model Selection
-    details: Choose from Gemini Pro, Flash, or Nano based on your needs and budget.
-  - icon: 🛠️
-    title: Easy Contributing
-    details: Easy setup and clear contribution guidelines make it simple for anyone to get involved.
+    details: Choose from Gemini-2.5-Pro and Gemini-2.5-Flash, using natural language.
 ---
 
 <div style="text-align: center; margin-top: -10px; margin-bottom: 20px;">
@@ -41,13 +48,14 @@ features:
 
 For installation and setup instructions, please refer to our [GitHub repository](https://github.com/jamubc/gemini-mcp-tool#readme) which contains the most up-to-date installation guide.
 
+
 <div style="text-align: center;">
 
 ## Why Gemini MCP?
 
 </div>
 
-By bridging Claude Desktop with Google's Gemini models (Pro, Flash, and Nano), Gemini MCP Tool lets you leverage the following advanced capabilities right in your existing workflow:
+By bridging Claude Desktop with Google's powerful models, Gemini MCP Tool lets you leverage the following advanced capabilities right in your existing workflow:
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 24px 0;">
   <div style="background: var(--vp-c-bg-soft); padding: 16px; border-radius: 8px; border: 1px solid var(--vp-c-divider);">
@@ -78,8 +86,8 @@ By bridging Claude Desktop with Google's Gemini models (Pro, Flash, and Nano), G
 
 ## Community
 
-We're actively developing new features to empower our community! Our goal is to make integration as seamless as possible.
+We're actively developing an innovative contribution system to empower our community! Our goal is to make contributing as seamless as possible, with automated tools that handle the complexity of Git workflows. Once complete, it will let you easily create new features and share them with everyone!
 
 **Our Vision:** Use Gemini MCP Tool itself to help you build new MCP tools - AI creating AI tools! 
 
-**Coming Soon:** Zero-friction contributions.
+**Coming Soon:** Zero-friction contributions with our automated workflow tools!

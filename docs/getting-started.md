@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide will help you get up and running with an. y MCP-compatible client.
+This guide will help you get up and running with any MCP-compatible client.
 
 :::warning 💡 For quick start instruction, please refer to our [**TLDR**](https://github.com/jamubc/gemini-mcp-tool#readme).
 :::
@@ -25,7 +25,7 @@ This guide will help you get up and running with an. y MCP-compatible client.
   <div class="client-card">
     <h3>📂 Other Clients</h3>
     <div class="client-badge">40+ Options</div>
-    <p>Continue, Cody, Cursor, Zed, Warp</p>
+    <p>Warp, Copilot, and More</p>
     <a href="#other-mcp-clients" class="client-button">View Options →</a>
   </div>
 </ClientGrid>
@@ -73,10 +73,17 @@ Claude uses MCP protocol to invoke tools on our server, which calls Gemini to an
 
 ## Choose Your Setup
 
-::: warning 💡 gemini-mcp-tool is tested extensively with claude code
-:::
+## Prerequisites
+
+Before installing, ensure you have:
+
+- **[Node.js](https://nodejs.org/)** v16.0.0 or higher
+- **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured on your system
+- **[Claude Desktop](https://claude.ai/download)** or **[Claude Code](https://www.anthropic.com/claude-code)** with MCP support
 
 ## TLDR Quick Start
+::: warning 💡 gemini-mcp-tool is tested extensively with claude code
+:::
 
 **Claude Code (Recommended):**
 
@@ -87,75 +94,9 @@ claude code  # You're ready!"
 />
 
 **Any Other MCP Client:**
-1. Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
 2. Add MCP server config (see patterns below)
 3. Use natural language: "use gemini to analyze this file"
 
-## Prerequisites
-
-Before installing, ensure you have:
-
-- **[Node.js](https://nodejs.org/)** v16.0.0 or higher
-- **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured on your system
-- **Claude Desktop** or **Claude Code** with MCP support
-
-### Quick Install [Gemini CLI](https://github.com/google-gemini/gemini-cli)
-
-<CodeBlock 
-  language="bash"
-  code="npm install -g @google/gemini-cli
-gemini #run gemini and complete auth"
-/>
-
-## Installation Methods
-
-### Method 1: Using npx (Recommended - No Installation!)
-
-This is the simplest approach - no global installation needed:
-
-```json
-{
-  "mcpServers": {
-    "gemini-cli": {
-      "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
-    }
-  }
-}
-```
-
-### Method 2: Global Installation
-
-If you prefer a traditional global install:
-
-```bash
-# Install globally
-claude mcp add gemini-cli -- npx -y gemini-mcp-tool
-
-# Then use this configuration:
-```
-
-```json
-{
-  "mcpServers": {
-    "gemini-cli": {
-      "command": "gemini-mcp"
-    }
-  }
-}
-```
-
-## Configuration File Locations
-
-Find your Claude Desktop configuration file:
-
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux**: `~/.config/claude/claude_desktop_config.json`
-
-::: tip
-After updating the configuration, restart Claude Desktop completely for changes to take effect.
-:::
 
 ## Claude Code (Recommended)
 
@@ -166,7 +107,7 @@ Claude Code offers the smoothest experience.
 claude mcp add gemini-cli -- npx -y gemini-mcp-tool
 
 # Start Claude Code - it's automatically configured!
-claude code
+claude
 ```
 
 ## Claude Desktop
@@ -184,6 +125,18 @@ For Claude Desktop users, add this to your configuration file:
 }
 ```
 
+## Configuration File Locations
+
+Find your Claude Desktop configuration file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`
+
+::: tip
+After updating the configuration, restart Claude Desktop completely for changes to take effect.
+:::
+
 ## Other MCP Clients
 
 Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration patterns:
@@ -200,107 +153,6 @@ Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration pa
 ```
 
 ### Popular Clients
-
-<details>
-<summary><strong>Continue.dev</strong> - VS Code extension with full MCP support</summary>
-
-**Configuration Location:** `~/.continue/config.json`
-
-```json
-{
-  "experimental": {
-    "modelContextProtocolServer": {
-      "transport": {
-        "type": "stdio",
-        "command": "npx",
-        "args": ["-y", "gemini-mcp-tool"]
-      }
-    }
-  }
-}
-```
-
-**Usage:** Type `@` → select "MCP" → choose resource for context
-
-</details>
-
-<details>
-<summary><strong>Cody</strong> - Sourcegraph's AI assistant with OpenCtx integration</summary>
-
-**Configuration Location:** VS Code `settings.json`
-
-```json
-{
-  "openctx.providers": {
-    "https://openctx.org/npm/@openctx/provider-modelcontextprotocol": {
-      "nodeCommand": "npx",
-      "mcp.provider.args": ["-y", "gemini-mcp-tool"]
-    }
-  }
-}
-```
-
-**Setup:** Enable OpenCtx in Cody Settings → check "OpenCtx: Enable"
-
-</details>
-
-<details>
-<summary><strong>Cursor</strong> - AI-powered code editor with built-in MCP</summary>
-
-**Configuration Location:** Settings → Cursor Settings → MCP servers
-
-**Project Config:** Create `.cursor/mcp.json` in project root:
-
-```json
-{
-  "mcpServers": {
-    "gemini-cli": {
-      "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
-    }
-  }
-}
-```
-
-**Features:** One-click MCP installation, OAuth support, up to 40 tools
-
-</details>
-
-<details>
-<summary><strong>Zed</strong> - High-performance editor with native MCP</summary>
-
-**Configuration Location:** `settings.json`
-
-```json
-{
-  "context_servers": {
-    "gemini-cli": {
-      "source": "custom",
-      "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
-    }
-  }
-}
-```
-
-**Features:** MCP extensions, custom slash commands, Extension Store integration
-
-</details>
-
-<details>
-<summary><strong>TypingMind</strong> - Web-based AI interface with plugin system</summary>
-
-**Configuration Location:** Settings → Advanced Settings → Model Context Protocol
-
-**Setup Steps:**
-1. Navigate to MCP settings
-2. Add server configuration
-3. Enable in Plugins page
-4. Assign to AI agents as needed
-
-**Features:** Enable/disable tools via interface, assign to AI agents, custom icons
-
-</details>
 
 <details>
 <summary><strong>Warp</strong> - Modern terminal with AI features</summary>
@@ -323,10 +175,9 @@ Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration pa
 ```
 
 **Features:** Terminal-native MCP integration, AI-powered command suggestions
-
 </details>
-
 ### Generic Setup Steps
+
 1. **Install Prerequisites**: Ensure [Gemini CLI](https://github.com/google-gemini/gemini-cli) is installed
 2. **Add Server Config**: Use the STDIO transport pattern above
 3. **Restart Client**: Most clients require restart after config changes
@@ -387,19 +238,14 @@ npm install -g @google/gemini-cli
 ```
 
 ### "MCP server not responding"
+0. run claude code --> /doctor
 1. Check your configuration file path
 2. Ensure JSON syntax is correct
 3. Restart your MCP client completely
 4. Verify Gemini CLI works: `gemini -help`
 
-### "Permission denied"
-On macOS/Linux, you might need to make scripts executable:
-```bash
-chmod +x contribution/*.sh
-```
 
 ### Client-Specific Issues
-- **Continue.dev**: Configuration goes in `experimental` section
 - **Claude Desktop**: Must restart completely after config changes
 - **Other Clients**: Check their specific documentation for MCP setup
 

@@ -1,22 +1,28 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 
-export default withMermaid({
-  title: 'Gemini MCP Tool Documentation',
-  description: 'Bridge Gemini models with Claude Desktop',
-  base: '/gemini-mcp-tool/',
-  
-  // Force dark mode by default
-  appearance: 'dark',
-  
-  themeConfig: {
+export default withMermaid(
+  defineConfig({
+    title: 'Gemini MCP Tool Documentation',
+    description: 'Bridge Gemini models with Claude Desktop',
+    base: '/gemini-mcp-tool/',
+    
+    // Force dark mode by default
+    appearance: 'dark',
+    
+    head: [
+      ['link', { rel: 'icon', href: '/gemini-mcp-tool/favicon.ico' }],
+      ['link', { rel: 'icon', type: 'image/png', sizes: '128x128', href: '/gemini-mcp-tool/icon.png' }],
+      ['link', { rel: 'apple-touch-icon', sizes: '128x128', href: '/gemini-mcp-tool/icon.png' }]
+    ],
+    
+    themeConfig: {
     logo: '/icon.png',
     
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/getting-started' },
-      { text: 'API', link: '/api-reference' },
-      { text: 'GitHub', link: 'https://github.com/jamubc/gemini-mcp-tool' }
+      { text: 'API', link: '/api' }
     ],
 
     sidebar: [
@@ -26,8 +32,6 @@ export default withMermaid({
         items: [
           { text: 'Overview', link: '/' },
           { text: 'Quick Start', link: '/getting-started' },
-          { text: 'Installation', link: '/installation' },
-          { text: 'First Steps', link: '/first-steps' }
         ]
       },
       {
@@ -51,32 +55,13 @@ export default withMermaid({
         ]
       },
       {
-        text: 'Contributing',
-        collapsed: true,
-        items: [
-          { text: '3-Command Workflow', link: '/contributing/quick-start' },
-          { text: 'Development Guide', link: '/contributing/development' },
-          { text: 'Templates', link: '/contributing/templates' },
-          { text: 'Testing', link: '/contributing/testing' }
-        ]
-      },
-      {
-        text: 'API Reference',
-        collapsed: true,
-        items: [
-          { text: 'Tools', link: '/api/tools' },
-          { text: 'Configuration', link: '/api/configuration' },
-          { text: 'TypeScript API', link: '/api/typescript' }
-        ]
-      },
-      {
         text: 'Resources',
         collapsed: true,
         items: [
+          { text: 'Roadmap', link: '/resources/roadmap' },
           { text: 'Troubleshooting', link: '/resources/troubleshooting' },
           { text: 'FAQ', link: '/resources/faq' },
-          { text: 'Changelog', link: '/resources/changelog' },
-          { text: 'Roadmap', link: '/resources/roadmap' }
+          { text: 'Changelog', link: '/resources/changelog' }
         ]
       }
     ],
@@ -95,3 +80,4 @@ export default withMermaid({
     }
   }
 })
+)

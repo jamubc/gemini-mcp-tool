@@ -4,26 +4,22 @@ Choose the right Gemini model for your task.
 
 ## Available Models
 
-### Gemini 1.5 Pro
+### Gemini-2.5-pro
 - **Best for**: Complex analysis, large codebases
 - **Context**: 2M tokens
-- **Use when**: Analyzing entire projects, architectural reviews
+- **Use when**: Analyzing entire projects, architectural reviews, stronger reasoning
 
-### Gemini 1.5 Flash
+### Gemini-2.5-flash
 - **Best for**: Quick responses, routine tasks
 - **Context**: 1M tokens  
-- **Use when**: Fast code reviews, simple explanations
-
-### Gemini 1.5 Flash-8B
-- **Best for**: Ultra-fast responses
-- **Context**: 1M tokens
-- **Use when**: Quick checks, simple queries
+- **Use when**: Fast code reviews, Analyzing entire projects, simple explanations
 
 ## Setting Models
-
-### Via Environment Variable
 ```bash
-export GEMINI_MODEL="gemini-1.5-pro-002"
+You need use natural language: "...using gemini flash"
+```
+```bash
+You can also append with '-m' or ask specifically with 
 ```
 
 ### In Configuration
@@ -49,9 +45,8 @@ export GEMINI_MODEL="gemini-1.5-pro-002"
 
 | Model | Speed | Context | Best Use Case |
 |-------|-------|---------|---------------|
-| Pro | Slower | 2M tokens | Full codebase analysis |
-| Flash | Fast | 1M tokens | Daily development |
-| Flash-8B | Fastest | 1M tokens | Quick queries |
+| Pro | Slower | 2M tokens | big ideas |
+| Flash | Fast | 1M tokens | quick, specific changes |
 
 ## Cost Optimization
 

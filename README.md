@@ -172,7 +172,7 @@ You can use these commands directly in Claude Code's interface (compatibility wi
 
 ## Contributing
 
-Contributions are welcome! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to submit pull requests, report issues, and contribute to the project.
+Contributions are welcome! Please see our GitHub Issues for ways to contribute to the project.
 
 ## License
 

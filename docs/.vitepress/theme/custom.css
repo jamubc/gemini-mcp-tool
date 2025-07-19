@@ -16,9 +16,9 @@ html.dark {
   --vp-c-divider-light: rgba(255, 255, 255, 0.05);
 }
 
-/* Clean navigation bar */
+/* Clean navigation bar - theme aware */
 .VPNavBar {
-  background-color: rgba(10, 10, 10, 0.8);
+  background-color: var(--vp-c-bg-alt);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--vp-c-divider);
 }
@@ -306,6 +306,16 @@ html.dark {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--vp-c-text-3);
+}
+
+/* Hide sidebar scrollbar */
+.VPSidebar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.VPSidebar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Webkit */
 }
 
 

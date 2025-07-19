@@ -24,3 +24,7 @@ metrics-data/
 # VitePress
 docs/.vitepress/cache/
 docs/.vitepress/dist/
+
+# Desktop Extension build artifacts
+*.dxt
+extension-build/

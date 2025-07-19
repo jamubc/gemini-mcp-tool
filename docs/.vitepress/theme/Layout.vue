@@ -51,6 +51,17 @@ const isHomePage = computed(() => route.path === '/' || route.path === '/gemini-
   color: var(--vp-c-text-1);
 }
 
+/* Ensure version badge is visible in light mode */
+.nav-warning {
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--vp-c-border);
+}
+
 /* Ensure the nav bar title container accommodates our custom title */
 .VPNavBar.has-sidebar .VPNavBarTitle {
   position: relative;
@@ -67,12 +78,26 @@ const isHomePage = computed(() => route.path === '/' || route.path === '/gemini-
   margin-right: auto;
   margin-left: 28px;
   padding: 4px 12px;
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--vp-c-yellow-soft);
+  color: var(--vp-c-yellow-darker);
   border-radius: 4px;
   font-size: 13px;
   font-weight: 500;
   flex-shrink: 0;
+  border: 1px solid var(--vp-c-yellow);
+}
+
+/* Ensure proper contrast in both themes */
+:root {
+  --vp-c-yellow-soft: #fef3c7;
+  --vp-c-yellow: #f59e0b;
+  --vp-c-yellow-darker: #92400e;
+}
+
+html.dark {
+  --vp-c-yellow-soft: rgba(245, 158, 11, 0.15);
+  --vp-c-yellow: #fbbf24;
+  --vp-c-yellow-darker: #fde047;
 }
 
 /* Add extra spacing on home page to prevent overlap */
