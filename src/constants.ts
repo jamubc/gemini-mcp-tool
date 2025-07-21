@@ -1,9 +1,5 @@
-// Tool names
-export const TOOL_NAMES = {
-  ASK_GEMINI: "ask-gemini",
-  PING: "Ping",
-  HELP: "Help",
-} as const;
+// may be a temporary solution. 
+
 
 // Logging
 export const LOG_PREFIX = "[Gemini MCP]";
@@ -23,26 +19,16 @@ export const STATUS_MESSAGES = {
   FLASH_SUCCESS: "✅ Flash model completed successfully",
   SANDBOX_EXECUTING: "🔒 Executing Gemini CLI command in sandbox mode...",
   GEMINI_RESPONSE: "🤖 Gemini Replied:",
+  // Timeout prevention messages
+  PROCESSING_START: "🔍 Starting analysis (may take 5-15 minutes for large codebases)",
+  PROCESSING_CONTINUE: "⏳ Still processing... Gemini is working on your request",
+  PROCESSING_COMPLETE: "✅ Analysis completed successfully",
 } as const;
 
 // Models
 export const MODELS = {
   PRO: "gemini-2.5-pro",
   FLASH: "gemini-2.5-flash",
-} as const;
-
-// Delimiters
-export const OUTPUT_DELIMITERS = {
-  START: "==== TOOL OUTPUT START ====",
-  END: "==== TOOL OUTPUT END ====",
-  METADATA_PREFIX: "[SYSTEM_METADATA]:",
-  AI_INSTRUCTIONS_PREFIX: "<!-- AI_INSTRUCTIONS:",
-  AI_INSTRUCTIONS_SUFFIX: " -->",
-} as const;
-
-// Timeouts and intervals --> ??? DEAD CODE?
-export const TIMING = {
-  PROGRESS_INTERVAL: 5000, // 5 seconds
 } as const;
 
 // MCP Protocol Constants
@@ -69,7 +55,11 @@ export const PROTOCOL = {
   },
   // Progress token
   PROGRESS_TOKEN: "gemini-status",
+  // Timeout prevention
+  KEEPALIVE_INTERVAL: 25000, // 25 seconds
+  BACKUP_HEARTBEAT_INTERVAL: 20000, // 20 seconds
 } as const;
+
 
 // CLI Constants
 export const CLI = {
@@ -93,13 +83,3 @@ export const CLI = {
   },
 } as const;
 
-// Response sections
-export const RESPONSE_SECTIONS = {
-  ANALYSIS_PREFIX: "Analyzed request:",
-  ANALYSIS_OF_PREFIX: "Analysis of:",
-  NEXT_STEPS_EDIT: `Gemini cannot directly edit files. To apply the suggested changes above:
-• For single replacements: use Claude's Edit tool
-• For multiple replacements in one file: use Claude's MultiEdit tool
-• Alternative: use find-and-replace functionality`,
-  NEXT_STEPS_STANDARD: "Review the analysis above and apply any suggested changes manually.",
-} as const;

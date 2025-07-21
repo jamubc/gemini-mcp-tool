@@ -133,19 +133,10 @@ claude mcp add gemini-cli -- npx gemini-mcp-tool
    /gemini-cli:analyze @large-file.js "explain lines 50-100"
    ```
 
-4. **For very large codebases, increase timeout**:
-   ```json
-   // In claude_desktop_config.json
-   {
-     "mcpServers": {
-       "gemini-cli": {
-         "env": {
-           "MCP_TIMEOUT": "600000"
-         }
-       }
-     }
-   }
-   ```
+4. **For very large codebases, the tool prevents timeouts automatically**:
+   - Progress updates keep the connection alive
+   - Clear status messages show processing is active
+   - No manual configuration needed
 
 </TroubleshootingModal>
 
@@ -188,20 +179,22 @@ claude mcp list
 **Problem**: Responses appear truncated or Claude reports "Gemini was thinking but got cut off"
 
 **Causes**:
-- Hidden timeout limits in the MCP tool (5 minutes default)
-- Large codebase analysis exceeding timeout
-- Model-specific issues with response generation
+- Large codebase analysis taking longer than expected
+- Complex operations requiring extended processing time
+- Client connection management issues
 
 **Solutions**:
 ```bash
+# The tool automatically prevents timeouts with progress updates
+# You'll see messages like:
+# "🔍 Starting analysis (may take 5-15 minutes for large codebases)"
+# "🧠 Gemini is analyzing your request..."
+
 # Use faster Flash model for large requests
 /gemini-cli:analyze -m gemini-2.5-flash @large-file.js
 
 # Break up large analysis into smaller chunks
 /gemini-cli:analyze @specific-function.js explain this function
-
-# Set MCP timeout environment variable (Claude Code)
-export MCP_TIMEOUT=600000  # 10 minutes
 ```
 
 ## File Analysis Issues
@@ -249,23 +242,29 @@ echo $GOOGLE_GENERATIVE_AI_API_KEY
 ```
 
 ### Configurable Timeout for Large Codebases
-**Problem**: Default 5-minute timeout too short for large analysis
+**Problem**: Default MCP client timeout too short for large analysis
 
-**Solution**: Configure timeout via environment variables
-```json
-// In claude_desktop_config.json
-{
-  "mcpServers": {
-    "gemini-cli": {
-      "command": "npx",
-      "args": ["gemini-mcp-tool"],
-      "env": {
-        "MCP_TIMEOUT": "600000",
-        "GEMINI_TIMEOUT": "300000"
-      }
-    }
-  }
-}
+**Root Cause**: Claude Desktop/Claude Code has a hard-coded timeout that cannot be overridden by environment variables.
+
+**Solution**: The tool now automatically sends progress updates to prevent timeouts
+```bash
+# The tool will automatically send progress messages like:
+# "🔍 Starting analysis (may take 5-15 minutes for large codebases)"
+# "🧠 Gemini is analyzing your request..."
+# "📊 Processing files and generating insights..."
+# "⏳ Still processing... Gemini is working on your request"
+```
+
+**What happens during long operations**:
+- Progress updates every 25 seconds during active processing
+- Backup heartbeat every 20 seconds to ensure connection stays alive
+- Clear status messages showing the tool is working
+- Automatic completion notification when done
+
+**For very large codebases** (10,000+ files):
+- Consider breaking analysis into smaller chunks
+- Use more specific file patterns with `@` syntax
+- Switch to `gemini-2.5-flash` for faster processing
 ```
 
 ## Debug Mode

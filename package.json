@@ -52,7 +52,8 @@
     "d3-shape": "^3.2.0",
     "inquirer": "^9.0.0",
     "prismjs": "^1.30.0",
-    "zod": "^3.22.0"
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.0",

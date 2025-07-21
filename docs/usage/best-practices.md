@@ -152,7 +152,7 @@ Always include full error messages and stack traces when debugging.
 
 ### Maintain Consistency
 ```bash
-@CONTRIBUTING.md @docs/style-guide.md @src/new-feature.js 
+@docs/style-guide.md @src/new-feature.js 
 "document following our conventions"
 ```
 
