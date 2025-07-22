@@ -73,7 +73,7 @@ export const CLI = {
   },
   // Default values
   DEFAULTS: {
-    MODEL: "default", // ew
+    MODEL: "default", // Fallback model used when no specific model is provided
     BOOLEAN_TRUE: "true",
     BOOLEAN_FALSE: "false",
   },
