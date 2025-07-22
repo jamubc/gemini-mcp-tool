@@ -128,7 +128,7 @@ const brainstormArgsSchema = z.object({
 
 export const brainstormTool: UnifiedTool = {
   name: "brainstorm",
-  description: "Generate novel ideas. Context engineering. Use dynamic context gathering, and progressive idea refinement. Features: creative frameworks (SCAMPER, Design Thinking, etc.), domain context integration, idea clustering, feasibility analysis, and iterative refinement.",
+  description: "Generate novel ideas with dynamic context gathering. --> Creative frameworks (SCAMPER, Design Thinking, etc.), domain context integration, idea clustering, feasibility analysis, and iterative refinement.",
   zodSchema: brainstormArgsSchema,
   prompt: {
     description: "Generate structured brainstorming prompt with methodology-driven ideation, domain context integration, and analytical evaluation framework",

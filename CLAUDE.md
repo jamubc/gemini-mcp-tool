@@ -38,12 +38,16 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - All logs use console.warn (except errors) for stderr output
 - Tracks command timing and progress updates
 
+### Supporting Files
+
 **`src/constants.ts`** - Centralized string constants
 - Error messages (quota exceeded, tool not found, etc.)
 - Status messages for UI notifications
 - Model names (gemini-2.5-pro, gemini-2.5-flash)
 - MCP protocol constants (roles, content types, status codes)
 - CLI flags and command names
+- ToolArguments: Input parameter types for all tools
+- Single, unified interface for tool arguments
 
 ### changeMode Implementation Files
 
@@ -62,12 +66,6 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - Splits large edit responses to fit within Claude's token limits
 - Keeps file edits together when possible
 - Configurable chunk size (default 180k characters)
-
-### Supporting Files
-
-**`src/interfaces.ts`** - TypeScript type definitions
-- ToolArguments: Input parameter types for all tools
-- Single, unified interface for tool arguments
 
 ### Dynamic Tool System (Optional)
 
