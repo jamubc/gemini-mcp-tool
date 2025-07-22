@@ -1,6 +1,6 @@
 {
   "name": "gemini-mcp-tool",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "MCP server for Gemini CLI integration",
   "type": "module",
   "main": "dist/index.js",
