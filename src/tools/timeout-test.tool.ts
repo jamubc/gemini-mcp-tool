@@ -10,7 +10,7 @@ export const timeoutTestTool: UnifiedTool = {
   description: "Test timeout prevention by running for a specified duration",
   zodSchema: timeoutTestArgsSchema,
   prompt: {
-    description: "Test te timeout prevention system by running a long operation",
+    description: "Test the timeout prevention system by running a long operation",
   },
   category: 'simple',
   execute: async (args, onProgress) => {
