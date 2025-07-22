@@ -121,42 +121,6 @@ After updating the configuration, restart your terminal session.
 - **Natural language**: "use gemini to explain index.html", "understand the massive project using gemini", "ask gemini to search for latest news"
 - **Claude Code**: Type `/gemini-cli` and commands will populate in Claude Code's interface.
 
-## ChangeMode: Let Gemini Read, Claude Edit
-
-ChangeMode is a powerful feature that leverages Gemini's 2M token capacity to analyze large codebases and generate structured edits that Claude can apply directly, WITHOUT reading the files first.
-
-### How to Use ChangeMode
-
-1. **Use `file:` prefix** to reference files (e.g., `file:index.html`, `file:src/`, `file:.`)
-2. **Add `changeMode` to your request** 
-3. **Do NOT use @ syntax** - this makes Claude read files first
-4. Claude will receive structured edits to apply directly
-
-### Example Usage
-
-```
-ask gemini to fix bugs in file:index.html using changeMode
-```
-
-or more explicitly:
-
-```
-use gemini with changeMode to analyze file:src/ and provide edits to modernize the code
-```
-
-### Why file: instead of @?
-
-- `@filename` makes Claude read the file before passing to Gemini
-- `file:filename` passes the filename to Gemini without Claude reading it
-- The MCP tool converts `file:` to `@` for Gemini automatically
-
-### Important Notes
-
-- **Workflow**: User provides file path → Gemini reads → analyzes → provides edits → Claude applies edits
-- **No file reading by Claude**: The `file:` prefix prevents Claude from auto-reading files
-- **Large files**: Perfect for files/codebases too large for Claude's context
-- **Multi-chunk support**: Large edit sets are automatically chunked with continuation instructions
-
 ## Usage Examples
 
 ### With File References (using @ syntax)
@@ -208,7 +172,7 @@ You can use these commands directly in Claude Code's interface (compatibility wi
 
 ## Contributing
 
-Contributions are welcome! Please see our GitHub Issues for ways to contribute to the project.
+Contributions are welcome! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to submit pull requests, report issues, and contribute to the project.
 
 ## License
 

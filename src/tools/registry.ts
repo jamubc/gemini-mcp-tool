@@ -1,5 +1,6 @@
 import { Tool, Prompt } from "@modelcontextprotocol/sdk/types.js"; // Each tool definition includes its metadata, schema, prompt, and execution logic in one place.
-import { ToolArguments } from "../interfaces.js";
+
+import { ToolArguments } from "../constants.js";
 import { ZodTypeAny, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
@@ -17,7 +18,7 @@ export interface UnifiedTool {
     }>;
   };
   
-  execute: (args: ToolArguments) => Promise<string>;
+  execute: (args: ToolArguments, onProgress?: (newOutput: string) => void) => Promise<string>;
   category?: 'simple' | 'gemini' | 'utility';
 }
 
@@ -65,10 +66,10 @@ export function getPromptDefinitions(): Prompt[] { // Helper to get MCP Prompt d
     }));
 }
 
-export async function executeTool(toolName: string, args: ToolArguments): Promise<string> {
+export async function executeTool(toolName: string, args: ToolArguments, onProgress?: (newOutput: string) => void): Promise<string> {
   const tool = toolRegistry.find(t => t.name === toolName);
   if (!tool) { throw new Error(`Unknown tool: ${toolName}`); } try { const validatedArgs = tool.zodSchema.parse(args);
-    return tool.execute(validatedArgs);
+    return tool.execute(validatedArgs, onProgress);
   } catch (error) { if (error instanceof ZodError) {
       const issues = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ');
       throw new Error(`Invalid arguments for ${toolName}: ${issues}`);

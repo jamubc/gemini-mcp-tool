@@ -2,7 +2,7 @@
 
 
 // Logging
-export const LOG_PREFIX = "[Gemini MCP]";
+export const LOG_PREFIX = "[GMCPT]";
 
 // Error messages
 export const ERROR_MESSAGES = {
@@ -18,7 +18,7 @@ export const STATUS_MESSAGES = {
   FLASH_RETRY: "⚡ Retrying with Gemini 2.5 Flash...",
   FLASH_SUCCESS: "✅ Flash model completed successfully",
   SANDBOX_EXECUTING: "🔒 Executing Gemini CLI command in sandbox mode...",
-  GEMINI_RESPONSE: "🤖 Gemini Replied:",
+  GEMINI_RESPONSE: "Gemini response:",
   // Timeout prevention messages
   PROCESSING_START: "🔍 Starting analysis (may take 5-15 minutes for large codebases)",
   PROCESSING_CONTINUE: "⏳ Still processing... Gemini is working on your request",
@@ -53,11 +53,8 @@ export const PROTOCOL = {
   NOTIFICATIONS: {
     PROGRESS: "notifications/progress",
   },
-  // Progress token
-  PROGRESS_TOKEN: "gemini-status",
   // Timeout prevention
   KEEPALIVE_INTERVAL: 25000, // 25 seconds
-  BACKUP_HEARTBEAT_INTERVAL: 20000, // 20 seconds
 } as const;
 
 
@@ -83,3 +80,24 @@ export const CLI = {
   },
 } as const;
 
+
+// (merged PromptArguments and ToolArguments)
+export interface ToolArguments {
+  prompt?: string;
+  model?: string;
+  sandbox?: boolean | string;
+  changeMode?: boolean | string;
+  chunkIndex?: number | string; // Which chunk to return (1-based)
+  chunkCacheKey?: string; // Optional cache key for continuation
+  message?: string; // For Ping tool -- Un-used.
+  
+  // --> new tool
+  methodology?: string; // Brainstorming framework to use
+  domain?: string; // Domain context for specialized brainstorming
+  constraints?: string; // Known limitations or requirements
+  existingContext?: string; // Background information to build upon
+  ideaCount?: number; // Target number of ideas to generate
+  includeAnalysis?: boolean; // Include feasibility and impact analysis
+  
+  [key: string]: string | boolean | number | undefined; // Allow additional properties
+}

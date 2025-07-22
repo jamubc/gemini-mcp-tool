@@ -9,27 +9,12 @@ dist/
 .idea/
 .npmignore
 
-# Project Management (Private)
-.project-management/
-.metrics/
-.roadmap/
-.analytics/
 
-# Local planning files
-*.local.md
-*-private.json
-planning/
-metrics-data/
-
-# VitePress
+# Docs Site
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 
 # Desktop Extension build artifacts
 *.dxt
 extension-build/
-
-.notes
-claude_desktop_extension
-.aider*
-docs/resources/plan_timeoutSolution.md
+CLAUDE.md

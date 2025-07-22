@@ -16,7 +16,8 @@ export async function executeGeminiCLI(
   prompt: string,
   model?: string,
   sandbox?: boolean,
-  changeMode?: boolean
+  changeMode?: boolean,
+  onProgress?: (newOutput: string) => void
 ): Promise<string> {
   let prompt_processed = prompt;
   
@@ -89,10 +90,16 @@ ${prompt_processed}
   const args = [];
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
-  args.push(CLI.FLAGS.PROMPT, prompt_processed);
+  
+  // Ensure @ symbols work cross-platform by wrapping in quotes if needed
+  const finalPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
+    ? `"${prompt_processed}"` 
+    : prompt_processed;
+    
+  args.push(CLI.FLAGS.PROMPT, finalPrompt);
   
   try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args);
+    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
@@ -103,9 +110,15 @@ ${prompt_processed}
       if (sandbox) {
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
-      fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed);
+      
+      // Same @ symbol handling for fallback
+      const fallbackPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
+        ? `"${prompt_processed}"` 
+        : prompt_processed;
+        
+      fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
       try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs);
+        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
         return result;
@@ -151,7 +164,7 @@ export async function processChangeModeOutput(
   const edits = parseChangeModeOutput(rawResult);
   
   if (edits.length === 0) {
-    return "No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format.";
+    return "No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format. \n\n+ ${rawResult}";
   }
 
   // Validate edits

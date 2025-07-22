@@ -1,10 +1,10 @@
 import { spawn } from "child_process";
 import { Logger } from "./logger.js";
-import { ERROR_MESSAGES } from "../constants.js";
 
 export async function executeCommand(
   command: string,
   args: string[],
+  onProgress?: (newOutput: string) => void
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -12,15 +12,24 @@ export async function executeCommand(
 
     const childProcess = spawn(command, args, {
       env: process.env,
-      shell: false, // Prevent shell injection
+      shell: false,
       stdio: ["ignore", "pipe", "pipe"],
     });
 
     let stdout = "";
     let stderr = "";
     let isResolved = false;
+    let lastReportedLength = 0;
+    
     childProcess.stdout.on("data", (data) => {
       stdout += data.toString();
+      
+      // Report new content if callback provided
+      if (onProgress && stdout.length > lastReportedLength) {
+        const newContent = stdout.substring(lastReportedLength);
+        lastReportedLength = stdout.length;
+        onProgress(newContent);
+      }
     });
 
 
@@ -38,7 +47,7 @@ export async function executeCommand(
         const errorJson = {
           error: {
             code: parseInt(status),
-            message: `GEMINI_MCP_SERVER: (found) Quota exceeded for ${model}`,
+            message: `GMCPT: --> Quota exceeded for ${model}`,
             details: {
               model: model,
               reason: reason,

@@ -175,8 +175,8 @@ export function clearCache(): void { // !
       }
     }
     
-    Logger.debug('Cache cleared');
+    Logger.debug('Cache emptied');
   } catch (error) {
-    Logger.error(`Failed to clear cache: ${error}`);
+    Logger.error(`Failed to empty cache: ${error}`);
   }
 }

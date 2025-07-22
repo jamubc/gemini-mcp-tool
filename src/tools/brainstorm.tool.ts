@@ -26,6 +26,7 @@ ${prompt}
 ${frameworkInstructions}
 
 ## Context Engineering
+*Use the following context to inform your reasoning:*
 ${domain ? `**Domain Focus:** ${domain} - Apply domain-specific knowledge, terminology, and best practices.` : ''}
 ${constraints ? `**Constraints & Boundaries:** ${constraints}` : ''}
 ${existingContext ? `**Background Context:** ${existingContext}` : ''}
@@ -54,6 +55,8 @@ Present ideas in a structured format:
 ${includeAnalysis ? '**Feasibility:** [1-5] | **Impact:** [1-5] | **Innovation:** [1-5]\n**Assessment:** [Brief evaluation]' : ''}
 
 ---
+
+**Before finalizing, review the list: remove near-duplicates and ensure each idea satisfies the constraints.**
 
 Begin brainstorming session:`;
 
@@ -104,11 +107,9 @@ function getMethodologyInstructions(methodology: string, domain?: string): strin
 
     'auto': `**AI-Optimized Approach:**
 ${domain ? `Given the ${domain} domain, I'll apply the most effective combination of:` : 'I\'ll intelligently combine multiple methodologies:'}
-- Divergent exploration for quantity and creativity
-- Domain-specific knowledge integration
-- SCAMPER triggers for systematic creativity
-- Human-centered perspective for relevance
-- Feasibility awareness for practical value`
+- Divergent exploration with domain-specific knowledge
+- SCAMPER triggers and lateral thinking
+- Human-centered perspective for practical value`
   };
 
   return methodologies[methodology] || methodologies['auto'];
@@ -130,10 +131,10 @@ export const brainstormTool: UnifiedTool = {
   description: "Generate novel ideas. Context engineering. Use dynamic context gathering, and progressive idea refinement. Features: creative frameworks (SCAMPER, Design Thinking, etc.), domain context integration, idea clustering, feasibility analysis, and iterative refinement.",
   zodSchema: brainstormArgsSchema,
   prompt: {
-    description: "???",
+    description: "Generate structured brainstorming prompt with methodology-driven ideation, domain context integration, and analytical evaluation framework",
   },
   category: 'gemini',
-  execute: async (args) => {
+  execute: async (args, onProgress) => {
     const {
       prompt,
       model,
@@ -146,7 +147,7 @@ export const brainstormTool: UnifiedTool = {
     } = args;
 
     if (!prompt?.trim()) {
-      throw new Error("You must enter something!");
+      throw new Error("You must provide a valid brainstorming challenge or question to explore");
     }
 
     let enhancedPrompt = buildBrainstormPrompt({
@@ -161,7 +162,10 @@ export const brainstormTool: UnifiedTool = {
 
     Logger.debug(`Brainstorm: Using methodology '${methodology}' for domain '${domain || 'general'}'`);
     
+    // Report progress to user
+    onProgress?.(`Generating ${ideaCount} ideas via ${methodology} methodology...`);
+    
     // Execute with Gemini
-    return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false);
+    return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false, onProgress);
   }
 };

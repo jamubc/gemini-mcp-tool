@@ -7,7 +7,7 @@ export class Logger {
   }
 
   static log(message: string, ...args: any[]): void {
-    console.log(this.formatMessage(message), ...args);
+    console.warn(this.formatMessage(message), ...args);
   }
 
   static warn(message: string, ...args: any[]): void {
@@ -23,7 +23,7 @@ export class Logger {
   }
 
   static toolInvocation(toolName: string, args: any): void {
-    this.warn("Raw arguments:", JSON.stringify(args, null, 2));
+    this.warn("Raw:", JSON.stringify(args, null, 2));
   }
 
   static toolParsedArgs(prompt: string, model?: string, sandbox?: boolean, changeMode?: boolean): void {
@@ -44,7 +44,7 @@ export class Logger {
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     this.warn(`[${elapsed}s] Process finished with exit code: ${exitCode}`);
     if (outputLength !== undefined) {
-      this.warn(`Success! Output length: ${outputLength} bytes`);
+      this.warn(`Response: ${outputLength} chars`);
     }
 
     // Clean up command tracking
