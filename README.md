@@ -20,6 +20,7 @@
 [![npm downloads](https://img.shields.io/npm/dt/gemini-mcp-tool)](https://www.npmjs.com/package/gemini-mcp-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Open Source](https://img.shields.io/badge/Open%20Source-❤️-red.svg)](https://github.com/jamubc/gemini-mcp-tool)
+[![smithery badge](https://smithery.ai/badge/@jamubc/gemini-mcp-tool)](https://smithery.ai/server/@jamubc/gemini-mcp-tool)
 
 </div>
 
@@ -56,6 +57,14 @@ claude mcp add gemini-cli -- npx -y gemini-mcp-tool
 Type `/mcp` inside Claude Code to verify the gemini-cli MCP is active.
 
 ---
+
+### Installing via Smithery
+
+To install Gemini CLI Integration Tool for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@jamubc/gemini-mcp-tool):
+
+```bash
+npx -y @smithery/cli install @jamubc/gemini-mcp-tool --client claude
+```
 
 ### Alternative: Import from Claude Desktop
 
