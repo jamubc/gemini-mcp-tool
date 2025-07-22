@@ -2,7 +2,7 @@
 
 This guide will help you get up and running with any MCP-compatible client.
 
-:::warning 💡 For quick start instruction, please refer to our [**TLDR**](https://github.com/jamubc/gemini-mcp-tool#readme).
+:::warning 💡 For quick start `Claude Code` instructions, please refer to our [**TLDR**](https://github.com/jamubc/gemini-mcp-tool#readme).
 :::
 
 ## Choose Your Client
@@ -69,9 +69,9 @@ flowchart LR
 ```
 </DiagramModal>
 
-Claude uses MCP protocol to invoke tools on our server, which calls Gemini to analyze your files and suggest edits. Files are processed locally and never stored or shared.
+Claude uses MCP to invoke ask-gemini which calls Gemini to work on your @files.
 
-## Choose Your Setup
+## Client Setup
 
 ## Prerequisites
 
@@ -81,25 +81,10 @@ Before installing, ensure you have:
 - **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured on your system
 - **[Claude Desktop](https://claude.ai/download)** or **[Claude Code](https://www.anthropic.com/claude-code)** with MCP support
 
-## TLDR Quick Start
-::: warning 💡 gemini-mcp-tool is tested extensively with claude code
-:::
-
-**Claude Code (Recommended):**
-
-<CodeBlock 
-  language="bash"
-  code="claude mcp add gemini-cli -- npx -y gemini-mcp-tool
-claude code  # You're ready!"
-/>
-
-**Any Other MCP Client:**
-2. Add MCP server config (see patterns below)
-3. Use natural language: "use gemini to analyze this file"
-
 
 ## Claude Code (Recommended)
-
+::: warning 💡 gemini-mcp-tool is tested extensively with claude code
+:::
 Claude Code offers the smoothest experience.
 
 ```bash
@@ -111,6 +96,15 @@ claude
 ```
 
 ## Claude Desktop
+---
+#### Configuration File Locations
+
+*Where are my Claude Desktop Config Files?:*
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/claude/claude_desktop_config.json`
+---
 
 For Claude Desktop users, add this to your configuration file:
 
@@ -125,18 +119,9 @@ For Claude Desktop users, add this to your configuration file:
 }
 ```
 
-## Configuration File Locations
-
-Find your Claude Desktop configuration file:
-
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux**: `~/.config/claude/claude_desktop_config.json`
-
-::: tip
-After updating the configuration, restart Claude Desktop completely for changes to take effect.
+::: warning
+You must restart Claude Desktop ***completely*** for changes to take effect.
 :::
-
 ## Other MCP Clients
 
 Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration patterns:

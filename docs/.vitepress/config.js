@@ -21,7 +21,7 @@ export default withMermaid(
     
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Guide', link: '/getting-started' },
+      { text: 'Open Guide', link: '/getting-started' },
       { text: 'API', link: '/api' }
     ],
 
@@ -61,7 +61,6 @@ export default withMermaid(
           { text: 'Roadmap', link: '/resources/roadmap' },
           { text: 'Troubleshooting', link: '/resources/troubleshooting' },
           { text: 'FAQ', link: '/resources/faq' },
-          { text: 'Changelog', link: '/resources/changelog' }
         ]
       }
     ],
