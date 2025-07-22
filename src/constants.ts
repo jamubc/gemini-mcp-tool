@@ -1,4 +1,3 @@
-// may be a temporary solution. 
 
 
 // Logging
