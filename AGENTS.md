@@ -2,7 +2,7 @@
 
 ## Development
 - Use TypeScript with an object-oriented approach when adding new features.
-- Follow test-driven development. Add or update tests under `src` and run `npm test`.
+- Follow test-driven development. Add or update tests under `tests` and run `npm test`.
 - Lint code with `npm run lint` before committing.
 - Build with `npm run build` to ensure TypeScript compiles.
 - Keep `@modelcontextprotocol/sdk` and `zod` listed as both peer and dev dependencies. Their versions should match across sections of `package.json`.
@@ -13,7 +13,7 @@
 - Documented in `docs/resources/troubleshooting.md`.
 
 ## Repository Scripts
-- `npm test` – runs the test suite (currently a placeholder).
+- `npm test` – runs the Vitest suite.
 - `npm run lint` – checks TypeScript types via `tsc --noEmit`.
 - `npm run build` – compiles TypeScript to `dist/`.
 

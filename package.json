@@ -1,6 +1,6 @@
 {
   "name": "gemini-mcp-tool",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "MCP server for Gemini CLI integration",
   "type": "module",
   "main": "dist/index.js",
@@ -11,7 +11,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "vitest run",
     "lint": "tsc --noEmit",
     "contribute": "tsx src/contribute.ts",
     "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
@@ -64,6 +64,7 @@
     "vitepress-plugin-mermaid": "^2.0.17",
     "@modelcontextprotocol/sdk": "^0.5.0",
     "zod": "^3.25.76"
+    "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"

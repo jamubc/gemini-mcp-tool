@@ -30,7 +30,7 @@ import {
 const server = new Server(
   {
     name: "gemini-cli-mcp",
-    version: "1.1.4",
+    version: "1.1.5",
   },{
     capabilities: {
       tools: {},
