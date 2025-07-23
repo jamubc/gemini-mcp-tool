@@ -10,7 +10,7 @@ layout: funding
 
 <div style="text-align: center; margin: 32px 0;">
   <p style="font-size: 18px; color: var(--vp-c-text-2);">
-    I believe in 100% transparency. Here's a clear breakdown of operational expendature.
+    I believe in 100% transparency. Here's a clear breakdown of operational expenditure.
   </p>
 </div>
 
