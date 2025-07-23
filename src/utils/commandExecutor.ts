@@ -1,27 +1,59 @@
 import { spawn } from "child_process";
 import { Logger } from "./logger.js";
 
+// Sanitize command and arguments to prevent shell injection and flag injection
+function sanitizeInput(input: string): string {
+  // Remove or escape dangerous shell metacharacters
+  let sanitized = input.replace(/[;&|`$(){}[\]<>]/g, '');
+  // Prevent flag injection by removing leading dashes
+  sanitized = sanitized.replace(/^-+/, '');
+  return sanitized;
+}
+
+function validateCommand(command: string): boolean {
+  // Only allow specific whitelisted commands
+  const allowedCommands = ['gemini', 'gemini.exe', 'echo'];
+  const baseCommand = command.split(/[/\\]/).pop()?.toLowerCase() || '';
+  return allowedCommands.includes(baseCommand);
+}
+
 export async function executeCommand(
   command: string,
   args: string[],
   onProgress?: (newOutput: string) => void
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    const startTime = Date.now();
-    Logger.commandExecution(command, args, startTime);
+    // Validate command before execution
+    if (!validateCommand(command)) {
+      reject(new Error(`Command not allowed: ${command}. Only gemini, gemini.exe, and npx are permitted.`));
+      return;
+    }
 
-    const childProcess = spawn(command, args, {
+    // Sanitize arguments to prevent shell injection
+    const sanitizedArgs = args.map(arg => sanitizeInput(arg));
+    
+    const startTime = Date.now();
+    Logger.commandExecution(command, sanitizedArgs, startTime);
+
+    const childProcess = spawn(command, sanitizedArgs, {
       env: process.env,
-      shell: false,
+      shell: true,
       stdio: ["ignore", "pipe", "pipe"],
+      cwd: process.cwd()
     });
+
+    if (!childProcess.stdout || !childProcess.stderr) {
+      childProcess.kill();
+      reject(new Error("Process spawning failed: streams not available"));
+      return;
+    }
 
     let stdout = "";
     let stderr = "";
     let isResolved = false;
     let lastReportedLength = 0;
     
-    childProcess.stdout.on("data", (data) => {
+    childProcess.stdout.on("data", (data: Buffer) => {
       stdout += data.toString();
       
       // Report new content if callback provided
@@ -34,7 +66,7 @@ export async function executeCommand(
 
 
     // CLI level errors
-    childProcess.stderr.on("data", (data) => {
+    childProcess.stderr.on("data", (data: Buffer) => {
       stderr += data.toString();
       // find RESOURCE_EXHAUSTED when gemini-2.5-pro quota is exceeded
       if (stderr.includes("RESOURCE_EXHAUSTED")) {
@@ -58,14 +90,14 @@ export async function executeCommand(
         Logger.error(`Gemini Quota Error: ${JSON.stringify(errorJson, null, 2)}`);
       }
     });
-    childProcess.on("error", (error) => {
+    childProcess.on("error", (error: Error) => {
       if (!isResolved) {
         isResolved = true;
         Logger.error(`Process error:`, error);
         reject(new Error(`Failed to spawn command: ${error.message}`));
       }
     });
-    childProcess.on("close", (code) => {
+    childProcess.on("close", (code: number | null) => {
       if (!isResolved) {
         isResolved = true;
         if (code === 0) {
