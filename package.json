@@ -11,7 +11,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "vitest run",
     "lint": "tsc --noEmit",
     "contribute": "tsx src/contribute.ts",
     "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
@@ -63,7 +63,8 @@
     "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitepress": "^1.6.3",
-    "vitepress-plugin-mermaid": "^2.0.17"
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"
