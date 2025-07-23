@@ -1,11 +1,12 @@
 <template>
-  <Layout>
+  <FundingLayout v-if="frontmatter.layout === 'funding'" />
+  <Layout v-else>
     <template #nav-bar-title-after>
       <span v-if="!isHomePage" class="replacement-title">Documentation</span>
     </template>
     <template #nav-bar-content-before>
       <div class="nav-warning">
-        🏷️ <span>1.1.3</span>
+        🏷️ <span>1.1.4</span>
       </div>
     </template>
     <template #sidebar-nav-after>
@@ -20,22 +21,27 @@
     </template>
     <template #doc-footer-before>
       <!-- Footer support section - shown after users find value -->
-      <SupportSection v-if="!isHomePage" />
+      <SupportSection v-if="!isHomePage && !isFundingPage" />
     </template>
   </Layout>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vitepress'
+import { useRoute, useData } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import AdBanner from './components/AdBanner.vue'
 import SupportSection from './components/SupportSection.vue'
+import FundingHero from './components/FundingHero.vue'
+import FundingEffects from './components/FundingEffects.vue'
+import FundingLayout from './FundingLayout.vue'
 
 const { Layout } = DefaultTheme
 const route = useRoute()
+const { frontmatter } = useData()
 
 const isHomePage = computed(() => route.path === '/' || route.path === '/gemini-mcp-tool/')
+const isFundingPage = computed(() => route.path.includes('/funding'))
 </script>
 
 <style>

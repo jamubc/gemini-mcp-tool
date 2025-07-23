@@ -6,7 +6,7 @@ Multiple ways to install Gemini MCP Tool, depending on your needs.
 
 - Node.js v16.0.0 or higher
 - Claude Desktop or Claude Code with MCP support
-- Gemini CLI installed (`pip install google-generativeai-cli`)
+- Gemini CLI installed (`npm install -g @google/gemini-cli`)
 
 ## Method 1: NPX (Recommended)
 

@@ -10,13 +10,15 @@ hero:
       text: Get Started
       link: /getting-started
     - theme: alt
-      text: View on GitHub
+      text: Leave a Star ⭐
       link: https://github.com/jamubc/gemini-mcp-tool
 
 features:
   - icon: 📂
-    title: File Analysis
-    details: With @filename syntax integration, you decide where the focus is.
+    title: Natural File Editing
+    details: |
+      <span class="diff-line diff-delete">@filename integration lets you</span><br>
+      <span class="diff-line diff-add">decide where the focus is.</span>
   - icon: 🌱
     title: Native Integrations
     details: We dont re-invent the wheel.
@@ -35,10 +37,15 @@ features:
     details: Choose from Gemini-2.5-Pro and Gemini-2.5-Flash, using natural language.
 ---
 
-<div style="text-align: center; margin-top: -10px; margin-bottom: 20px;">
-  <span style="font-size: 13px; font-weight: 500; color: var(--vp-c-text-2); background-color: var(--vp-c-bg-soft); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--vp-c-divider);">
-    Inspired by the needs of the Claude community
-  </span>
+<div class="explore-hint" style="text-align: center; margin: 32px 0 48px; position: relative;">
+  <div class="explore-dots" style="display: inline-flex; align-items: center; gap: 4px;">
+    <span class="dot" style="font-size: 11px; letter-spacing: 0.5px; color: var(--vp-c-text-3); opacity: 0.8; transition: all 0.3s ease;">•</span>
+    <span class="dot" style="font-size: 11px; letter-spacing: 0.5px; color: var(--vp-c-text-3); opacity: 0.8; transition: all 0.3s ease; transition-delay: 0.1s;">•</span>
+    <span class="dot" style="font-size: 11px; letter-spacing: 0.5px; color: var(--vp-c-text-3); opacity: 0.8; transition: all 0.3s ease; transition-delay: 0.2s;">•</span>
+  </div>
+  <p class="explore-text" style="font-size: 13px; color: var(--vp-c-text-3); margin-top: 8px; opacity: 0.7; transition: all 0.3s ease;">
+    And much more to explore
+  </p>
 </div>
 
 <div style="margin-top: 48px;">
@@ -49,45 +56,3 @@ features:
 For installation and setup instructions, please refer to our [GitHub repository](https://github.com/jamubc/gemini-mcp-tool#readme) which contains the most up-to-date installation guide.
 
 
-<div style="text-align: center;">
-
-## Why Gemini MCP?
-
-</div>
-
-By bridging Claude Desktop with Google's powerful models, Gemini MCP Tool lets you leverage the following advanced capabilities right in your existing workflow:
-
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin: 24px 0;">
-  <div style="background: var(--vp-c-bg-soft); padding: 16px; border-radius: 8px; border: 1px solid var(--vp-c-divider);">
-    <h4 style="margin: 0 0 8px 0; color: var(--vp-c-brand);">💰 Cost-Effective</h4>
-    <p style="margin: 0; font-size: 14px; line-height: 1.5;">Delegate tasks to a more cost-effective model to reduce expensive token usage.</p>
-  </div>
-  
-  <div style="background: var(--vp-c-bg-soft); padding: 16px; border-radius: 8px; border: 1px solid var(--vp-c-divider);">
-    <h4 style="margin: 0 0 8px 0; color: var(--vp-c-brand);">🎯 Multimodal Native</h4>
-    <p style="margin: 0; font-size: 14px; line-height: 1.5;">Process text, images, audio, video, and code seamlessly within your workflow.</p>
-  </div>
-  
-  <div style="background: var(--vp-c-bg-soft); padding: 16px; border-radius: 8px; border: 1px solid var(--vp-c-divider);">
-    <h4 style="margin: 0 0 8px 0; color: var(--vp-c-brand);">🚀 High Performance</h4>
-    <p style="margin: 0; font-size: 14px; line-height: 1.5;">Leverage a large context window and powerful built-in tools, including web search.</p>
-  </div>
-  
-  <div style="background: var(--vp-c-bg-soft); padding: 16px; border-radius: 8px; border: 1px solid var(--vp-c-divider);">
-    <h4 style="margin: 0 0 8px 0; color: var(--vp-c-brand);">🧠 Advanced Reasoning</h4>
-    <p style="margin: 0; font-size: 14px; line-height: 1.5;">Gain a different analytical perspective for sophisticated analysis of complex information.</p>
-  </div>
-  
-  <div style="background: var(--vp-c-bg-soft); padding: 16px; border-radius: 8px; border: 1px solid var(--vp-c-divider);">
-    <h4 style="margin: 0 0 8px 0; color: var(--vp-c-brand);">🔒 Privacy First</h4>
-    <p style="margin: 0; font-size: 14px; line-height: 1.5;">Open-source and telemetry-free. Committed to transparency and responsible AI.</p>
-  </div>
-</div>
-
-## Community
-
-We're actively developing an innovative contribution system to empower our community! Our goal is to make contributing as seamless as possible, with automated tools that handle the complexity of Git workflows. Once complete, it will let you easily create new features and share them with everyone!
-
-**Our Vision:** Use Gemini MCP Tool itself to help you build new MCP tools - AI creating AI tools! 
-
-**Coming Soon:** Zero-friction contributions with our automated workflow tools!

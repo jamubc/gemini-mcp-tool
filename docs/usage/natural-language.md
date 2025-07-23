@@ -100,3 +100,4 @@ Claude understands the context and uses the appropriate tool.
 4. **No Memorization**: Use whatever feels natural
 
 Remember: The goal is to make AI assistance feel natural, not robotic!
+

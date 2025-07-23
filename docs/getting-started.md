@@ -1,15 +1,10 @@
-# Getting Started
+## Getting Started
 
-This guide will help you get up and running with any MCP-compatible client.
-
-:::warning 💡 For quick start `Claude Code` instructions, please refer to our [**TLDR**](https://github.com/jamubc/gemini-mcp-tool#readme).
-:::
-
-## Choose Your Client
+<div align="center">⇣ Find your setup ↴</div>
 
 <ClientGrid>
-  <div class="client-card client-card--recommended">
-    <h3>💻 Claude Code</h3>
+  <div class="client-card client-card--recommended claude-code-card">
+    <h3><span class="snowflake">❋</span> Claude Code</h3>
     <div class="client-badge">Power Users</div>
     <p>One-command setup</p>
     <a href="#claude-code-recommended" class="client-button">Get Started →</a>
@@ -26,50 +21,9 @@ This guide will help you get up and running with any MCP-compatible client.
     <h3>📂 Other Clients</h3>
     <div class="client-badge">40+ Options</div>
     <p>Warp, Copilot, and More</p>
-    <a href="#other-mcp-clients" class="client-button">View Options →</a>
+    <a href="#other-mcp-clients" class="client-button">More →</a>
   </div>
 </ClientGrid>
-
----
-#### How does *Gemini-MCP-Tool* work?
-<DiagramModal>
-
-```mermaid
----
-config:
-  flowchart:
-    htmlLabels: false
-    curve: cardinal
----
-flowchart LR
-    subgraph main
-        direction TB
-        A[You] --> |"ask gemini..."| B([**Claude**])
-        B -..-> |"invokes 'ask-gemini'"| C["Gemini-MCP-Tool"]
-        C --> |"spawn!"| D[Gemini-CLI]
-        D e1@-.-> |"response"| C
-        C -.-> |"response"| B
-        B -.-> |"summary response"| A
-        e1@{ animate: true }
-    end
-    subgraph Project
-        B --> |"edits"| E["`**@*Files***`"]
-        D -.-> |"reads"| E
-    end
-    classDef userNode fill:#1a237e,stroke:#fff,color:#fff,stroke-width:2px
-    classDef claudeNode fill:#e64100,stroke:#fff,color:#fff,stroke-width:2px
-    classDef geminiNode fill:#4285f4,stroke:#fff,color:#fff,stroke-width:2px
-    classDef mcpNode fill:#37474f,stroke:#fff,color:#fff,stroke-width:2px
-    classDef dataNode fill:#1b5e20,stroke:#fff,color:#fff,stroke-width:2px
-    class A userNode
-    class B claudeNode
-    class C mcpNode
-    class D geminiNode
-    class E dataNode
-```
-</DiagramModal>
-
-Claude uses MCP to invoke ask-gemini which calls Gemini to work on your @files.
 
 ## Client Setup
 
@@ -99,11 +53,16 @@ claude
 ---
 #### Configuration File Locations
 
+<ConfigModal>
+
 *Where are my Claude Desktop Config Files?:*
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux**: `~/.config/claude/claude_desktop_config.json`
+
+</ConfigModal>
+
 ---
 
 For Claude Desktop users, add this to your configuration file:

@@ -8,7 +8,7 @@ export default withMermaid(
     base: '/gemini-mcp-tool/',
     
     // Force dark mode by default
-    appearance: 'dark',
+    //appearance: 'dark',
     
     head: [
       ['link', { rel: 'icon', href: '/gemini-mcp-tool/favicon.ico' }],
