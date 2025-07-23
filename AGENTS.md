@@ -5,12 +5,15 @@
 - Follow test-driven development. Add or update tests under `tests` and run `npm test`.
 - Lint code with `npm run lint` before committing.
 - Build with `npm run build` to ensure TypeScript compiles.
+- Run `ruff` on any Python files with `select = ["ALL"]`. Only ignore rules with a strong justification.
 - Keep `@modelcontextprotocol/sdk` and `zod` listed as both peer and dev dependencies. Their versions should match across sections of `package.json`.
 - Ensure `@types/node` is installed and referenced via `tsconfig.json` under `compilerOptions.types`.
 
 ## Windows Compatibility
 - The command executor uses `shell: process.platform === "win32"` to avoid ENOENT errors.
 - Documented in `docs/resources/troubleshooting.md`.
+- Prompts passed to the Gemini CLI on Windows are automatically quoted and escaped.
+- Unit tests verify quoting for multi-line prompts with special characters, including embedded double quotes, on Windows.
 
 ## Repository Scripts
 - `npm test` – runs the Vitest suite.
