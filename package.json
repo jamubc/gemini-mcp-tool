@@ -46,13 +46,11 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0",
     "ai": "^4.3.17",
     "chalk": "^5.0.0",
     "d3-shape": "^3.2.0",
     "inquirer": "^9.0.0",
     "prismjs": "^1.30.0",
-    "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
@@ -64,9 +62,16 @@
     "typescript": "^5.0.0",
     "vitepress": "^1.6.3",
     "vitepress-plugin-mermaid": "^2.0.17",
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "zod": "^3.25.76"
     "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "zod": "^3.25.76"
   }
 }
+
