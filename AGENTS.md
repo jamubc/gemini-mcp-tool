@@ -17,3 +17,6 @@
 - `npm run lint` – checks TypeScript types via `tsc --noEmit`.
 - `npm run build` – compiles TypeScript to `dist/`.
 
+## Package.json Integrity
+- Ensure `package.json` is valid JSON. Running `npm install` or `npm run lint` will fail fast if syntax errors are present.
+
