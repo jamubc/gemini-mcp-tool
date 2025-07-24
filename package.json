@@ -14,6 +14,7 @@
     "test": "vitest run",
     "lint": "tsc --noEmit",
     "contribute": "tsx src/contribute.ts",
+    "prepare": "npm run build",
     "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
