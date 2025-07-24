@@ -16,6 +16,7 @@
 - The command executor uses `shell: process.platform === "win32"` to avoid ENOENT errors.
 - Documented in `docs/resources/troubleshooting.md`.
 - Prompts passed to the Gemini CLI on Windows are automatically quoted and escaped.
+- Unit tests verify quoting for multi-line prompts with special characters, including embedded double quotes, on Windows.
 
 ## Repository Scripts
 - `npm test` – runs the Vitest suite.
