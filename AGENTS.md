@@ -4,7 +4,8 @@
 - Use TypeScript with an object-oriented approach when adding new features.
 - Follow test-driven development. Add or update tests under `tests` and run `npm test`.
 - Lint code with `npm run lint` before committing.
-- Build with `npm run build` to ensure TypeScript compiles.
+- Build with `npm run build` to ensure TypeScript compiles. The compiled output
+  is written to `dist/`, which is gitignored and should not be committed.
 - Run `ruff` on any Python files with `select = ["ALL"]`. Only ignore rules with a strong justification.
 - Keep `@modelcontextprotocol/sdk` and `zod` listed as both peer and dev dependencies. Their versions should match across sections of `package.json`.
 - Ensure `@types/node` is installed and referenced via `tsconfig.json` under `compilerOptions.types`.
