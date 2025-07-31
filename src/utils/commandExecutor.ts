@@ -49,7 +49,7 @@ export async function executeCommand(
             if (!childProcess.killed) {
               childProcess.kill('SIGKILL');
             }
-          }, 5000);
+          }, 2000);
           
           reject(new TimeoutError(ERROR_MESSAGES.COMMAND_TIMEOUT, timeout));
         }
