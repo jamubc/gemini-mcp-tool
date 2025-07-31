@@ -9,6 +9,8 @@ export const ERROR_MESSAGES = {
   QUOTA_EXCEEDED_SHORT: "⚠️ Gemini 2.5 Pro daily quota exceeded. Please retry with model: 'gemini-2.5-flash'",
   TOOL_NOT_FOUND: "not found in registry",
   NO_PROMPT_PROVIDED: "Please provide a prompt for analysis. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions",
+  COMMAND_TIMEOUT: "Command execution timed out",
+  RETRY_FAILED: "Command failed after retry attempt",
 } as const;
 
 // Status messages
@@ -22,6 +24,11 @@ export const STATUS_MESSAGES = {
   PROCESSING_START: "🔍 Starting analysis (may take 5-15 minutes for large codebases)",
   PROCESSING_CONTINUE: "⏳ Still processing... Gemini is working on your request",
   PROCESSING_COMPLETE: "✅ Analysis completed successfully",
+  // Timeout and retry messages
+  COMMAND_TIMEOUT: "⏰ Command timed out, attempting retry...",
+  RETRY_ATTEMPT: "🔄 Retrying command execution...",
+  RETRY_SUCCESS: "✅ Command succeeded on retry",
+  RETRY_FAILED: "❌ Command failed after retry attempt",
 } as const;
 
 // Models
@@ -54,6 +61,16 @@ export const PROTOCOL = {
   },
   // Timeout prevention
   KEEPALIVE_INTERVAL: 25000, // 25 seconds
+} as const;
+
+// Timeout and retry configuration
+export const TIMEOUTS = {
+  // Default timeout for Gemini commands (5 minutes)
+  DEFAULT_COMMAND_TIMEOUT: 300000, // 5 minutes in milliseconds
+  // Maximum retry attempts
+  MAX_RETRY_ATTEMPTS: 1,
+  // Delay between retry attempts
+  RETRY_DELAY: 1000, // 1 second
 } as const;
 
 

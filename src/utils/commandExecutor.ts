@@ -1,10 +1,19 @@
 import { spawn } from "child_process";
 import { Logger } from "./logger.js";
+import { TIMEOUTS, ERROR_MESSAGES } from "../constants.js";
+
+export class TimeoutError extends Error {
+  constructor(message: string, public timeout: number) {
+    super(message);
+    this.name = 'TimeoutError';
+  }
+}
 
 export async function executeCommand(
   command: string,
   args: string[],
-  onProgress?: (newOutput: string) => void
+  onProgress?: (newOutput: string) => void,
+  timeout: number = TIMEOUTS.DEFAULT_COMMAND_TIMEOUT
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -22,6 +31,26 @@ export async function executeCommand(
     let stderr = "";
     let isResolved = false;
     let lastReportedLength = 0;
+
+    // Set up timeout handling
+    const timeoutId = setTimeout(() => {
+      if (!isResolved) {
+        isResolved = true;
+        Logger.error(`Command timed out after ${timeout}ms`);
+        
+        // Kill the child process
+        childProcess.kill('SIGTERM');
+        
+        // If SIGTERM doesn't work, force kill after a short delay
+        setTimeout(() => {
+          if (!childProcess.killed) {
+            childProcess.kill('SIGKILL');
+          }
+        }, 5000);
+        
+        reject(new TimeoutError(ERROR_MESSAGES.COMMAND_TIMEOUT, timeout));
+      }
+    }, timeout);
     
     childProcess.stdout.on("data", (data) => {
       stdout += data.toString();
@@ -63,6 +92,7 @@ export async function executeCommand(
     childProcess.on("error", (error) => {
       if (!isResolved) {
         isResolved = true;
+        clearTimeout(timeoutId);
         Logger.error(`Process error:`, error);
         reject(new Error(`Failed to spawn command: ${error.message}`));
       }
@@ -70,6 +100,7 @@ export async function executeCommand(
     childProcess.on("close", (code) => {
       if (!isResolved) {
         isResolved = true;
+        clearTimeout(timeoutId);
         if (code === 0) {
           Logger.commandComplete(startTime, code, stdout.length);
           resolve(stdout.trim());

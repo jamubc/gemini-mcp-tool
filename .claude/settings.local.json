@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__gemini-cli__ask-gemini",
+      "Bash(git worktree add:*)",
+      "Bash(ls:*)",
+      "Bash(git worktree:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc:*)",
+      "Bash(npx typescript:*)",
+      "Bash(npm install)",
+      "Bash(node:*)",
+      "Bash(rm:*)",
+      "Bash(npm test)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

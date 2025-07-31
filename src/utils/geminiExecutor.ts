@@ -1,16 +1,94 @@
-import { executeCommand } from './commandExecutor.js';
+import { executeCommand, TimeoutError } from './commandExecutor.js';
 import { Logger } from './logger.js';
 import { 
   ERROR_MESSAGES, 
   STATUS_MESSAGES, 
   MODELS, 
-  CLI
+  CLI,
+  TIMEOUTS
 } from '../constants.js';
 
 import { parseChangeModeOutput, validateChangeModeEdits } from './changeModeParser.js';
 import { formatChangeModeResponse, summarizeChangeModeEdits } from './changeModeTranslator.js';
 import { chunkChangeModeEdits } from './changeModeChunker.js';
 import { cacheChunks, getChunks } from './chunkCache.js';
+
+/**
+ * Execute a command with automatic retry logic for timeouts and other retryable errors
+ */
+async function executeWithRetry(
+  command: string,
+  args: string[],
+  onProgress?: (newOutput: string) => void,
+  maxRetries: number = TIMEOUTS.MAX_RETRY_ATTEMPTS
+): Promise<string> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        await sendStatusMessage(STATUS_MESSAGES.RETRY_ATTEMPT);
+        Logger.warn(`Retry attempt ${attempt} of ${maxRetries}`);
+        
+        // Brief delay before retry
+        await new Promise(resolve => setTimeout(resolve, TIMEOUTS.RETRY_DELAY));
+      }
+      
+      const result = await executeCommand(command, args, onProgress);
+      
+      if (attempt > 0) {
+        await sendStatusMessage(STATUS_MESSAGES.RETRY_SUCCESS);
+        Logger.warn(`Command succeeded on retry attempt ${attempt}`);
+      }
+      
+      return result;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Check if this is a retryable error
+      const isRetryable = error instanceof TimeoutError || 
+                         (error instanceof Error && isRetryableError(error));
+      
+      if (isRetryable && attempt < maxRetries) {
+        if (error instanceof TimeoutError) {
+          await sendStatusMessage(STATUS_MESSAGES.COMMAND_TIMEOUT);
+          Logger.warn(`Command timed out after ${error.timeout}ms, attempting retry...`);
+        } else {
+          Logger.warn(`Retryable error occurred: ${error.message}, attempting retry...`);
+        }
+        continue; // Try again
+      }
+      
+      // If not retryable or out of retries, throw the error
+      break;
+    }
+  }
+  
+  // All retries exhausted
+  await sendStatusMessage(STATUS_MESSAGES.RETRY_FAILED);
+  const errorMessage = lastError?.message || 'Unknown error';
+  Logger.error(`Command failed after ${maxRetries} retry attempts: ${errorMessage}`);
+  throw new Error(`${ERROR_MESSAGES.RETRY_FAILED}: ${errorMessage}`);
+}
+
+/**
+ * Check if an error is retryable (network issues, temporary failures, etc.)
+ */
+function isRetryableError(error: Error): boolean {
+  const retryablePatterns = [
+    'ECONNRESET',
+    'ETIMEDOUT', 
+    'ENOTFOUND',
+    'ECONNREFUSED',
+    'socket hang up',
+    'network timeout',
+    'temporary failure'
+  ];
+  
+  return retryablePatterns.some(pattern => 
+    error.message.toLowerCase().includes(pattern.toLowerCase())
+  );
+}
 
 export async function executeGeminiCLI(
   prompt: string,
@@ -99,7 +177,7 @@ ${prompt_processed}
   args.push(CLI.FLAGS.PROMPT, finalPrompt);
   
   try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    return await executeWithRetry(CLI.COMMANDS.GEMINI, args, onProgress);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
@@ -118,7 +196,7 @@ ${prompt_processed}
         
       fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
       try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
+        const result = await executeWithRetry(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
         return result;
