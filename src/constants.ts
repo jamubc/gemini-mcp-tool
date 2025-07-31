@@ -65,8 +65,8 @@ export const PROTOCOL = {
 
 // Timeout and retry configuration
 export const TIMEOUTS = {
-  // Default timeout for Gemini commands (5 minutes)
-  DEFAULT_COMMAND_TIMEOUT: 300000, // 5 minutes in milliseconds
+  // Default timeout for Gemini commands (30 seconds rolling window)
+  DEFAULT_COMMAND_TIMEOUT: 30000, // 30 seconds in milliseconds
   // Maximum retry attempts
   MAX_RETRY_ATTEMPTS: 1,
   // Delay between retry attempts

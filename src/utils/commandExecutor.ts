@@ -32,28 +32,41 @@ export async function executeCommand(
     let isResolved = false;
     let lastReportedLength = 0;
 
-    // Set up timeout handling
-    const timeoutId = setTimeout(() => {
-      if (!isResolved) {
-        isResolved = true;
-        Logger.error(`Command timed out after ${timeout}ms`);
-        
-        // Kill the child process
-        childProcess.kill('SIGTERM');
-        
-        // If SIGTERM doesn't work, force kill after a short delay
-        setTimeout(() => {
-          if (!childProcess.killed) {
-            childProcess.kill('SIGKILL');
-          }
-        }, 5000);
-        
-        reject(new TimeoutError(ERROR_MESSAGES.COMMAND_TIMEOUT, timeout));
-      }
-    }, timeout);
+    // Set up rolling timeout handling
+    let timeoutId: NodeJS.Timeout;
+    
+    const startTimeout = () => {
+      return setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          Logger.error(`Command timed out after ${timeout}ms of inactivity`);
+          
+          // Kill the child process
+          childProcess.kill('SIGTERM');
+          
+          // If SIGTERM doesn't work, force kill after a short delay
+          setTimeout(() => {
+            if (!childProcess.killed) {
+              childProcess.kill('SIGKILL');
+            }
+          }, 5000);
+          
+          reject(new TimeoutError(ERROR_MESSAGES.COMMAND_TIMEOUT, timeout));
+        }
+      }, timeout);
+    };
+    
+    // Start initial timeout
+    timeoutId = startTimeout();
     
     childProcess.stdout.on("data", (data) => {
       stdout += data.toString();
+      
+      // Reset rolling timeout whenever data is received
+      if (!isResolved) {
+        clearTimeout(timeoutId);
+        timeoutId = startTimeout();
+      }
       
       // Report new content if callback provided
       if (onProgress && stdout.length > lastReportedLength) {

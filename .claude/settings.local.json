@@ -14,7 +14,9 @@
       "Bash(node:*)",
       "Bash(rm:*)",
       "Bash(npm test)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "mcp__gemini-cli__timeout-test"
     ],
     "deny": []
   }
