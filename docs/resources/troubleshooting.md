@@ -342,6 +342,8 @@ gemini "Hello"
 - **NPX flag issues**: Use `--yes` instead of `-y`
 - **Path problems**: Restart terminal after Node.js installation
 - **Connection issues**: Ensure Windows Defender isn't blocking Node.js
+- **Spawn ENOENT errors**: Upgrade to gemini-mcp-tool >=1.1.5 or ensure the
+  command executor sets `shell: process.platform === "win32"`
 
 ### macOS
 - **Permission issues**: Use `sudo` if npm install fails

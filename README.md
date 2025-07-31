@@ -40,6 +40,12 @@ Before using this tool, ensure you have:
 claude mcp add gemini-cli -- npx -y gemini-mcp-tool
 ```
 
+To run the latest development version from GitHub without installing from npm:
+
+```bash
+npx -y https://github.com/jamubc/gemini-mcp-tool
+```
+
 ### Verify Installation
 
 Type `/mcp` inside Claude Code to verify the gemini-cli MCP is active.
