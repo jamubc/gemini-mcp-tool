@@ -1,6 +1,7 @@
 import { describe, it, afterEach, expect, vi } from 'vitest';
 import { spawn } from 'child_process';
-import { executeGeminiCLI } from '../src/utils/geminiExecutor.js';
+import { executeGeminiCLI, processChangeModeOutput } from '../src/utils/geminiExecutor.js';
+import { ERROR_MESSAGES } from '../src/constants.js';
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(),
@@ -90,5 +91,15 @@ describe('executeGeminiCLI', () => {
     const args = (spawn as unknown as vi.Mock).mock.calls[0][1] as string[];
     const promptArgIndex = args.indexOf('-p') + 1;
     expect(args[promptArgIndex]).toBe(`"${prompt.replace(/"/g, '""')}"`);
+  });
+});
+
+describe('processChangeModeOutput', () => {
+  it('returns raw result when no edits are found', async () => {
+    const raw = 'unexpected output';
+    const result = await processChangeModeOutput(raw);
+    expect(result).toBe(
+      `${ERROR_MESSAGES.CHANGE_MODE_NO_EDITS}\n\n${raw}`
+    );
   });
 });
