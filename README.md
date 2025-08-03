@@ -160,7 +160,12 @@ These tools are designed to be used by the AI assistant.
   - **`changeMode`** (optional): When `true`, returns structured edit suggestions that can be applied directly. Large change-mode responses can be retrieved in chunks using `fetch-chunk`.
 - **`brainstorm`**: Generates structured brainstorming ideas using frameworks like SCAMPER or design thinking.
   - **`prompt`** (required): The challenge or question to explore.
-  - Additional options: `methodology`, `domain`, `constraints`, `existingContext`, `ideaCount`, `includeAnalysis`.
+  - **`methodology`** (optional): The creative framework to use (e.g., `scamper`, `design-thinking`).
+  - **`domain`** (optional): The subject area for context (e.g., `software`, `marketing`).
+  - **`constraints`** (optional): Any limitations to consider (e.g., `budget under $500`).
+  - **`existingContext`** (optional): Background information to build upon.
+  - **`ideaCount`** (optional): The number of ideas to generate.
+  - **`includeAnalysis`** (optional): Whether to include analysis for each idea.
 - **`fetch-chunk`**: Retrieves cached chunks from a previous `ask-gemini` changeMode response.
   - **`cacheKey`** (required): Provided in the initial changeMode response.
   - **`chunkIndex`** (required): Which chunk to fetch (1-based index).
@@ -175,12 +180,13 @@ These tools are designed to be used by the AI assistant.
 You can use these commands directly in Claude Code's interface (compatibility with other clients has not been tested).
 
 - **/gemini-cli:analyze**: Analyzes files or directories using Gemini, or asks general questions.
-  - **`prompt`** (required): The analysis prompt. Use `@` syntax to include files (e.g., `/gemini-cli:analyze prompt:@src/ summarize this directory`) or ask general questions (e.g., `/gemini-cli:analyze prompt:Please use a web search to find the latest news stories`).
+  - **`prompt`** (required): The analysis request. Use `@` syntax to include files (e.g., `/gemini-cli:analyze @src/ summarize this directory`) or ask general questions (e.g., `/gemini-cli:analyze Please use a web search to find the latest news stories`). Prefixing the request with `prompt:` is optional.
   - **`changeMode`** (optional): Returns structured edit suggestions. Large change-mode responses will include a `cacheKey` for use with `/gemini-cli:fetch-chunk`.
 - **/gemini-cli:sandbox**: Safely tests code or scripts in Gemini's sandbox environment.
-  - **`prompt`** (required): Code testing request (e.g., `/gemini-cli:sandbox prompt:Create and run a Python script that processes CSV data` or `/gemini-cli:sandbox prompt:@script.py Test this script safely`).
+  - **`prompt`** (required): Code testing request (e.g., `/gemini-cli:sandbox Create and run a Python script that processes CSV data` or `/gemini-cli:sandbox @script.py Test this script safely`). Prefix with `prompt:` if your client requires it.
 - **/gemini-cli:brainstorm**: Generates structured ideas using creative methodologies.
-  - **`prompt`** (required): The challenge to explore. Optional arguments like `methodology` or `ideaCount` refine the session.
+  - **`prompt`** (required): The challenge to explore.
+  - Optional arguments: `methodology`, `domain`, `constraints`, `existingContext`, `ideaCount`, `includeAnalysis`.
 - **/gemini-cli:fetch-chunk**: Retrieves additional change-mode edits using a provided `cacheKey` and `chunkIndex`.
 - **/gemini-cli:help**: Displays the Gemini CLI help information.
 - **/gemini-cli:ping**: Tests the connection to the server.
