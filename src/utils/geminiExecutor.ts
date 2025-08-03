@@ -91,9 +91,9 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
   
-  // Ensure @ symbols work cross-platform by wrapping in quotes if needed
-  const finalPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-    ? `"${prompt_processed}"` 
+  // Quote and escape prompt when executed through a shell (Windows)
+  const finalPrompt = process.platform === 'win32'
+    ? `"${prompt_processed.replace(/"/g, '""')}"`
     : prompt_processed;
     
   args.push(CLI.FLAGS.PROMPT, finalPrompt);
@@ -111,9 +111,9 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Same @ symbol handling for fallback
-      const fallbackPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-        ? `"${prompt_processed}"` 
+      // Same quoting logic for fallback
+      const fallbackPrompt = process.platform === 'win32'
+        ? `"${prompt_processed.replace(/"/g, '""')}"`
         : prompt_processed;
         
       fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
@@ -162,9 +162,9 @@ export async function processChangeModeOutput(
   
   // Parse OLD/NEW format
   const edits = parseChangeModeOutput(rawResult);
-  
+
   if (edits.length === 0) {
-    return `No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format. \n\n+ ${rawResult}`;
+    return `${ERROR_MESSAGES.CHANGE_MODE_NO_EDITS}\n\n${rawResult}`;
   }
 
   // Validate edits

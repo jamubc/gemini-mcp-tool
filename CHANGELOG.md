@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [1.1.5]
+- Bump version to 1.1.5
+
 ## [1.1.3]
 - "gemini reads, claude edits"
 - Added `changeMode` parameter to ask-gemini tool for structured edit responses using claude edit diff.

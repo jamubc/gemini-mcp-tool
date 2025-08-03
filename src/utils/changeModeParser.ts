@@ -39,7 +39,7 @@ export function parseChangeModeOutput(geminiResponse: string): ChangeModeEdit[] 
   }
 
   if (edits.length === 0) {
-    const editPattern = /\/old\/ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)\s*\n\s*\\new\\ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)/g;
+    const editPattern = /\/old\/ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)\s*\n\s*\/new\/ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)/g;
 
     while ((match = editPattern.exec(geminiResponse)) !== null) {
       const [

@@ -122,7 +122,7 @@ const brainstormArgsSchema = z.object({
   domain: z.string().optional().describe("Domain context for specialized brainstorming (e.g., 'software', 'business', 'creative', 'research', 'product', 'marketing')"),
   constraints: z.string().optional().describe("Known limitations, requirements, or boundaries (budget, time, technical, legal, etc.)"),
   existingContext: z.string().optional().describe("Background information, previous attempts, or current state to build upon"),
-  ideaCount: z.number().int().positive().default(12).describe("Target number of ideas to generate (default: 10-15)"),
+  ideaCount: z.number().int().positive().max(50).default(12).describe("Target number of ideas to generate (default: 12, max: 50)"),
   includeAnalysis: z.boolean().default(true).describe("Include feasibility, impact, and implementation analysis for generated ideas"),
 });
 
