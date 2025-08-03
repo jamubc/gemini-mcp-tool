@@ -164,7 +164,7 @@ export async function processChangeModeOutput(
   const edits = parseChangeModeOutput(rawResult);
 
   if (edits.length === 0) {
-    return `No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format. \n\n${rawResult}`;
+    return `${ERROR_MESSAGES.CHANGE_MODE_NO_EDITS}\n\n${rawResult}`;
   }
 
   // Validate edits

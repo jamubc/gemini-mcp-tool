@@ -1,6 +1,7 @@
 import { describe, it, afterEach, expect, vi } from 'vitest';
 import { spawn } from 'child_process';
 import { executeGeminiCLI, processChangeModeOutput } from '../src/utils/geminiExecutor.js';
+import { ERROR_MESSAGES } from '../src/constants.js';
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(),
@@ -98,7 +99,7 @@ describe('processChangeModeOutput', () => {
     const raw = 'unexpected output';
     const result = await processChangeModeOutput(raw);
     expect(result).toBe(
-      `No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format. \n\n${raw}`
+      `${ERROR_MESSAGES.CHANGE_MODE_NO_EDITS}\n\n${raw}`
     );
   });
 });
