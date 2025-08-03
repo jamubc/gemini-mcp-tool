@@ -1,3 +1,4 @@
+
 # Real-World Examples
 
 Practical examples of using Gemini MCP Tool in development workflows.
@@ -92,6 +93,13 @@ give me an overview of this project's architecture
 @src/auth/*.js does this follow security best practices?
 ```
 
+## Brainstorming
+
+### Generating Ideas
+```
+/gemini-cli:brainstorm prompt:"Ways to improve developer onboarding" methodology:design-thinking ideaCount:6
+```
+
 ## Migration
 
 ### Framework Upgrade
@@ -129,6 +137,18 @@ identify performance bottlenecks in the request pipeline
 ### Memory Leaks
 ```
 @src/**/*.js look for potential memory leaks or inefficient patterns
+```
+
+## Handling Large Edits
+
+When change mode returns more edits than fit in a single message, Gemini caches the response. Use `fetch-chunk` to continue.
+
+```bash
+# Initial request
+/gemini-cli:analyze @src/**/*.ts changeMode:true
+
+# Retrieve the next chunk
+/gemini-cli:fetch-chunk cacheKey=<key> chunkIndex=2
 ```
 
 ## Real Project Example
