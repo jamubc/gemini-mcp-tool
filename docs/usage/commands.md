@@ -1,3 +1,4 @@
+
 # Commands Reference
 
 Complete list of available commands and their usage.
@@ -19,6 +20,20 @@ Execute code in a safe environment.
 ```
 /gemini-cli:sandbox create a Python fibonacci generator
 /gemini-cli:sandbox test this function: [code]
+```
+
+### `/gemini-cli:brainstorm`
+Generate structured ideas using creative methodologies.
+
+```
+/gemini-cli:brainstorm prompt:"Improve onboarding flow" methodology:scamper ideaCount:8
+```
+
+### `/gemini-cli:fetch-chunk`
+Retrieve additional change-mode edits using a cache key and chunk index.
+
+```
+/gemini-cli:fetch-chunk cacheKey=<key> chunkIndex=2
 ```
 
 ### `/gemini-cli:help`
@@ -43,7 +58,7 @@ Test connectivity with Gemini.
 /gemini-cli:<tool> [options] <arguments>
 ```
 
-- **tool**: The action to perform (analyze, sandbox, help, ping)
+- **tool**: The action to perform (analyze, sandbox, brainstorm, fetch-chunk, help, ping)
 - **options**: Optional flags (coming soon)
 - **arguments**: Input text, files, or questions
 
@@ -97,6 +112,18 @@ Instead of slash commands, you can use natural language:
 ### Code Generation
 ```
 /gemini-cli:analyze @models/user.js generate TypeScript types for this model
+```
+
+### Structured Edits and Chunks
+```
+/gemini-cli:analyze @src/**/*.ts changeMode:true
+# Fetch subsequent edits
+/gemini-cli:fetch-chunk cacheKey=<key> chunkIndex=2
+```
+
+### Brainstorming Ideas
+```
+/gemini-cli:brainstorm prompt:"New product features" methodology:design-thinking includeAnalysis:false
 ```
 
 ## Tips
