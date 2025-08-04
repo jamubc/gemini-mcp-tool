@@ -5,6 +5,7 @@ import { pingTool, helpTool } from './simple-tools.js';
 import { brainstormTool } from './brainstorm.tool.js';
 import { fetchChunkTool } from './fetch-chunk.tool.js';
 import { timeoutTestTool } from './timeout-test.tool.js';
+import { chatTools } from './chat-tools.js';
 
 toolRegistry.push(
   askGeminiTool,
@@ -12,7 +13,8 @@ toolRegistry.push(
   helpTool,
   brainstormTool,
   fetchChunkTool,
-  timeoutTestTool
+  timeoutTestTool,
+  ...chatTools
 );
 
 export * from './registry.js';

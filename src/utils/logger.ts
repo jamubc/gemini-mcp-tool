@@ -10,6 +10,10 @@ export class Logger {
     console.warn(this.formatMessage(message), ...args);
   }
 
+  static info(message: string, ...args: any[]): void {
+    console.warn(this.formatMessage(message), ...args);
+  }
+
   static warn(message: string, ...args: any[]): void {
     console.warn(this.formatMessage(message), ...args);
   }
