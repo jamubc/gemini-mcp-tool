@@ -2,16 +2,7 @@ import { describe, it, afterEach, expect, vi, beforeEach } from 'vitest';
 import { ChatManager } from '../src/managers/chatManager.js';
 import { TEST_CONSTANTS, createTestData } from './setup.js';
 
-// Mock SQLite persistence layer for fast unit tests
-vi.mock('../src/persistence/sqlitePersistence.js', () => ({
-  SQLitePersistence: vi.fn().mockImplementation(() => ({
-    saveMessage: vi.fn().mockResolvedValue(true),
-    getMessages: vi.fn().mockResolvedValue([]),
-    createChat: vi.fn().mockResolvedValue('test-chat-id'),
-    listChats: vi.fn().mockResolvedValue([]),
-    init: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+// No mocking needed for in-memory persistence as per PLAN.md design
 
 describe('ChatManager Core Operations', () => {
   let chatManager: ChatManager;

@@ -1,7 +1,6 @@
 import { Logger } from '../utils/logger.js';
 import { CHAT_CONSTANTS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants.js';
-import { RealSQLitePersistence } from '../persistence/realSQLitePersistence.js';
-import { PersistenceProvider } from '../persistence/sqlitePersistence.js';
+import { InMemoryPersistence, MemoryPersistenceProvider } from '../persistence/memoryPersistence.js';
 
 // Core data models following the implementation plan
 export interface AgentIdentity {
@@ -185,18 +184,17 @@ export class ChatManager {
   private nextChatId = 1;
   private chatQuotas = new Map<string, number>(); // Track chat creation quota per agent
   private maxChatsPerAgent = 10; // Default quota limit
-  private persistence: PersistenceProvider; // SQLite persistence layer
+  private persistence: MemoryPersistenceProvider; // In-memory persistence layer
 
   private constructor() {
     this.chatCache = new ChatCache(50, 80); // 50 chats max, 80MB memory limit
     this.chatLock = new AsyncChatLock(5000); // 5-second timeout
     
-    // Initialize persistence layer - use file-based SQLite in production
-    const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : './data/chats.db';
-    this.persistence = new RealSQLitePersistence(dbPath);
+    // Initialize persistence layer - simple in-memory storage as per PLAN.md
+    this.persistence = new InMemoryPersistence();
     
-    // Load initial chat count from database
-    this.initializeFromDatabase();
+    // Initialize in-memory storage
+    this.initializeFromMemory();
   }
 
   static getInstance(): ChatManager {
@@ -206,22 +204,13 @@ export class ChatManager {
     return ChatManager.instance;
   }
 
-  // Initialize from database on startup
-  private async initializeFromDatabase(): Promise<void> {
+  // Initialize in-memory storage on startup
+  private async initializeFromMemory(): Promise<void> {
     try {
-      const stats = this.persistence.getStats();
-      Logger.info(`Database initialized: ${stats.chatCount} chats, ${stats.messageCount} messages`);
-      
-      // Set next chat ID based on database content
-      const chats = await this.persistence.listChats({ limit: 1 });
-      if (chats.length > 0) {
-        const maxId = Math.max(...chats.map(c => typeof c.id === 'number' ? c.id : parseInt(String(c.id))));
-        this.nextChatId = maxId + 1;
-        Logger.info(`Next chat ID set to: ${this.nextChatId}`);
-      }
+      await this.persistence.init();
+      Logger.info('In-memory chat system initialized (resets on server restart)');
     } catch (error) {
-      Logger.error('Failed to initialize from database:', error);
-      // Continue with in-memory operation if database fails
+      Logger.error('Failed to initialize in-memory storage:', error);
     }
   }
 
@@ -272,16 +261,9 @@ export class ChatManager {
         agentsWithHistory: new Set<string>()
       };
 
-      // Save to cache and database
+      // Save to cache (which is our in-memory persistence)
       this.chatCache.put(chatId.toString(), chat);
-      
-      try {
-        await this.persistence.saveChat(chat);
-        Logger.info(`Chat persisted to database: ${chatId}`);
-      } catch (error) {
-        Logger.error('Failed to persist chat to database:', error);
-        // Continue with cache-only operation if database fails
-      }
+      await this.persistence.saveChat(chat);
       
       // Update quota tracking
       this.chatQuotas.set(creatorName, currentQuota + 1);
@@ -436,15 +418,9 @@ export class ChatManager {
       // Handle history truncation if needed
       this.truncateHistoryIfNeeded(chat);
 
-      // Update cache and database
+      // Update cache (which is our in-memory persistence)
       this.chatCache.put(finalChatIdStr, chat);
-      
-      try {
-        await this.persistence.saveMessage(message);
-        Logger.info(`Message persisted to database: ${message.id}`);
-      } catch (error) {
-        Logger.error('Failed to persist message to database:', error);
-      }
+      await this.persistence.saveChat(chat); // Save entire chat since messages are part of it
 
       Logger.info(`Message added to chat ${finalChatIdStr} by ${agentName}`);
       
