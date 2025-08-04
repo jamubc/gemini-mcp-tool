@@ -76,8 +76,8 @@ export class RealSQLitePersistence implements PersistenceProvider {
       CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
         chat_id TEXT NOT NULL,
-        sender_id TEXT NOT NULL,
-        content TEXT NOT NULL,
+        agent TEXT NOT NULL,
+        message TEXT NOT NULL,
         timestamp TEXT NOT NULL,
         sanitized BOOLEAN DEFAULT 1,
         audit_trail TEXT, -- JSON array
@@ -145,7 +145,7 @@ export class RealSQLitePersistence implements PersistenceProvider {
       `),
       
       insertMessage: this.db.prepare(`
-        INSERT INTO messages (id, chat_id, sender_id, content, timestamp, sanitized, audit_trail)
+        INSERT INTO messages (id, chat_id, agent, message, timestamp, sanitized, audit_trail)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `),
       
@@ -194,8 +194,8 @@ export class RealSQLitePersistence implements PersistenceProvider {
         this.prepared.insertMessage.run(
           message.id,
           message.chatId,
-          message.senderId,
-          message.content,
+          message.agent,
+          message.message,
           message.timestamp.toISOString(),
           message.sanitized ? 1 : 0,
           message.auditTrail ? JSON.stringify(message.auditTrail) : null
@@ -249,8 +249,8 @@ export class RealSQLitePersistence implements PersistenceProvider {
       const messages: ChatMessage[] = messageRows.map(row => ({
         id: row.id,
         chatId: row.chat_id,
-        senderId: row.sender_id,
-        content: row.content,
+        agent: row.agent,
+        message: row.message,
         timestamp: new Date(row.timestamp),
         sanitized: row.sanitized === 1,
         auditTrail: row.audit_trail ? JSON.parse(row.audit_trail) : undefined
@@ -309,8 +309,8 @@ export class RealSQLitePersistence implements PersistenceProvider {
       this.prepared.insertMessage.run(
         message.id,
         message.chatId,
-        message.senderId,
-        message.content,
+        message.agent,
+        message.message,
         message.timestamp.toISOString(),
         message.sanitized ? 1 : 0,
         message.auditTrail ? JSON.stringify(message.auditTrail) : null
@@ -338,8 +338,8 @@ export class RealSQLitePersistence implements PersistenceProvider {
       return rows.map(row => ({
         id: row.id,
         chatId: row.chat_id,
-        senderId: row.sender_id,
-        content: row.content,
+        agent: row.agent,
+        message: row.message,
         timestamp: new Date(row.timestamp),
         sanitized: row.sanitized === 1,
         auditTrail: row.audit_trail ? JSON.parse(row.audit_trail) : undefined

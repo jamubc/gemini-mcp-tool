@@ -514,14 +514,14 @@ describe('ChatManager - Concurrency & Locking', () => {
       
       // Create chats up to the limit
       const chatPromises = Array.from({ length: maxChatsPerAgent }, (_, i) => 
-        chatManager.createChat(agentId, `Chat ${i}`)
+        chatManager.createChat(`Chat ${i}`, agentId)
       );
       
       await Promise.all(chatPromises);
       
       // Next chat creation should fail
       await expect(
-        chatManager.createChat(agentId, 'Exceeds quota')
+        chatManager.createChat('Exceeds quota', agentId)
       ).rejects.toThrow('Chat creation quota exceeded');
     });
 
@@ -529,7 +529,7 @@ describe('ChatManager - Concurrency & Locking', () => {
       const chatId = 'memory-test-chat';
       
       // Create a chat and add messages
-      await chatManager.createChat('agent', 'Test Chat');
+      await chatManager.createChat('Test Chat', 'agent');
       await chatManager.addMessage(chatId, 'agent', 'test message');
       
       // Verify chat is in memory
