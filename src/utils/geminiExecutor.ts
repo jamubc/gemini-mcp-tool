@@ -91,10 +91,27 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
   
-  // Ensure @ symbols work cross-platform by wrapping in quotes if needed
-  const finalPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-    ? `"${prompt_processed}"` 
-    : prompt_processed;
+  // Windows compatibility: Enhanced argument handling
+  const isWindows = process.platform === "win32";
+  let finalPrompt = prompt_processed;
+  
+  if (isWindows) {
+    // Windows-specific escaping for special characters
+    finalPrompt = prompt_processed
+      .replace(/"/g, '\\"')  // Escape quotes
+      .replace(/\$/g, '`$')   // Escape PowerShell variables
+      .replace(/`/g, '``');   // Escape backticks
+    
+    // Wrap in quotes if contains special characters or @ symbols
+    if (finalPrompt.includes('@') || finalPrompt.includes(' ') || finalPrompt.includes('&')) {
+      finalPrompt = `"${finalPrompt}"`;
+    }
+  } else {
+    // Unix-like systems: simpler quoting
+    if (prompt_processed.includes('@') && !prompt_processed.startsWith('"')) {
+      finalPrompt = `"${prompt_processed}"`;
+    }
+  }
     
   args.push(CLI.FLAGS.PROMPT, finalPrompt);
   
@@ -111,10 +128,26 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Same @ symbol handling for fallback
-      const fallbackPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-        ? `"${prompt_processed}"` 
-        : prompt_processed;
+      // Same Windows-compatible argument handling for fallback
+      let fallbackPrompt = prompt_processed;
+      
+      if (isWindows) {
+        // Windows-specific escaping for special characters
+        fallbackPrompt = prompt_processed
+          .replace(/"/g, '\\"')  // Escape quotes
+          .replace(/\$/g, '`$')   // Escape PowerShell variables
+          .replace(/`/g, '``');   // Escape backticks
+        
+        // Wrap in quotes if contains special characters or @ symbols
+        if (fallbackPrompt.includes('@') || fallbackPrompt.includes(' ') || fallbackPrompt.includes('&')) {
+          fallbackPrompt = `"${fallbackPrompt}"`;
+        }
+      } else {
+        // Unix-like systems: simpler quoting
+        if (prompt_processed.includes('@') && !prompt_processed.startsWith('"')) {
+          fallbackPrompt = `"${prompt_processed}"`;
+        }
+      }
         
       fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
       try {
