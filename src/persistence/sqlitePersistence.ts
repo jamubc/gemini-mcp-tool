@@ -9,6 +9,7 @@ export interface PersistenceProvider {
   listChats(options?: ListOptions): Promise<ChatSummary[]>;
   saveMessage(message: ChatMessage): Promise<void>;
   loadMessages(chatId: string, options?: MessageQueryOptions): Promise<ChatMessage[]>;
+  getStats(): { chatCount: number; messageCount: number; [key: string]: any }; // Add getStats method
 }
 
 export interface ListOptions {
@@ -24,7 +25,7 @@ export interface MessageQueryOptions {
 }
 
 export interface ChatSummary {
-  id: string;
+  id: number; // Changed to match ChatManager expectations
   title: string;
   participantCount: number;
   messageCount: number;
@@ -64,7 +65,7 @@ export class SQLitePersistence implements PersistenceProvider {
       : chats;
 
     const summaries = filtered.map(chat => ({
-      id: chat.id,
+      id: parseInt(chat.id), // Convert to number
       title: chat.title,
       participantCount: chat.participants.length,
       messageCount: chat.messages.length,

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { UnifiedTool, ToolArguments } from './registry.js';
+import { UnifiedTool } from './registry.js';
+import { ToolArguments } from '../constants.js';
 import { ChatManager } from '../managers/chatManager.js';
 import { executeGeminiCLI } from '../utils/geminiExecutor.js';
 import { CHAT_CONSTANTS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants.js';
@@ -71,7 +72,7 @@ const sendMessageSchema = z.object({
 export const startChatTool: UnifiedTool = {
   name: 'start-chat',
   description: 'Create a new inter-agent chat session',
-  inputSchema: startChatSchema,
+  zodSchema: startChatSchema,
   async execute(args: ToolArguments): Promise<string> {
     try {
       const { title, agentName } = startChatSchema.parse(args);
@@ -96,7 +97,7 @@ export const startChatTool: UnifiedTool = {
 export const listChatsTool: UnifiedTool = {
   name: 'list-chats',
   description: 'List available chat sessions with status information',
-  inputSchema: listChatsSchema,
+  zodSchema: listChatsSchema,
   async execute(args: ToolArguments): Promise<string> {
     try {
       const { agentName, status, limit } = listChatsSchema.parse(args);
@@ -132,7 +133,7 @@ export const listChatsTool: UnifiedTool = {
 export const showChatTool: UnifiedTool = {
   name: 'show-chat',
   description: 'Display chat history and participants',
-  inputSchema: showChatSchema,
+  zodSchema: showChatSchema,
   async execute(args: ToolArguments): Promise<string> {
     try {
       const { chatId, agentName, limit } = showChatSchema.parse(args);
@@ -184,7 +185,7 @@ export const showChatTool: UnifiedTool = {
 export const sendMessageTool: UnifiedTool = {
   name: 'send-message',
   description: 'Send message to inter-agent chat and get Gemini response',
-  inputSchema: sendMessageSchema,
+  zodSchema: sendMessageSchema,
   async execute(args: ToolArguments): Promise<string> {
     try {
       const { chatId, agentName, message, includeHistory } = sendMessageSchema.parse(args);
@@ -211,11 +212,12 @@ export const sendMessageTool: UnifiedTool = {
       
       try {
         // Send to Gemini CLI
-        const geminiResponse = await executeGeminiCLI(prompt, {
-          model: 'gemini-2.5-pro',
-          sandbox: false,
-          changeMode: false,
-        });
+        const geminiResponse = await executeGeminiCLI(
+          prompt,
+          'gemini-2.5-pro',
+          false, // sandbox
+          false  // changeMode
+        );
         
         // Add Gemini's response to chat
         await chatManager.addMessage(chatId, 'Gemini', geminiResponse);

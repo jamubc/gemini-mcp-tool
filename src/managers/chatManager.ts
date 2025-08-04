@@ -1,5 +1,7 @@
 import { Logger } from '../utils/logger.js';
 import { CHAT_CONSTANTS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants.js';
+import { RealSQLitePersistence } from '../persistence/realSQLitePersistence.js';
+import { PersistenceProvider } from '../persistence/sqlitePersistence.js';
 
 // Core data models following the implementation plan
 export interface AgentIdentity {
@@ -176,10 +178,18 @@ export class ChatManager {
   private nextChatId = 1;
   private chatQuotas = new Map<string, number>(); // Track chat creation quota per agent
   private maxChatsPerAgent = 10; // Default quota limit
+  private persistence: PersistenceProvider; // SQLite persistence layer
 
   private constructor() {
     this.chatCache = new ChatCache(50, 80); // 50 chats max, 80MB memory limit
     this.chatLock = new AsyncChatLock(5000); // 5-second timeout
+    
+    // Initialize persistence layer - use file-based SQLite in production
+    const dbPath = process.env.NODE_ENV === 'test' ? ':memory:' : './data/chats.db';
+    this.persistence = new RealSQLitePersistence(dbPath);
+    
+    // Load initial chat count from database
+    this.initializeFromDatabase();
   }
 
   static getInstance(): ChatManager {
@@ -187,6 +197,25 @@ export class ChatManager {
       ChatManager.instance = new ChatManager();
     }
     return ChatManager.instance;
+  }
+
+  // Initialize from database on startup
+  private async initializeFromDatabase(): Promise<void> {
+    try {
+      const stats = this.persistence.getStats();
+      Logger.info(`Database initialized: ${stats.chatCount} chats, ${stats.messageCount} messages`);
+      
+      // Set next chat ID based on database content
+      const chats = await this.persistence.listChats({ limit: 1 });
+      if (chats.length > 0) {
+        const maxId = Math.max(...chats.map(c => typeof c.id === 'number' ? c.id : parseInt(String(c.id))));
+        this.nextChatId = maxId + 1;
+        Logger.info(`Next chat ID set to: ${this.nextChatId}`);
+      }
+    } catch (error) {
+      Logger.error('Failed to initialize from database:', error);
+      // Continue with in-memory operation if database fails
+    }
   }
 
   // Create new chat session
@@ -235,7 +264,16 @@ export class ChatManager {
         status: 'active'
       };
 
+      // Save to cache and database
       this.chatCache.put(chatId.toString(), chat);
+      
+      try {
+        await this.persistence.saveChat(chat);
+        Logger.info(`Chat persisted to database: ${chatId}`);
+      } catch (error) {
+        Logger.error('Failed to persist chat to database:', error);
+        // Continue with cache-only operation if database fails
+      }
       
       // Update quota tracking
       this.chatQuotas.set(creatorName, currentQuota + 1);
@@ -247,30 +285,54 @@ export class ChatManager {
 
   // List all active chats
   async listChats(agentName?: string, status: 'active' | 'archived' | 'all' = 'active'): Promise<ChatSummary[]> {
-    const chats: ChatSummary[] = [];
-    
-    // In initial implementation, iterate through cache
-    // TODO: Replace with database query for persistence
-    for (let i = 1; i < this.nextChatId; i++) {
-      const chat = this.chatCache.get(i.toString());
-      if (chat && (status === 'all' || chat.status === status)) {
-        chats.push({
-          id: parseInt(chat.id), // Return numeric ID to match test expectations
-          title: chat.title,
-          participantCount: chat.participants.length,
-          messageCount: chat.messages.length,
-          lastActivity: chat.lastActivity,
-          status: chat.status
-        });
+    try {
+      // Try to get from database first
+      const chats = await this.persistence.listChats({ status, limit: 100 });
+      return chats.sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
+    } catch (error) {
+      Logger.error('Failed to list chats from database, falling back to cache:', error);
+      
+      // Fallback to cache-based listing
+      const chats: ChatSummary[] = [];
+      for (let i = 1; i < this.nextChatId; i++) {
+        const chat = this.chatCache.get(i.toString());
+        if (chat && (status === 'all' || chat.status === status)) {
+          chats.push({
+            id: parseInt(chat.id), // Return numeric ID to match test expectations
+            title: chat.title,
+            participantCount: chat.participants.length,
+            messageCount: chat.messages.length,
+            lastActivity: chat.lastActivity,
+            status: chat.status
+          });
+        }
       }
+      return chats.sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
     }
-
-    return chats.sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
   }
 
   // Get chat with full history
   async getChat(chatId: number | string, agentName?: string): Promise<Chat | null> {
-    const chat = this.chatCache.get(chatId.toString());
+    const chatIdStr = chatId.toString();
+    
+    // Try cache first
+    let chat = this.chatCache.get(chatIdStr);
+    
+    // If not in cache, try database
+    if (!chat) {
+      try {
+        chat = await this.persistence.loadChat(chatIdStr);
+        if (chat) {
+          // Add to cache for future access
+          this.chatCache.put(chatIdStr, chat);
+          Logger.info(`Chat loaded from database: ${chatIdStr}`);
+        }
+      } catch (error) {
+        Logger.error(`Failed to load chat ${chatIdStr} from database:`, error);
+        return null;
+      }
+    }
+    
     if (!chat) {
       return null;
     }
@@ -284,8 +346,13 @@ export class ChatManager {
         capabilities: ['chat']
       });
       
-      // Update cache with modified chat
-      this.chatCache.put(chatId.toString(), chat);
+      // Update both cache and database
+      this.chatCache.put(chatIdStr, chat);
+      try {
+        await this.persistence.saveChat(chat);
+      } catch (error) {
+        Logger.error('Failed to update chat participants in database:', error);
+      }
     }
 
     return chat;
@@ -371,8 +438,15 @@ export class ChatManager {
       // Handle history truncation if needed
       this.truncateHistoryIfNeeded(chat);
 
-      // Update cache
+      // Update cache and database
       this.chatCache.put(finalChatIdStr, chat);
+      
+      try {
+        await this.persistence.saveMessage(message);
+        Logger.info(`Message persisted to database: ${message.id}`);
+      } catch (error) {
+        Logger.error('Failed to persist message to database:', error);
+      }
 
       Logger.info(`Message added to chat ${finalChatIdStr} by ${agentName}`);
       
