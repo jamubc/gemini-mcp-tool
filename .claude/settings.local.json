@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "mcp__gemini-cli__ask-gemini",
+      "Bash(npm run test:unit:*)",
+      "mcp__gemini-cli__brainstorm",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}
