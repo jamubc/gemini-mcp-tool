@@ -37,10 +37,12 @@ function sanitizeInput(input: string): string {
 }
 
 function validateCommand(command: string): boolean {
-  // Only allow specific whitelisted commands
-  const allowedCommands = ['gemini', 'gemini.exe', 'gemini.cmd', 'gemini.bat', 'echo', 'echo.exe'];
+  // Only allow specific whitelisted commands (without extensions)
+  const allowedCommands = ['gemini', 'echo'];
   const baseCommand = command.split(/[/\\]/).pop()?.toLowerCase() || '';
-  return allowedCommands.includes(baseCommand);
+  // Remove any extension for validation
+  const commandWithoutExt = baseCommand.replace(/\.(exe|cmd|bat|sh)$/, '');
+  return allowedCommands.includes(commandWithoutExt);
 }
 
 function resolveWindowsCommand(command: string): string {
@@ -51,15 +53,8 @@ function resolveWindowsCommand(command: string): string {
     return command;
   }
   
-  // Try to resolve with Windows extensions
-  const extensions = ['.exe', '.cmd', '.bat', ''];
-  for (const ext of extensions) {
-    const cmdWithExt = command + ext;
-    // Check if exists in PATH or is absolute path
-    if (validateCommand(cmdWithExt)) {
-      return cmdWithExt;
-    }
-  }
+  // For Windows, just return the command as-is and let Windows handle resolution
+  // Windows will automatically try .exe, .cmd, .bat extensions
   return command;
 }
 
