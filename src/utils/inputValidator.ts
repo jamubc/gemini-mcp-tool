@@ -9,10 +9,12 @@ export interface ValidationResult {
 }
 
 export interface AgentInput {
-  agentName: string;
+  agentName?: string;
+  agentId?: string;
   content?: string;
   chatId?: string;
   title?: string;
+  type?: 'message' | 'chat' | 'agent';
 }
 
 // Input validation and sanitization utilities
@@ -22,11 +24,27 @@ export class InputValidator {
   static validateAgentInput(input: AgentInput): ValidationResult {
     const errors: string[] = [];
 
-    // Agent name validation
-    if (!input.agentName || input.agentName.trim().length === 0) {
+    // Agent name/ID validation (if provided)
+    const agentIdentifier = input.agentName || input.agentId;
+    if (input.type !== 'message' && (!agentIdentifier || agentIdentifier.trim().length === 0)) {
       errors.push('Agent name cannot be empty');
-    } else if (input.agentName.length > 50) {
+    } else if (agentIdentifier && agentIdentifier.length > 50) {
       errors.push('Agent name cannot exceed 50 characters');
+    }
+
+    // Enhanced agent ID format validation for security tests
+    if (input.agentId !== undefined) {
+      if (input.agentId === '') {
+        errors.push('Invalid agent ID format');
+      } else if (input.agentId.length < 2) {
+        errors.push('Invalid agent ID format');
+      } else if (/\s/.test(input.agentId)) {
+        errors.push('Invalid agent ID format');
+      } else if (/[\/\\]/.test(input.agentId)) {
+        errors.push('Invalid agent ID format');
+      } else if (/[\n\r\x00]/.test(input.agentId)) {
+        errors.push('Invalid agent ID format');
+      }
     }
 
     // Content validation (for messages)
@@ -34,7 +52,7 @@ export class InputValidator {
       if (input.content.trim().length === 0) {
         errors.push('Message content cannot be empty');
       } else if (input.content.length > CHAT_CONSTANTS.MAX_MESSAGE_LENGTH) {
-        errors.push(`Message cannot exceed ${CHAT_CONSTANTS.MAX_MESSAGE_LENGTH} characters`);
+        errors.push('Message exceeds maximum size limit');
       }
     }
 
@@ -68,7 +86,7 @@ export class InputValidator {
   }
 
   // Basic content sanitization
-  private static sanitizeContent(content: string): string {
+  static sanitizeContent(content: string): string {
     // Basic HTML/script tag removal
     let sanitized = content
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -139,6 +157,18 @@ export class InputValidator {
 }
 
 // Convenience function for basic agent input validation
-export function validateAgentInput(input: AgentInput): ValidationResult {
-  return InputValidator.validateAgentInput(input);
+export function validateAgentInput(input: AgentInput): Promise<{ content: string; agentId?: string }> {
+  const result = InputValidator.validateAgentInput(input);
+  
+  if (!result.isValid) {
+    return Promise.reject(new Error(result.errors.join(', ')));
+  }
+  
+  // Always sanitize content if provided
+  const sanitizedContent = input.content ? InputValidator.sanitizeContent(input.content) : '';
+  
+  return Promise.resolve({
+    content: sanitizedContent,
+    agentId: input.agentId || input.agentName
+  });
 }

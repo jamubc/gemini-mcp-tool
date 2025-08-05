@@ -14,7 +14,18 @@
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
       "Bash(node:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(mv:*)",
+      "Bash(npm test:*)",
+      "mcp__gemini-cli__ping",
+      "Bash(npx tsc:*)",
+      "Bash(npm run lint)",
+      "Bash(rm:*)",
+      "Bash(npx vitest run:*)",
+      "mcp__gemini-cli__start-chat",
+      "mcp__gemini-cli__send-message",
+      "mcp__gemini-cli__show-chat",
+      "Bash(gemini:*)"
     ],
     "deny": []
   }

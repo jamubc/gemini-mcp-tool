@@ -227,19 +227,19 @@ export class ChatManager {
       throw new Error('Agent name cannot be empty');
     }
     
-    // Check chat creation quota
-    const currentQuota = this.chatQuotas.get(creatorName) || 0;
-    if (currentQuota >= this.maxChatsPerAgent) {
-      throw new Error('Chat creation quota exceeded');
-    }
-    
     // Check for private chat authorization (placeholder)
     if (options?.private) {
       // TODO: Implement proper authorization logic
       Logger.info(`Creating private chat for ${creatorName}`);
     }
 
-    return this.chatLock.withLock(`create-${Date.now()}`, async () => {
+    return this.chatLock.withLock(`create-chat-${creatorName}`, async () => {
+      // Check chat creation quota INSIDE the lock to prevent race conditions
+      const currentQuota = this.chatQuotas.get(creatorName) || 0;
+      Logger.info(`Quota check for ${creatorName}: ${currentQuota}/${this.maxChatsPerAgent}`);
+      if (currentQuota >= this.maxChatsPerAgent) {
+        throw new Error('Chat creation quota exceeded');
+      }
       const chatId = this.nextChatId;
       this.nextChatId++;
 
@@ -253,7 +253,7 @@ export class ChatManager {
       const chat: Chat = {
         id: chatId.toString(),
         title,
-        participants: [creator],
+        participants: [creatorName], // Use the actual agent name string, not the object
         messages: [],
         created: new Date(),
         lastActivity: new Date(),
@@ -267,6 +267,7 @@ export class ChatManager {
       
       // Update quota tracking
       this.chatQuotas.set(creatorName, currentQuota + 1);
+      Logger.info(`Updated quota for ${creatorName}: ${currentQuota + 1}/${this.maxChatsPerAgent}`);
       
       Logger.info(`Chat created: ${chatId} by ${creatorName}`);
       return chatId;
@@ -501,6 +502,27 @@ export class ChatManager {
   }
 
   // Additional methods for advanced functionality (placeholder implementations)
+  /**
+   * Get chat history with optional pagination
+   */
+  async getHistory(chatId: number | string, agentName: string, options?: { limit?: number; offset?: number }): Promise<ChatMessage[]> {
+    const finalChatIdStr = chatId.toString();
+    const chat = await this.persistence.loadChat(finalChatIdStr);
+    
+    if (!chat) {
+      Logger.log(`❌ Chat ID ${chatId} not found. Use 'list-chats' to see available chats.`);
+      return [];
+    }
+    
+    const { limit = 50, offset = 0 } = options || {};
+    
+    // Return paginated messages
+    const startIndex = Math.max(0, offset);
+    const endIndex = limit > 0 ? startIndex + limit : chat.messages.length;
+    
+    return chat.messages.slice(startIndex, endIndex);
+  }
+
   async cleanupInactiveChats(): Promise<void> {
     // Clear all chats from cache (simulate cleanup of inactive chats)
     this.chatCache.clear();

@@ -16,6 +16,8 @@ export async function executeCommand(
       // See: https://github.com/jamubc/gemini-mcp-tool/issues/9
       shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
+      // Ensure Gemini CLI runs in the same CWD as Claude for file access
+      cwd: process.cwd(),
     });
 
     let stdout = "";

@@ -1,0 +1,5 @@
+
+> gemini-mcp-tool@1.1.5 test
+> vitest run tests/chatManager.test.ts --run --reporter=json
+
+JSON report written to C:/Users/Eros/Desktop/gemini-mcp-tool/test-results.json

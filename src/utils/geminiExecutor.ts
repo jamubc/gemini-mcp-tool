@@ -11,6 +11,13 @@ import { parseChangeModeOutput, validateChangeModeEdits } from './changeModePars
 import { formatChangeModeResponse, summarizeChangeModeEdits } from './changeModeTranslator.js';
 import { chunkChangeModeEdits } from './changeModeChunker.js';
 import { cacheChunks, getChunks } from './chunkCache.js';
+import { writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { randomBytes } from 'crypto';
+
+// Windows command line length limit
+const MAX_CMD_LENGTH = 8000;
 
 export async function executeGeminiCLI(
   prompt: string,
@@ -91,15 +98,29 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
   
-  // Quote and escape prompt when executed through a shell (Windows)
-  const finalPrompt = process.platform === 'win32'
-    ? `"${prompt_processed.replace(/"/g, '""')}"`
-    : prompt_processed;
-    
-  args.push(CLI.FLAGS.PROMPT, finalPrompt);
+  // Check if command line would be too long (Windows limitation)
+  const estimatedCmdLength = 200 + prompt_processed.length; // rough estimate
+  let tempFile: string | null = null;
+  
+  if (process.platform === 'win32' && estimatedCmdLength > MAX_CMD_LENGTH) {
+    // Use temporary file for long prompts with random filename to prevent race conditions
+    const randomId = randomBytes(8).toString('hex');
+    tempFile = join(tmpdir(), `gemini-prompt-${randomId}.txt`);
+    writeFileSync(tempFile, prompt_processed, { encoding: 'utf8', mode: 0o600 });
+    Logger.info(`Created temp file: ${tempFile} (${prompt_processed.length} chars)`);
+    args.push(CLI.FLAGS.PROMPT, `@${tempFile}`);
+    Logger.info(`Using temp file approach with args: ${args.join(' ')}`);
+  } else {
+    // Use command line argument for short prompts
+    const finalPrompt = process.platform === 'win32'
+      ? `"${prompt_processed.replace(/"/g, '\\"').replace(/'/g, "\\'")}"`
+      : prompt_processed;
+    args.push(CLI.FLAGS.PROMPT, finalPrompt);
+  }
   
   try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    const result = await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
@@ -111,12 +132,16 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Same quoting logic for fallback
-      const fallbackPrompt = process.platform === 'win32'
-        ? `"${prompt_processed.replace(/"/g, '""')}"`
-        : prompt_processed;
+      // Use same temp file approach for fallback if needed
+      if (tempFile) {
+        fallbackArgs.push(CLI.FLAGS.PROMPT, `@${tempFile}`);
+      } else {
+        const fallbackPrompt = process.platform === 'win32'
+          ? `"${prompt_processed.replace(/"/g, '\\"').replace(/'/g, "\\'")}"`
+          : prompt_processed;
+        fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
+      }
         
-      fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
       try {
         const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
@@ -128,6 +153,16 @@ ${prompt_processed}
       }
     } else {
       throw error;
+    }
+  } finally {
+    // Always cleanup temp file if it was created
+    if (tempFile) {
+      try {
+        unlinkSync(tempFile);
+        Logger.info(`Cleaned up temporary file: ${tempFile}`);
+      } catch (cleanupError) {
+        Logger.warn(`Failed to cleanup temporary file ${tempFile}: ${cleanupError}`);
+      }
     }
   }
 }
