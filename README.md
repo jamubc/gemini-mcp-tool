@@ -1,11 +1,11 @@
-# 🚀 Gemini MCP Tool - Windows Fixed Version
+# 🚀 Gemini MCP Tool
 
-[![npm version](https://badge.fury.io/js/gemini-mcp-tool-windows-fixed.svg)](https://badge.fury.io/js/gemini-mcp-tool-windows-fixed)
+[![npm version](https://badge.fury.io/js/gemini-mcp-tool.svg)](https://badge.fury.io/js/gemini-mcp-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **Latest Version v1.0.21** - Fixed cross-terminal compatibility issues and fetch-chunk format errors
 
-A **Windows-compatible** Model Context Protocol (MCP) server that enables AI assistants to interact with Google's Gemini CLI. This is a fixed version specifically designed to work seamlessly on Windows environments with PowerShell support.
+A **Windows-compatible** Model Context Protocol (MCP) server that enables AI assistants to interact with Google's Gemini CLI. This version includes Windows-specific fixes and improvements for seamless operation on Windows environments with PowerShell support.
 
 > **Note**: This is an enhanced version of the [original gemini-mcp-tool](https://github.com/jamubc/gemini-mcp-tool) with Windows-specific fixes and improvements.
 
@@ -65,20 +65,20 @@ Before using this tool, ensure you have:
 
 ```powershell
 # Use latest version (recommended)
-npx gemini-mcp-tool-windows-fixed@1.0.21
+npx gemini-mcp-tool@1.0.21
 
 # Or use latest version tag
-npx -y gemini-mcp-tool-windows-fixed@latest
+npx -y gemini-mcp-tool@latest
 ```
 
 ### Global Installation
 
 ```powershell
 # Install latest version
-npm install -g gemini-mcp-tool-windows-fixed@1.0.21
+npm install -g gemini-mcp-tool@1.0.21
 
 # Run the tool
-gemini-mcp-tool-windows-fixed
+gemini-mcp-tool
 ```
 
 ### Updating Existing Installation
@@ -87,9 +87,9 @@ If you previously installed an older version:
 
 ```powershell
 # Uninstall old version and install latest
-npm uninstall -g gemini-mcp-tool-windows-fixed
+npm uninstall -g gemini-mcp-tool
 npm cache clean --force
-npm install -g gemini-mcp-tool-windows-fixed@1.0.21
+npm install -g gemini-mcp-tool@1.0.21
 ```
 
 ## ⚙️ MCP Client Configuration
@@ -98,7 +98,7 @@ npm install -g gemini-mcp-tool-windows-fixed@1.0.21
 
 ```bash
 # One-command setup for Claude Code
-claude mcp add gemini-cli -- npx -y gemini-mcp-tool-windows-fixed@1.0.21
+claude mcp add gemini-cli -- npx -y gemini-mcp-tool@1.0.21
 ```
 
 **Verify Installation:**
@@ -128,13 +128,13 @@ If you already have it configured in Claude Desktop:
       "command": "npx",
       "args": [
         "-y",
-        "gemini-mcp-tool-windows-fixed@1.0.21"
+        "gemini-mcp-tool@1.0.21"
       ],
       "env": {
         "GEMINI_API_KEY": "YOUR_ACTUAL_API_KEY_HERE"
       },
       "isActive": true,
-      "providerUrl": "https://github.com/orzcls/gemini-mcp-tool-windows-fixed"
+      "providerUrl": "https://github.com/orzcls/gemini-mcp-tool"
     }
   }
 }
@@ -150,7 +150,7 @@ If you already have it configured in Claude Desktop:
   "mcpServers": {
     "gemini-cli": {
       "command": "npx",
-      "args": ["-y", "gemini-mcp-tool-windows-fixed@1.0.21"],
+      "args": ["-y", "gemini-mcp-tool@1.0.21"],
       "env": {
         "GEMINI_API_KEY": "YOUR_ACTUAL_API_KEY_HERE"
       }
