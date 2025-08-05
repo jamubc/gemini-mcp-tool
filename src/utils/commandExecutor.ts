@@ -3,29 +3,78 @@ import { Logger } from "./logger.js";
 
 // Sanitize command and arguments to prevent shell injection and flag injection
 function sanitizeInput(input: string): string {
-  // Remove or escape dangerous shell metacharacters
-  let sanitized = input.replace(/[;&|`$(){}[\]<>]/g, '');
-  // Prevent flag injection by removing leading dashes
-  sanitized = sanitized.replace(/^-+/, '');
-  return sanitized;
+  // Known safe flags that should not be sanitized
+  const knownFlags = ['-m', '-p', '-s', '-d', '-a', '-y', '-c', '-v', '-h', '--model', '--prompt', '--sandbox', '--debug', '--all_files', '--yolo', '--checkpointing', '--version', '--help'];
+  
+  // If this is a known flag, return it as-is
+  if (knownFlags.includes(input)) {
+    return input;
+  }
+  
+  if (process.platform === "win32") {
+    // Windows/PowerShell specific escaping
+    let sanitized = input;
+    
+    // Escape PowerShell special characters
+    sanitized = sanitized.replace(/[$`]/g, '`$&');
+    
+    // Handle quotes properly for Windows
+    if (sanitized.includes(' ') && !sanitized.startsWith('"')) {
+      sanitized = `"${sanitized.replace(/"/g, '""')}"`;
+    }
+    
+    // Prevent flag injection (but not for known flags)
+    sanitized = sanitized.replace(/^-+/, '');
+    
+    return sanitized;
+  } else {
+    // Unix-like systems
+    let sanitized = input.replace(/[;&|`$(){}[\]<>]/g, '');
+    // Prevent flag injection (but not for known flags)
+    sanitized = sanitized.replace(/^-+/, '');
+    return sanitized;
+  }
 }
 
 function validateCommand(command: string): boolean {
   // Only allow specific whitelisted commands
-  const allowedCommands = ['gemini', 'gemini.exe', 'echo'];
+  const allowedCommands = ['gemini', 'gemini.exe', 'gemini.cmd', 'gemini.bat', 'echo', 'echo.exe'];
   const baseCommand = command.split(/[/\\]/).pop()?.toLowerCase() || '';
   return allowedCommands.includes(baseCommand);
 }
+
+function resolveWindowsCommand(command: string): string {
+  if (process.platform !== "win32") return command;
+  
+  // Check if command already has extension
+  if (command.endsWith('.exe') || command.endsWith('.cmd') || command.endsWith('.bat')) {
+    return command;
+  }
+  
+  // Try to resolve with Windows extensions
+  const extensions = ['.exe', '.cmd', '.bat', ''];
+  for (const ext of extensions) {
+    const cmdWithExt = command + ext;
+    // Check if exists in PATH or is absolute path
+    if (validateCommand(cmdWithExt)) {
+      return cmdWithExt;
+    }
+  }
+  return command;
+}
+
 
 export async function executeCommand(
   command: string,
   args: string[],
   onProgress?: (newOutput: string) => void
 ): Promise<string> {
+  const resolvedCommand = resolveWindowsCommand(command);
+  
   return new Promise((resolve, reject) => {
     // Validate command before execution
-    if (!validateCommand(command)) {
-      reject(new Error(`Command not allowed: ${command}. Only gemini, gemini.exe, and npx are permitted.`));
+    if (!validateCommand(resolvedCommand)) {
+      reject(new Error(`Command not allowed: ${resolvedCommand}. Only gemini, gemini.exe, and npx are permitted.`));
       return;
     }
 
@@ -33,11 +82,11 @@ export async function executeCommand(
     const sanitizedArgs = args.map(arg => sanitizeInput(arg));
     
     const startTime = Date.now();
-    Logger.commandExecution(command, sanitizedArgs, startTime);
+    Logger.commandExecution(resolvedCommand, sanitizedArgs, startTime);
 
-    const childProcess = spawn(command, sanitizedArgs, {
+    const childProcess = spawn(resolvedCommand, sanitizedArgs, {
       env: process.env,
-      shell: true,
+      shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
       cwd: process.cwd()
     });
