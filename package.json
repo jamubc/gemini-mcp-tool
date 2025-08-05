@@ -1,11 +1,11 @@
 {
-  "name": "gemini-mcp-tool-windows-fixed",
+  "name": "gemini-mcp-tool",
   "version": "1.0.21",
   "type": "module",
-  "description": "Windows-compatible MCP server that enables AI assistants to interact with Google Gemini CLI - Fixed version for Windows environments",
+  "description": "Windows-compatible MCP server that enables AI assistants to interact with Google Gemini CLI with Windows-specific fixes and improvements",
   "main": "index.js",
   "bin": {
-    "gemini-mcp-tool-windows-fixed": "./index.js"
+    "gemini-mcp-tool": "./index.js"
   },
   "scripts": {
     "start": "node index.js",
@@ -28,12 +28,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/gemini-mcp-tool-windows-fixed.git"
+    "url": "https://github.com/orzcls/gemini-mcp-tool.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/gemini-mcp-tool-windows-fixed/issues"
+    "url": "https://github.com/orzcls/gemini-mcp-tool/issues"
   },
-  "homepage": "https://github.com/your-username/gemini-mcp-tool-windows-fixed#readme",
+  "homepage": "https://github.com/orzcls/gemini-mcp-tool#readme",
   "engines": {
     "node": ">=16.0.0"
   },
