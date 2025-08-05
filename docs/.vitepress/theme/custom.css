@@ -1,0 +1,699 @@
+/* Sleek modern docs inspired by OpenAI/Anthropic */
+
+/* Base colors and fonts */
+:root {
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --vp-font-family-mono: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Dark theme refinements */
+html.dark {
+  --vp-c-bg: #0a0a0a;
+  --vp-c-bg-soft: #141414;
+  --vp-c-bg-mute: #1a1a1a;
+  --vp-c-bg-alt: #0f0f0f;
+  --vp-c-divider: rgba(255, 255, 255, 0.08);
+  --vp-c-divider-light: rgba(255, 255, 255, 0.05);
+}
+
+/* Clean navigation bar - theme aware */
+.VPNavBar {
+  background-color: var(--vp-c-bg-alt);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.VPNavBar.has-sidebar .content {
+  backdrop-filter: none;
+}
+
+/* Sleek sidebar styling */
+.VPSidebar {
+  background-color: var(--vp-c-bg);
+  border-right: 1px solid var(--vp-c-divider);
+  padding: 32px 0;
+}
+
+/* Sidebar sections */
+.VPSidebarItem.level-0 {
+  margin-bottom: 24px;
+}
+
+.VPSidebarItem.level-0 > .item > .text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-3);
+  margin-bottom: 8px;
+  padding-left: 16px;
+}
+
+/* Sidebar items */
+.VPSidebarItem.level-1 > .item {
+  margin: 1px 8px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.VPSidebarItem.level-1 > .item:hover {
+  background-color: var(--vp-c-bg-soft);
+}
+
+.VPSidebarItem.level-1 > .item.is-active {
+  background-color: rgba(66, 184, 131, 0.1);
+}
+
+.VPSidebarItem.level-1 > .item.is-active > .link > .text {
+  color: #42b883;
+  font-weight: 500;
+}
+
+.vp-doc p {
+  margin: 16px 0;
+  line-height: 1.7;
+}
+
+/* Typography improvements */
+.vp-doc h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 32px;
+}
+
+.vp-doc h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin: 48px 0 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.vp-doc h2:first-child {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.vp-doc h3 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 32px 0 16px;
+}
+
+.vp-doc p {
+  line-height: 1.75;
+  margin: 16px 0;
+}
+
+/* Code blocks - use VitePress defaults */
+
+/* Inline code */
+.vp-doc p code,
+.vp-doc li code {
+  background-color: var(--vp-c-bg-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  border: 1px solid var(--vp-c-divider);
+}
+
+/* Remove gradient backgrounds */
+.VPHome {
+  background: var(--vp-c-bg);
+}
+
+/* Sidebar improvements for wiki-like navigation */
+.VPSidebar {
+  padding: 16px 0;
+}
+
+.VPSidebarItem.level-0 > .item > .text {
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--vp-c-text-2);
+}
+
+
+/* Tables - wiki style */
+.vp-doc table {
+  margin: 20px 0;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.vp-doc table th {
+  background-color: var(--vp-c-bg-soft);
+  font-weight: 600;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+.vp-doc table td {
+  padding: 12px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+/* Enhanced logo styling - clean elastic rotation */
+.VPNavBarTitle .logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  transform: scale(1.4);
+  transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.VPNavBarTitle .logo:hover {
+  transform: scale(1.4) rotate(135deg);
+}
+
+/* Hide URL tooltip on logo link */
+.VPNavBarTitle a[href]:hover::after {
+  content: none !important;
+}
+
+.VPNavBarTitle a {
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+/* Dark mode: make white background transparent */
+html.dark .VPNavBarTitle .logo {
+  mix-blend-mode: screen;
+  filter: contrast(1.2) saturate(1.1);
+}
+
+/* Simplify footer */
+.VPFooter {
+  border-top: 1px solid var(--vp-c-divider);
+  padding: 32px 24px;
+}
+
+/* Smooth animations */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Content width optimization */
+.VPDoc .content {
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.VPDoc.has-aside .content {
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+/* Info boxes - more subtle */
+.custom-block {
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.custom-block.tip {
+  background-color: var(--vp-c-bg-soft);
+  border-left: 4px solid var(--vp-c-brand);
+}
+
+
+/* Modern hero section */
+.VPHero {
+  padding: 80px 24px;
+  text-align: center;
+  overflow: visible;
+}
+
+.VPHero .container {
+  max-width: 1140px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.VPHero .actions {
+  justify-content: center;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+/* Hero buttons - slightly larger */
+.VPHero .VPButton {
+  padding: 14px 36px !important;
+  font-size: 17px !important;
+}
+
+/* Get Started button - inviting green */
+.VPButton.brand {
+  background: linear-gradient(135deg, #42b883 0%, #35a373 100%) !important;
+  border-color: #42b883 !important;
+  transition: all 0.3s ease !important;
+}
+
+.VPButton.brand:hover {
+  background: linear-gradient(135deg, #4dd89a 0%, #42b883 100%) !important;
+  border-color: #4dd89a !important;
+  box-shadow: 0 4px 16px rgba(66, 184, 131, 0.25) !important;
+}
+
+/* Leave a Star button enhancements only */
+.VPButton.alt {
+  position: relative;
+  overflow: visible !important;
+}
+
+/* Create a wrapper for overflow */
+.VPHero .actions {
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+/* Floating star on hover */
+.VPButton.alt::before {
+  content: '⭐';
+  position: absolute;
+  font-size: 18px;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  animation-fill-mode: forwards;
+}
+
+/* Multiple burst particles */
+.VPButton.alt::after {
+  content: '✨ ⭐ ✨ ⭐ ✨';
+  position: absolute;
+  font-size: 12px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.VPButton.alt:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Hover animations */
+.VPButton.alt:hover::before {
+  animation: starFirework 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.VPButton.alt:hover::after {
+  animation: starBurst 0.4s ease-out 0.8s;
+}
+
+/* Firework trajectory with random-looking curve */
+@keyframes starFirework {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) translateX(0) scale(0.5);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-40px) translateX(20px) scale(1) rotate(120deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-70px) translateX(-10px) scale(1.1) rotate(240deg);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(-100px) translateX(15px) scale(1.2) rotate(360deg);
+  }
+  81% {
+    opacity: 0;
+    transform: translateY(-100px) translateX(15px) scale(1.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100px) translateX(15px) scale(2);
+  }
+}
+
+/* Burst effect */
+@keyframes starBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-100px) scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(-100px) scale(1.5) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-100px) scale(2.5) rotate(360deg);
+  }
+}
+
+.VPHome .name {
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #42b883 0%, #35495e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.VPHome .text {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+  margin: 16px 0;
+}
+
+.VPHome .tagline {
+  font-size: 1.125rem;
+  color: var(--vp-c-text-2);
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Feature cards enhancement */
+.VPFeature {
+  border: 1px solid var(--vp-c-divider);
+  background-color: var(--vp-c-bg-soft);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Light mode - subtle depth */
+.VPFeature {
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark mode - glowing effect */
+html.dark .VPFeature {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Hover state */
+.VPFeature:hover {
+  transform: translateY(-4px);
+}
+
+/* Light mode hover */
+.VPFeature:hover {
+  border-color: var(--vp-c-brand-light);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode hover */
+html.dark .VPFeature:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(66, 184, 131, 0.5);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(66, 184, 131, 0.3),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient overlay for depth */
+.VPFeature::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(66, 184, 131, 0.08),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.VPFeature:hover::before {
+  opacity: 1;
+}
+
+/* Icon enhancement */
+.VPFeature .icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.VPFeature:hover .icon {
+  transform: scale(1.1) translateY(-2px);
+}
+
+/* Title enhancement */
+.VPFeature .title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--vp-c-text-1);
+}
+
+/* Details enhancement */
+.VPFeature .details {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+}
+
+/* Special styling for MCP Standards card - keep the colors */
+.VPFeature:nth-child(4) .details {
+  line-height: 1.8;
+}
+
+/* Interactive "more to explore" hint - properly targets adjacent sibling */
+.VPHome .explore-hint {
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+/* When hovering any feature card, the hint reacts */
+.VPHome:has(.VPFeature:hover) .explore-hint .dot {
+  opacity: 1 !important;
+  color: var(--vp-c-brand) !important;
+  transform: scale(1.5);
+}
+
+.VPHome:has(.VPFeature:hover) .explore-hint .explore-text {
+  opacity: 0.9 !important;
+  color: var(--vp-c-text-1) !important;
+  transform: translateY(-3px);
+}
+
+/* Pulse effect when actively exploring */
+@keyframes explorePulse {
+  0%, 100% { 
+    transform: translateY(-3px) scale(1);
+  }
+  50% { 
+    transform: translateY(-6px) scale(1.05);
+  }
+}
+
+.VPHome:has(.VPFeature:hover) .explore-hint .explore-text {
+  animation: explorePulse 2s ease-in-out infinite;
+}
+
+/* Animated dots while exploring */
+@keyframes dotDance {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.5); }
+}
+
+.VPHome:has(.VPFeature:hover) .explore-hint .dot:nth-child(1) {
+  animation: dotDance 0.6s ease-in-out infinite;
+}
+
+.VPHome:has(.VPFeature:hover) .explore-hint .dot:nth-child(2) {
+  animation: dotDance 0.6s ease-in-out infinite 0.1s;
+}
+
+.VPHome:has(.VPFeature:hover) .explore-hint .dot:nth-child(3) {
+  animation: dotDance 0.6s ease-in-out infinite 0.2s;
+}
+
+/* File Analysis card - diff transformation effect */
+.VPFeature:first-child .details {
+  line-height: 1.8;
+  position: relative;
+}
+
+/* Diff line styles */
+.diff-line {
+  display: inline-block;
+  position: relative;
+  padding: 0 4px 0 20px; /* Minimal padding for tight highlight */
+  margin: 0 -4px 0 -20px; /* Negative margin to compensate */
+  border-radius: 2px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+}
+
+/* Add diff symbols as pseudo-elements (hidden by default) */
+.diff-line::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  font-family: var(--vp-font-family-mono);
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Line numbers - typed out on hover */
+.diff-line::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  margin-right: 12px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 11px;
+  color: var(--vp-c-text-3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 0;
+}
+
+.diff-delete::after {
+  content: '6739';
+}
+
+.diff-add::after {
+  content: '6740';
+}
+
+.diff-delete::before {
+  content: '-';
+}
+
+.diff-add::before {
+  content: '+';
+}
+
+/* Hover state - transform to diff view */
+.VPFeature:first-child:hover .diff-line {
+  margin: 1px -4px 1px -20px; /* Keep compensating margins on hover */
+}
+
+.VPFeature:first-child:hover .diff-line::before {
+  opacity: 1;
+}
+
+/* Animate line numbers with typing effect */
+.VPFeature:first-child:hover .diff-line::after {
+  opacity: 0.6;
+  max-width: 50px;
+  transition: opacity 0.3s ease 0.3s, max-width 0.4s ease 0.3s;
+}
+
+/* Ensure space for line numbers only on File Analysis card */
+.VPFeature:has(.diff-line) .details {
+  padding-left: 0;
+  transition: padding-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.VPFeature:has(.diff-line):hover .details {
+  padding-left: 45px;
+}
+
+/* Delete line styles */
+.VPFeature:first-child:hover .diff-delete {
+  background: rgba(254, 215, 215, 0.3);
+  color: #991b1b;
+}
+
+html.dark .VPFeature:first-child:hover .diff-delete {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+
+/* Add line styles */
+.VPFeature:first-child:hover .diff-add {
+  background: rgba(209, 250, 229, 0.3);
+  color: #166534;
+}
+
+html.dark .VPFeature:first-child:hover .diff-add {
+  background: rgba(5, 150, 105, 0.2);
+  color: #86efac;
+}
+
+/* Symbol colors */
+.VPFeature:first-child:hover .diff-delete::before {
+  color: #dc2626;
+}
+
+html.dark .VPFeature:first-child:hover .diff-delete::before {
+  color: #f87171;
+}
+
+.VPFeature:first-child:hover .diff-add::before {
+  color: #059669;
+}
+
+html.dark .VPFeature:first-child:hover .diff-add::before {
+  color: #34d399;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vp-c-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vp-c-divider);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vp-c-text-3);
+}
+
+/* Hide sidebar scrollbar */
+.VPSidebar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.VPSidebar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Webkit */
+}
+
+
+
