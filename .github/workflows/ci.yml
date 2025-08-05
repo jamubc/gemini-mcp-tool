@@ -1,33 +1,87 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  release:
+    types: [ published ]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     
     strategy:
       matrix:
         node-version: [16.x, 18.x, 20.x]
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
+        cache: 'npm'
     
     - name: Install dependencies
       run: npm ci
     
-    - name: Build
-      run: npm run build
+    - name: Install Gemini CLI
+      run: npm install -g @google/generative-ai-cli
     
-    - name: Run tests
-      run: npm test
-      continue-on-error: true
+    - name: Test basic functionality
+      run: |
+        node index.js --help
+        echo "Basic test completed"
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    
+    - name: Test NPX functionality
+      run: |
+        npm pack
+        $package = Get-ChildItem -Name "*.tgz"
+        npm install -g $package
+        echo "NPX test completed"
+
+  publish:
+    needs: test
+    runs-on: windows-latest
+    if: github.event_name == 'release'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        registry-url: 'https://registry.npmjs.org'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Publish to NPM
+      run: npm publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Create GitHub Release Assets
+      run: |
+        npm pack
+        $package = Get-ChildItem -Name "*.tgz"
+        echo "Package created: $package"
+      
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./*.tgz
+        asset_name: gemini-mcp-tool-windows-fixed.tgz
+        asset_content_type: application/gzip

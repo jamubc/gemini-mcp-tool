@@ -1,71 +1,51 @@
 {
   "name": "gemini-mcp-tool",
-  "version": "1.1.4",
-  "description": "MCP server for Gemini CLI integration",
+  "version": "1.0.21",
   "type": "module",
-  "main": "dist/index.js",
+  "description": "Windows-compatible MCP server that enables AI assistants to interact with Google Gemini CLI with Windows-specific fixes and improvements",
+  "main": "index.js",
   "bin": {
-    "gemini-mcp": "dist/index.js"
+    "gemini-mcp-tool": "./index.js"
   },
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0",
-    "lint": "tsc --noEmit",
-    "contribute": "tsx src/contribute.ts",
-    "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "start": "node index.js",
+    "test": "node test-fixed-mcp.js",
+    "dev": "node index.js"
   },
   "keywords": [
     "mcp",
-    "modelcontextprotocol",
+    "model-context-protocol",
     "gemini",
-    "cli",
+    "google-gemini",
     "ai",
-    "llm"
+    "claude",
+    "cli",
+    "windows",
+    "powershell",
+    "fixed"
   ],
-  "author": "jamubc",
+  "author": "Windows Fixed Version",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jamubc/gemini-mcp-tool.git"
+    "url": "https://github.com/orzcls/gemini-mcp-tool.git"
   },
   "bugs": {
-    "url": "https://github.com/jamubc/gemini-mcp-tool/issues"
+    "url": "https://github.com/orzcls/gemini-mcp-tool/issues"
   },
-  "homepage": "https://github.com/jamubc/gemini-mcp-tool#readme",
+  "homepage": "https://github.com/orzcls/gemini-mcp-tool#readme",
   "engines": {
     "node": ">=16.0.0"
   },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.1",
+    "dotenv": "^17.2.1"
+  },
+  "devDependencies": {},
   "files": [
-    "dist/",
+    "index.js",
+    "lib/",
     "README.md",
     "LICENSE"
-  ],
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0",
-    "ai": "^4.3.17",
-    "chalk": "^5.0.0",
-    "d3-shape": "^3.2.0",
-    "inquirer": "^9.0.0",
-    "prismjs": "^1.30.0",
-    "zod": "^3.25.76",
-    "zod-to-json-schema": "^3.24.6"
-  },
-  "devDependencies": {
-    "@types/inquirer": "^9.0.0",
-    "@types/node": "^20.0.0",
-    "archiver": "^7.0.1",
-    "mermaid": "^11.9.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vitepress": "^1.6.3",
-    "vitepress-plugin-mermaid": "^2.0.17"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+  ]
 }

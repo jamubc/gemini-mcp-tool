@@ -1,19 +1,8 @@
-# Dependencies
-node_modules/
+# Development files
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs
-logs
-*.log
 
 # Runtime data
 pids
@@ -29,7 +18,6 @@ coverage/
 
 # Dependency directories
 node_modules/
-jspm_packages/
 
 # Optional npm cache directory
 .npm
@@ -45,6 +33,9 @@ jspm_packages/
 
 # dotenv environment variables file
 .env
+.env.test
+.env.local
+.env.production
 
 # IDE files
 .vscode/
@@ -62,19 +53,23 @@ jspm_packages/
 ehthumbs.db
 Thumbs.db
 
-# Windows specific
-*.lnk
+# Git files
+.git/
+.gitignore
+
+# Documentation that's not needed in package
+README-FIXED.md
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Build artifacts
+build/
+dist/
 
 # Temporary files
-*.tmp
-*.temp
-
-# Build outputs
-dist/
-build/
-
-# Test outputs
-test-results/
-
-# Cache
-.cache/
+tmp/
+temp/
