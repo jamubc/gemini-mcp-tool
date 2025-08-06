@@ -15,16 +15,24 @@ function sanitizeInput(input: string): string {
     // Windows/PowerShell specific escaping
     let sanitized = input;
     
+    // Don't double-escape already quoted strings
+    if (sanitized.startsWith('"') && sanitized.endsWith('"')) {
+      // Already quoted, just escape internal quotes if needed
+      return sanitized;
+    }
+    
     // Escape PowerShell special characters
     sanitized = sanitized.replace(/[$`]/g, '`$&');
     
-    // Handle quotes properly for Windows
-    if (sanitized.includes(' ') && !sanitized.startsWith('"')) {
+    // Handle quotes properly for Windows - only add quotes if there are spaces
+    if (sanitized.includes(' ')) {
       sanitized = `"${sanitized.replace(/"/g, '""')}"`;
     }
     
     // Prevent flag injection (but not for known flags)
-    sanitized = sanitized.replace(/^-+/, '');
+    if (!sanitized.startsWith('"')) {
+      sanitized = sanitized.replace(/^-+/, '');
+    }
     
     return sanitized;
   } else {

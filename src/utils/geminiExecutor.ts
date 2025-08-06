@@ -91,12 +91,8 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
   
-  // Always quote the prompt to prevent shell argument splitting
-  const finalPrompt = prompt_processed.startsWith('"') && prompt_processed.endsWith('"')
-    ? prompt_processed 
-    : `"${prompt_processed.replace(/"/g, '\\"')}"`;
-    
-  args.push(CLI.FLAGS.PROMPT, finalPrompt);
+  // Pass prompt without pre-quoting - let the platform-specific handling in commandExecutor deal with it
+  args.push(CLI.FLAGS.PROMPT, prompt_processed);
   
   try {
     return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
@@ -111,12 +107,8 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Same quoting handling for fallback
-      const fallbackPrompt = prompt_processed.startsWith('"') && prompt_processed.endsWith('"')
-        ? prompt_processed 
-        : `"${prompt_processed.replace(/"/g, '\\"')}"`;
-        
-      fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
+      // Pass prompt without pre-quoting - same as above
+      fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed);
       try {
         const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
