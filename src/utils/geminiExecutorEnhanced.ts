@@ -1,26 +1,21 @@
-import { executeCommand } from './commandExecutor.js';
 import { Logger } from './logger.js';
 import { GeminiCliReliabilityManager } from './geminiCliReliabilityManager.js';
 import { 
   ERROR_MESSAGES, 
   STATUS_MESSAGES, 
-  MODELS, 
-  CLI
+  MODELS
 } from '../constants.js';
 
 import { parseChangeModeOutput, validateChangeModeEdits } from './changeModeParser.js';
 import { formatChangeModeResponse, summarizeChangeModeEdits } from './changeModeTranslator.js';
 import { chunkChangeModeEdits } from './changeModeChunker.js';
 import { cacheChunks, getChunks } from './chunkCache.js';
-import { writeFileSync, unlinkSync } from 'fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
-import { randomBytes } from 'crypto';
 
-// Windows command line length limit
-const MAX_CMD_LENGTH = 8000;
-
-export async function executeGeminiCLI(
+/**
+ * Enhanced Gemini CLI executor with improved timeout handling and reliability
+ * Addresses exit code 124 timeout failures through progressive timeout strategy
+ */
+export async function executeGeminiCLIEnhanced(
   prompt: string,
   model?: string,
   sandbox?: boolean,
@@ -94,81 +89,58 @@ ${prompt_processed}
 `;
     prompt_processed = changeModeInstructions;
   }
-  
-  const args = [];
-  if (model) { args.push(CLI.FLAGS.MODEL, model); }
-  if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
-  
-  // Check if command line would be too long (Windows limitation)
-  const estimatedCmdLength = 200 + prompt_processed.length; // rough estimate
-  let tempFile: string | null = null;
-  
-  if (process.platform === 'win32' && estimatedCmdLength > MAX_CMD_LENGTH) {
-    // Use temporary file for long prompts with random filename to prevent race conditions
-    const randomId = randomBytes(8).toString('hex');
-    tempFile = join(tmpdir(), `gemini-prompt-${randomId}.txt`);
-    writeFileSync(tempFile, prompt_processed, { encoding: 'utf8', mode: 0o600 });
-    Logger.info(`Created temp file: ${tempFile} (${prompt_processed.length} chars)`);
-    args.push(CLI.FLAGS.PROMPT, `@${tempFile}`);
-    Logger.info(`Using temp file approach with args: ${args.join(' ')}`);
-  } else {
-    // Use command line argument for short prompts
-    const finalPrompt = process.platform === 'win32'
-      ? `"${prompt_processed.replace(/"/g, '\\"').replace(/'/g, "\\'")}"`
-      : prompt_processed;
-    args.push(CLI.FLAGS.PROMPT, finalPrompt);
-  }
-  
-  try {
-    const result = await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
+
+  // Use enhanced reliability manager with progressive timeout strategy
+  const result = await GeminiCliReliabilityManager.executeGeminiCommandReliably(
+    prompt_processed,
+    {
+      model: model || MODELS.FLASH,
+      sandbox,
+      timeout: GeminiCliReliabilityManager.getTestTimeout(),
+      maxRetries: 2,
+      progressiveTimeout: true
+    }
+  );
+
+  if (!result.success) {
+    // Handle specific error patterns
+    if (result.error?.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
       Logger.warn(`${ERROR_MESSAGES.QUOTA_EXCEEDED}. Falling back to ${MODELS.FLASH}.`);
       await sendStatusMessage(STATUS_MESSAGES.FLASH_RETRY);
-      const fallbackArgs = [];
-      fallbackArgs.push(CLI.FLAGS.MODEL, MODELS.FLASH);
-      if (sandbox) {
-        fallbackArgs.push(CLI.FLAGS.SANDBOX);
-      }
       
-      // Use same temp file approach for fallback if needed
-      if (tempFile) {
-        fallbackArgs.push(CLI.FLAGS.PROMPT, `@${tempFile}`);
-      } else {
-        const fallbackPrompt = process.platform === 'win32'
-          ? `"${prompt_processed.replace(/"/g, '\\"').replace(/'/g, "\\'")}"`
-          : prompt_processed;
-        fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
-      }
-        
-      try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
+      // Retry with Flash model
+      const fallbackResult = await GeminiCliReliabilityManager.executeGeminiCommandReliably(
+        prompt_processed,
+        {
+          model: MODELS.FLASH,
+          sandbox,
+          timeout: GeminiCliReliabilityManager.getTestTimeout(),
+          maxRetries: 1,
+          progressiveTimeout: false
+        }
+      );
+      
+      if (fallbackResult.success) {
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
-        return result;
-      } catch (fallbackError) {
-        const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-        throw new Error(`${MODELS.PRO} quota exceeded, ${MODELS.FLASH} fallback also failed: ${fallbackErrorMessage}`);
-      }
-    } else {
-      throw error;
-    }
-  } finally {
-    // Always cleanup temp file if it was created
-    if (tempFile) {
-      try {
-        unlinkSync(tempFile);
-        Logger.info(`Cleaned up temporary file: ${tempFile}`);
-      } catch (cleanupError) {
-        Logger.warn(`Failed to cleanup temporary file ${tempFile}: ${cleanupError}`);
+        return fallbackResult.output!;
+      } else {
+        throw new Error(`${MODELS.PRO} quota exceeded, ${MODELS.FLASH} fallback also failed: ${fallbackResult.error}`);
       }
     }
+
+    // Other errors - provide detailed context
+    const errorMsg = result.timeout 
+      ? `Gemini CLI timeout (${result.exitCode}): ${result.error}`
+      : `Gemini CLI failed (${result.exitCode}): ${result.error}`;
+    
+    throw new Error(errorMsg);
   }
+
+  return result.output!;
 }
 
-export async function processChangeModeOutput(
+export async function processChangeModeOutputEnhanced(
   rawResult: string,
   chunkIndex?: number,
   chunkCacheKey?: string,

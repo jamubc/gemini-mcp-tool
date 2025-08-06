@@ -4,17 +4,19 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 import { ChatHistoryFileManager } from '../src/utils/chatHistoryFileManager.js';
 import { Chat, ChatMessage } from '../src/managers/chatManager.js';
+import { TestFileManager } from '../src/utils/testFileManager.js';
+import { GeminiCliReliabilityManager } from '../src/utils/geminiCliReliabilityManager.js';
 
 describe('E2E Gemini CLI Integration Tests', () => {
   let tempDir: string;
   
   beforeEach(async () => {
     tempDir = join(process.cwd(), '.gemini');
-    await ChatHistoryFileManager.cleanupTempFiles(false);
+    await TestFileManager.resetTestDirectory();
   });
 
   afterEach(async () => {
-    await ChatHistoryFileManager.cleanupTempFiles(false);
+    await TestFileManager.cleanupTestFiles();
   });
 
   describe('🚀 End-to-End Gemini CLI Integration', () => {

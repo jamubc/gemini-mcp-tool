@@ -59,15 +59,15 @@ export default defineConfig({
       }
     },
     
-    // Timeout configuration
-    testTimeout: 30000, // 30 seconds for integration tests
-    hookTimeout: 10000, // 10 seconds for setup/teardown
+    // Timeout configuration - extended for reliability testing
+    testTimeout: 60000, // 60 seconds for Gemini CLI tests
+    hookTimeout: 15000, // 15 seconds for setup/teardown with file operations
     
     // Test execution configuration
-    maxConcurrency: 5, // Limit concurrent tests to prevent resource conflicts
+    maxConcurrency: 1, // Sequential execution to prevent file system conflicts
     
     // Setup files
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./tests/test-setup.ts'],
     
     // Test categorization and filtering
     sequence: {

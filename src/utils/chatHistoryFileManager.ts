@@ -140,7 +140,7 @@ export class ChatHistoryFileManager {
   }
 
   /**
-   * Atomic file write with temporary file and rename strategy
+   * Enhanced atomic file write with verification and Windows file handling
    */
   private static async writeFileAtomic(
     chatId: string,
@@ -151,30 +151,60 @@ export class ChatHistoryFileManager {
     const tempPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`;
 
     try {
-      // Write to temporary file first
+      // 1. Write to temporary file first
       await fs.writeFile(tempPath, content, {
         encoding: 'utf8',
         mode: this.FILE_PERMISSION,
         flag: 'wx' // Exclusive write - fail if file exists
       });
 
-      // Atomic rename to final location
+      // 2. Verify temp file was written correctly
+      const tempStats = await fs.stat(tempPath);
+      if (tempStats.size === 0) {
+        throw new Error(`Temporary file ${tempPath} is empty after write`);
+      }
+
+      // 3. Atomic rename to final location
       await fs.rename(tempPath, filePath);
 
-      Logger.info(`Created chat history file: ${filePath} (${content.length} chars)`);
+      // 4. CRITICAL: Verify final file exists and is readable
+      await fs.access(filePath, fs.constants.R_OK);
+      const finalStats = await fs.stat(filePath);
+      if (finalStats.size === 0) {
+        throw new Error(`Final file ${filePath} is empty after rename`);
+      }
+
+      Logger.info(`Created and verified chat history file: ${filePath} (${content.length} chars)`);
       return {
         success: true,
         filePath
       };
     } catch (error) {
-      // Cleanup temp file on failure
+      // Enhanced cleanup with Windows file lock handling
+      await this.cleanupTempFileWithRetry(tempPath);
+      throw error;
+    }
+  }
+
+  /**
+   * Cleanup temporary file with retry logic for Windows file locks
+   */
+  private static async cleanupTempFileWithRetry(tempPath: string, maxRetries = 3): Promise<void> {
+    for (let i = 0; i < maxRetries; i++) {
       try {
         await fs.unlink(tempPath);
-      } catch (cleanupError) {
-        Logger.warn(`Failed to cleanup temp file ${tempPath}:`, cleanupError);
+        return;
+      } catch (error: any) {
+        if (error.code === 'EPERM' && i < maxRetries - 1) {
+          // Windows file locking - wait and retry
+          await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
+          continue;
+        }
+        if (error.code !== 'ENOENT') {
+          Logger.warn(`Failed to cleanup temp file ${tempPath} (attempt ${i + 1}):`, error);
+        }
+        return;
       }
-
-      throw error;
     }
   }
 
