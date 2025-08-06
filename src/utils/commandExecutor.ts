@@ -12,27 +12,14 @@ function sanitizeInput(input: string): string {
   }
   
   if (process.platform === "win32") {
-    // Windows/PowerShell specific escaping
+    // Windows: properly escape for command line
     let sanitized = input;
     
-    // Don't double-escape already quoted strings
-    if (sanitized.startsWith('"') && sanitized.endsWith('"')) {
-      // Already quoted, just escape internal quotes if needed
-      return sanitized;
-    }
+    // Escape existing quotes by doubling them (Windows convention)
+    sanitized = sanitized.replace(/"/g, '""');
     
-    // Escape PowerShell special characters
-    sanitized = sanitized.replace(/[$`]/g, '`$&');
-    
-    // Handle quotes properly for Windows - only add quotes if there are spaces
-    if (sanitized.includes(' ')) {
-      sanitized = `"${sanitized.replace(/"/g, '""')}"`;
-    }
-    
-    // Prevent flag injection (but not for known flags)
-    if (!sanitized.startsWith('"')) {
-      sanitized = sanitized.replace(/^-+/, '');
-    }
+    // Always wrap in quotes for Windows to handle spaces and newlines
+    sanitized = `"${sanitized}"`;
     
     return sanitized;
   } else {
