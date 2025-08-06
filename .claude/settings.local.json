@@ -26,7 +26,9 @@
       "mcp__gemini-cli__send-message",
       "mcp__gemini-cli__show-chat",
       "Bash(gemini:*)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "mcp__gemini-cli__fetch-chunk",
+      "Bash(where gemini)"
     ],
     "deny": []
   }

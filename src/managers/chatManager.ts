@@ -541,6 +541,53 @@ export class ChatManager {
     return this.chatCache.size();
   }
 
+  /**
+   * Generate temporary JSON file with chat history for Gemini consumption
+   */
+  async generateChatHistoryFile(
+    chatId: number | string,
+    currentPrompt: string,
+    agentName?: string,
+    debugKeepFile: boolean = false
+  ): Promise<{ success: boolean; filePath?: string; fileReference?: string; error?: string }> {
+    try {
+      const chat = await this.getChat(chatId, agentName);
+      if (!chat) {
+        return {
+          success: false,
+          error: `Chat ${chatId} not found`
+        };
+      }
+
+      const { ChatHistoryFileManager } = await import('../utils/chatHistoryFileManager.js');
+      const result = await ChatHistoryFileManager.createChatHistoryFile(
+        chat,
+        currentPrompt,
+        debugKeepFile
+      );
+
+      if (result.success && result.filePath) {
+        return {
+          success: true,
+          filePath: result.filePath,
+          fileReference: ChatHistoryFileManager.generateFileReference(chat.id),
+          error: undefined
+        };
+      }
+
+      return {
+        success: false,
+        error: result.error || 'Unknown file creation error'
+      };
+    } catch (error) {
+      Logger.error(`Failed to generate chat history file for ${chatId}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
   // Reset method for testing
   reset(): void {
     this.chatCache = new ChatCache(50, 80);

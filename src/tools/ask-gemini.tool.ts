@@ -7,6 +7,7 @@ import {
   STATUS_MESSAGES,
   CHAT_CONSTANTS
 } from '../constants.js';
+import { Logger } from '../utils/logger.js';
 
 // Get ChatManager singleton instance
 const chatManager = ChatManager.getInstance();
@@ -89,8 +90,30 @@ export const askGeminiTool: UnifiedTool = {
       // Format prompt with chat history if there are previous messages
       let geminiPrompt = prompt;
       if (chat.messages.length > 1) {
-        const history = chatManager.formatHistoryForGemini(chat);
-        geminiPrompt = `${history}\n\n[${agentName}]: ${prompt}`;
+        try {
+          // Try JSON file approach first
+          const fileResult = await chatManager.generateChatHistoryFile(
+            targetChatId,
+            prompt,
+            agentName,
+            false // debugKeepFile
+          );
+          
+          if (fileResult.success && fileResult.fileReference) {
+            geminiPrompt = `${fileResult.fileReference}\n\n[${agentName}]: ${prompt}`;
+            Logger.info(`Using chat history file: ${fileResult.fileReference}`);
+          } else {
+            Logger.warn(`Failed to generate chat history file: ${fileResult.error}`);
+            // Fallback to original approach
+            const history = chatManager.formatHistoryForGemini(chat);
+            geminiPrompt = `${history}\n\n[${agentName}]: ${prompt}`;
+          }
+        } catch (error) {
+          Logger.warn('Chat history file generation failed, using fallback:', error);
+          // Fallback to existing behavior
+          const history = chatManager.formatHistoryForGemini(chat);
+          geminiPrompt = `${history}\n\n[${agentName}]: ${prompt}`;
+        }
       }
 
       // Execute Gemini CLI
