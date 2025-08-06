@@ -3,32 +3,21 @@ import { Logger } from "./logger.js";
 
 // Sanitize command and arguments to prevent shell injection and flag injection
 function sanitizeInput(input: string): string {
-  // Known safe flags that should not be sanitized
-  const knownFlags = ['-m', '-p', '-s', '-d', '-a', '-y', '-c', '-v', '-h', '--model', '--prompt', '--sandbox', '--debug', '--all_files', '--yolo', '--checkpointing', '--version', '--help'];
+  // Don't sanitize known flags
+  if (input.startsWith('-')) {
+    return input;  // Keep flags as-is
+  }
   
-  // If this is a known flag, return it as-is
-  if (knownFlags.includes(input)) {
+  // For file paths and other arguments, just handle backslashes for Windows
+  if (process.platform === "win32") {
+    // Windows paths use backslashes, which need to be escaped in some contexts
+    // But for gemini CLI, we should keep them as-is since it expects Windows paths
     return input;
   }
   
-  if (process.platform === "win32") {
-    // Windows: properly escape for command line
-    let sanitized = input;
-    
-    // Escape existing quotes by doubling them (Windows convention)
-    sanitized = sanitized.replace(/"/g, '""');
-    
-    // Always wrap in quotes for Windows to handle spaces and newlines
-    sanitized = `"${sanitized}"`;
-    
-    return sanitized;
-  } else {
-    // Unix-like systems
-    let sanitized = input.replace(/[;&|`$(){}[\]<>]/g, '');
-    // Prevent flag injection (but not for known flags)
-    sanitized = sanitized.replace(/^-+/, '');
-    return sanitized;
-  }
+  // For Unix-like systems, basic sanitization
+  let sanitized = input.replace(/[;&|`$(){}[\]<>]/g, '');
+  return sanitized;
 }
 
 function validateCommand(command: string): boolean {

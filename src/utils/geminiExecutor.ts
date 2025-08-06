@@ -91,8 +91,8 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
   
-  // Pass prompt without pre-quoting - let the platform-specific handling in commandExecutor deal with it
-  args.push(CLI.FLAGS.PROMPT, prompt_processed);
+  // Wrap prompt in quotes to handle spaces and special characters
+  args.push(CLI.FLAGS.PROMPT, `"${prompt_processed.replace(/"/g, '\\"')}"`);
   
   try {
     return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
@@ -107,8 +107,8 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Pass prompt without pre-quoting - same as above
-      fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed);
+      // Wrap prompt in quotes to handle spaces and special characters
+      fallbackArgs.push(CLI.FLAGS.PROMPT, `"${prompt_processed.replace(/"/g, '\\"')}"`);
       try {
         const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
