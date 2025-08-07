@@ -33,7 +33,8 @@
       "mcp__gemini-cli__quota-status",
       "mcp__gemini-cli__list-chats",
       "mcp__gemini-cli__delete-chat",
-      "Bash(echo $TEMP)"
+      "Bash(echo $TEMP)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }
