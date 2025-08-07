@@ -1,4 +1,4 @@
-import { executeCommand } from './commandExecutor.js';
+import { executeCommand, CommandOptions } from './commandExecutor.js';
 import { Logger } from './logger.js';
 import { GeminiCliReliabilityManager } from './geminiCliReliabilityManager.js';
 import { QuotaManager, isQuotaError, getQuotaAwareErrorMessage } from './quotaManager.js';
@@ -17,11 +17,24 @@ import { randomBytes } from 'crypto';
 // Windows command line length limit
 const MAX_CMD_LENGTH = 8000;
 
+/**
+ * Configuration options for Gemini CLI execution
+ */
+export interface GeminiExecutionOptions {
+  /** Rolling timeout in milliseconds - resets on data activity (default: 30000) */
+  rollingTimeout?: number;
+  /** Absolute timeout in milliseconds - maximum duration regardless of activity (default: 600000) */
+  absoluteTimeout?: number;
+  /** Custom abort signal for external cancellation */
+  signal?: AbortSignal;
+}
+
 export async function executeGeminiCLI(
   prompt: string,
   model?: string,
   sandbox?: boolean,
-  onProgress?: (newOutput: string) => void
+  onProgress?: (newOutput: string) => void,
+  options?: GeminiExecutionOptions
 ): Promise<string> {
   let prompt_processed = prompt;
   
@@ -59,8 +72,16 @@ export async function executeGeminiCLI(
     throw new Error(`⚠️ ${quotaStatus.suggestedAction}`);
   }
   
+  // Prepare timeout options
+  const commandOptions: CommandOptions = {
+    rollingTimeout: options?.rollingTimeout || 30000,  // 30 second default
+    absoluteTimeout: options?.absoluteTimeout || 600000, // 10 minute default
+    enableThrottling: true, // Always enable performance optimization
+    signal: options?.signal
+  };
+
   try {
-    const result = await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    const result = await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress, commandOptions);
     // Clear any previous quota issues on success
     quotaManager.resetQuotaStatus(currentModel);
     return result;
@@ -89,7 +110,7 @@ export async function executeGeminiCLI(
       }
         
       try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
+        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress, commandOptions);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
         return result;

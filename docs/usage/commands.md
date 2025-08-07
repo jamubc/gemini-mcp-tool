@@ -29,12 +29,6 @@ Generate structured ideas using creative methodologies.
 /gemini-cli:brainstorm prompt:"Improve onboarding flow" methodology:scamper ideaCount:8
 ```
 
-### `/gemini-cli:fetch-chunk`
-Retrieve additional change-mode edits using a cache key and chunk index.
-
-```
-/gemini-cli:fetch-chunk cacheKey=<key> chunkIndex=2
-```
 
 ### `/gemini-cli:help`
 Show help information and available tools.
@@ -58,7 +52,7 @@ Test connectivity with Gemini.
 /gemini-cli:<tool> [options] <arguments>
 ```
 
-- **tool**: The action to perform (analyze, sandbox, brainstorm, fetch-chunk, help, ping)
+- **tool**: The action to perform (analyze, sandbox, brainstorm, help, ping)
 - **options**: Optional flags (coming soon)
 - **arguments**: Input text, files, or questions
 
@@ -114,12 +108,6 @@ Instead of slash commands, you can use natural language:
 /gemini-cli:analyze @models/user.js generate TypeScript types for this model
 ```
 
-### Structured Edits and Chunks
-```
-/gemini-cli:analyze @src/**/*.ts changeMode:true
-# Fetch subsequent edits
-/gemini-cli:fetch-chunk cacheKey=<key> chunkIndex=2
-```
 
 ### Brainstorming Ideas
 ```

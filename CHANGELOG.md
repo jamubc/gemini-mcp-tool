@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Removed
+- **BREAKING CHANGE**: Completely removed `changeMode` parameter and all structured edit functionality
+  - Removed `changeMode` parameter from `ask-gemini` tool
+  - Removed `fetch-chunk` tool and chunking system
+  - Removed change mode parsing, translation, and caching utilities
+  - Simplified codebase by removing complex structured editing features
+  - Tests now use `gemini-2.5-flash` as default model for cost efficiency
+
+### Improved
+- Simplified MCP server architecture by removing changeMode complexity
+- Improved reliability by eliminating problematic structured editing features
+- Better error handling without changeMode edge cases
+
 ## [1.1.5]
 - Bump version to 1.1.5
 

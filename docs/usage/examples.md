@@ -139,17 +139,6 @@ identify performance bottlenecks in the request pipeline
 @src/**/*.js look for potential memory leaks or inefficient patterns
 ```
 
-## Handling Large Edits
-
-When change mode returns more edits than fit in a single message, Gemini caches the response. Use `fetch-chunk` to continue.
-
-```bash
-# Initial request
-/gemini-cli:analyze @src/**/*.ts changeMode:true
-
-# Retrieve the next chunk
-/gemini-cli:fetch-chunk cacheKey=<key> chunkIndex=2
-```
 
 ## Real Project Example
 

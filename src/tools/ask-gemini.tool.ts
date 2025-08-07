@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { UnifiedTool } from './registry.js';
-import { executeGeminiCLI } from '../utils/geminiExecutor.js';
+import { executeGeminiCLI, GeminiExecutionOptions } from '../utils/geminiExecutor.js';
 import { EnhancedChatManager } from '../managers/enhancedChatManager.js';
 import { 
   ERROR_MESSAGES, 
@@ -99,12 +99,19 @@ export const askGeminiTool: UnifiedTool = {
         }
       }
 
-      // Execute Gemini CLI
+      // Prepare timeout options for Gemini execution
+      const timeoutOptions: GeminiExecutionOptions = {
+        rollingTimeout: 30000,   // 30 second rolling timeout
+        absoluteTimeout: 600000  // 10 minute absolute timeout
+      };
+
+      // Execute Gemini CLI with rolling timeout
       const result = await executeGeminiCLI(
         geminiPrompt,
         model as string | undefined,
         !!sandbox,
-        onProgress
+        onProgress,
+        timeoutOptions
       );
 
       // Add Gemini's response to chat
