@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { Logger } from '../utils/logger.js';
-import { Chat, ChatMessage } from '../managers/chatManager.js';
+import { Chat, ChatMessage } from '../types/chat.js';
 
 export type ParticipationState = 'new' | 'returning' | 'continuous';
 

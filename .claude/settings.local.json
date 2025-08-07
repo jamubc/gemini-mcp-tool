@@ -28,7 +28,11 @@
       "Bash(gemini:*)",
       "WebFetch(domain:docs.anthropic.com)",
       "mcp__gemini-cli__fetch-chunk",
-      "Bash(where gemini)"
+      "Bash(where gemini)",
+      "Bash(LOG_LEVEL=debug npm test tests/gemini-cli-reliability.test.ts -- --reporter=verbose -t \"should successfully execute simple command\")",
+      "mcp__gemini-cli__quota-status",
+      "mcp__gemini-cli__list-chats",
+      "mcp__gemini-cli__delete-chat"
     ],
     "deny": []
   }

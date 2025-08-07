@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { UnifiedTool } from './registry.js';
-import { executeGeminiCLI, processChangeModeOutput } from '../utils/geminiExecutor.js';
+import { executeGeminiCLI } from '../utils/geminiExecutor.js';
 import { EnhancedChatManager } from '../managers/enhancedChatManager.js';
 import { 
   ERROR_MESSAGES, 
@@ -17,10 +17,7 @@ const askGeminiArgsSchema = z.object({
   agentName: z.string().min(1).max(50).describe("Your agent name (required)"),
   chatId: z.union([z.number(), z.string()]).transform(val => val.toString()).default("0").describe("Chat ID to use (0 or omit to create new chat)"),
   model: z.string().optional().describe("Optional model to use (e.g., 'gemini-2.5-flash'). If not specified, uses the default model (gemini-2.5-pro)."),
-  sandbox: z.boolean().default(false).describe("Use sandbox mode (-s flag) to safely test code changes, execute scripts, or run potentially risky operations in an isolated environment"),
-  changeMode: z.boolean().default(false).describe("Enable structured change mode - formats prompts to prevent tool errors and returns structured edit suggestions that Claude can apply directly"),
-  chunkIndex: z.union([z.number(), z.string()]).optional().describe("Which chunk to return (1-based)"),
-  chunkCacheKey: z.string().optional().describe("Optional cache key for continuation"),
+  sandbox: z.boolean().default(false).describe("Use sandbox mode (-s flag) to safely test code changes, execute scripts, or run potentially risky operations in an isolated environment")
 });
 
 export const askGeminiTool: UnifiedTool = {
@@ -32,7 +29,7 @@ export const askGeminiTool: UnifiedTool = {
   },
   category: 'gemini',
   execute: async (args, onProgress) => {
-    const { prompt, agentName, chatId, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args;
+    const { prompt, agentName, chatId, model, sandbox } = args;
     
     if (!prompt?.trim()) {
       throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED);
@@ -40,16 +37,6 @@ export const askGeminiTool: UnifiedTool = {
     
     if (!agentName || typeof agentName !== 'string' || !agentName.trim()) {
       throw new Error('Agent name is required');
-    }
-
-    // Handle change mode chunking first (no chat integration for chunks)
-    if (changeMode && chunkIndex && chunkCacheKey) {
-      return processChangeModeOutput(
-        '', // empty for cache...
-        chunkIndex as number,
-        chunkCacheKey as string,
-        prompt as string
-      );
     }
 
     try {
@@ -100,14 +87,14 @@ export const askGeminiTool: UnifiedTool = {
             Logger.warn(`Failed to generate chat history file`);
             // Fallback to simple message history format
             const messages = chat.messages.slice(0, -1); // Exclude the just-added message
-            const history = messages.map(m => `[${m.agent}]: ${m.message}`).join('\n');
+            const history = messages.map((m: any) => `[${m.agent}]: ${m.message}`).join('\n');
             geminiPrompt = `${history}\n\n[${agentName}]: ${prompt}`;
           }
         } catch (error) {
           Logger.warn('Chat history file generation failed, using fallback:', error);
           // Fallback to simple message history format
           const messages = chat.messages.slice(0, -1); // Exclude the just-added message
-          const history = messages.map(m => `[${m.agent}]: ${m.message}`).join('\n');
+          const history = messages.map((m: any) => `[${m.agent}]: ${m.message}`).join('\n');
           geminiPrompt = `${history}\n\n[${agentName}]: ${prompt}`;
         }
       }
@@ -117,22 +104,8 @@ export const askGeminiTool: UnifiedTool = {
         geminiPrompt,
         model as string | undefined,
         !!sandbox,
-        !!changeMode,
         onProgress
       );
-
-      // Handle change mode output
-      if (changeMode) {
-        // Add Gemini's response to chat first
-        await chatManager.addMessage(targetChatId, 'Gemini', result);
-        
-        return processChangeModeOutput(
-          result,
-          args.chunkIndex as number | undefined,
-          undefined,
-          prompt as string
-        );
-      }
 
       // Add Gemini's response to chat
       await chatManager.addMessage(targetChatId, 'Gemini', result);

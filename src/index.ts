@@ -254,14 +254,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
 async function main() {
   Logger.debug("init gemini-mcp-tool");
   
-  // Initialize chat history file cleanup
-  try {
-    const { ChatHistoryFileManager } = await import('./utils/chatHistoryFileManager.js');
-    await ChatHistoryFileManager.initializeCleanup();
-  } catch (error) {
-    Logger.warn('Chat history file manager initialization failed:', error);
-    // Continue server startup - this is not critical
-  }
+  // Legacy chat history cleanup removed - now handled by EnhancedChatManager
   
   const transport = new StdioServerTransport();
   await server.connect(transport);

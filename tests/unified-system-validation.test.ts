@@ -33,7 +33,8 @@ describe('Unified Chat System Validation', () => {
     const result1 = await askGeminiTool.execute({
       prompt: 'Hello, this is a test message',
       agentName: testAgentName,
-      chatId: '0' // Create new chat
+      chatId: '0', // Create new chat
+      model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
     expect(result1).toContain('New chat created');
@@ -64,7 +65,8 @@ describe('Unified Chat System Validation', () => {
     const result1 = await askGeminiTool.execute({
       prompt: 'My name is Alice',
       agentName: testAgentName,
-      chatId: '0'
+      chatId: '0',
+      model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
     // Extract chat ID
@@ -75,7 +77,8 @@ describe('Unified Chat System Validation', () => {
     const result2 = await askGeminiTool.execute({
       prompt: 'What is my name?',
       agentName: testAgentName,
-      chatId: chatId
+      chatId: chatId,
+      model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
     expect(result2).toContain('Using existing chat');
@@ -99,7 +102,8 @@ describe('Unified Chat System Validation', () => {
     const result = await askGeminiTool.execute({
       prompt: 'Integration test message',
       agentName: testAgentName,
-      chatId: '0'
+      chatId: '0',
+      model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
     const chatIdMatch = result.match(/Chat ID (\d+)/);
@@ -127,7 +131,8 @@ describe('Unified Chat System Validation', () => {
     const result1 = await askGeminiTool.execute({
       prompt: 'Numeric ID test',
       agentName: testAgentName,
-      chatId: 0 // Numeric zero
+      chatId: 0, // Numeric zero
+      model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
     const chatIdMatch1 = result1.match(/Chat ID (\d+)/);
@@ -137,7 +142,8 @@ describe('Unified Chat System Validation', () => {
     const result2 = await askGeminiTool.execute({
       prompt: 'String ID test',
       agentName: testAgentName,
-      chatId: '0' // String zero
+      chatId: '0', // String zero
+      model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
     const chatIdMatch2 = result2.match(/Chat ID (\d+)/);
@@ -150,7 +156,8 @@ describe('Unified Chat System Validation', () => {
     const result3 = await askGeminiTool.execute({
       prompt: 'Continuation message',
       agentName: testAgentName,
-      chatId: chatId1 // String version of first chat ID
+      chatId: chatId1, // String version of first chat ID
+      model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
     expect(result3).toContain('Using existing chat');

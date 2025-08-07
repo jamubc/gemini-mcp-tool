@@ -1,5 +1,5 @@
 import { Logger } from '../utils/logger.js';
-import { ChatMessage } from './chatManager.js';
+import { ChatMessage } from '../types/chat.js';
 import { AgentState, ParticipationState } from '../persistence/jsonChatPersistence.js';
 
 /**

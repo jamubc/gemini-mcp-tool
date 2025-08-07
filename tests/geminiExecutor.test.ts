@@ -161,12 +161,4 @@ describe('executeGeminiCLI', () => {
   });
 });
 
-describe('processChangeModeOutput', () => {
-  it('returns raw result when no edits are found', async () => {
-    const raw = 'unexpected output';
-    const result = await processChangeModeOutput(raw);
-    expect(result).toBe(
-      `${ERROR_MESSAGES.CHANGE_MODE_NO_EDITS}\n\n${raw}`
-    );
-  });
-});
+// processChangeModeOutput function has been removed

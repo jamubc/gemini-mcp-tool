@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { EnhancedChatManager } from '../src/managers/enhancedChatManager.js';
-import { TestFileManager } from '../src/utils/testFileManager.js';
 import { deleteChatTool, listChatsTool, getChatInfoTool } from '../src/tools/chat-management-tools.js';
 
 describe('Enhanced Chat System Integration Tests', () => {
@@ -9,11 +8,10 @@ describe('Enhanced Chat System Integration Tests', () => {
   beforeEach(async () => {
     chatManager = EnhancedChatManager.getInstance();
     chatManager.reset();
-    await TestFileManager.resetTestDirectory();
   });
 
   afterEach(async () => {
-    await TestFileManager.cleanupTestFiles();
+    // Cleanup handled by EnhancedChatManager persistence layer
   });
 
   describe('🚀 JSON Persistence Integration', () => {

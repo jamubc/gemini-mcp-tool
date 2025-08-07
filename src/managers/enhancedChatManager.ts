@@ -1,6 +1,6 @@
 import { Logger } from '../utils/logger.js';
 import { CHAT_CONSTANTS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants.js';
-import { Chat, ChatMessage, ChatSummary } from './chatManager.js';
+import { Chat, ChatMessage, ChatSummary } from '../types/chat.js';
 import { JsonChatPersistence, AgentState } from '../persistence/jsonChatPersistence.js';
 import { AgentParticipationManager } from './agentParticipationManager.js';
 
@@ -297,7 +297,7 @@ export class EnhancedChatManager {
   }
 
   private async truncateHistoryIfNeeded(chat: Chat): Promise<void> {
-    const totalChars = chat.messages.reduce((sum, msg) => sum + msg.message.length, 0);
+    const totalChars = chat.messages.reduce((sum: number, msg: any) => sum + msg.message.length, 0);
     
     if (totalChars > CHAT_CONSTANTS.HISTORY_LIMIT) {
       const originalCount = chat.messages.length;

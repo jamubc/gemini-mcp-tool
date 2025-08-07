@@ -7,9 +7,17 @@ export const LOG_PREFIX = "[GMCPT]";
 export const ERROR_MESSAGES = {
   QUOTA_EXCEEDED: "Quota exceeded for quota metric 'Gemini 2.5 Pro Requests'",
   QUOTA_EXCEEDED_SHORT: "⚠️ Gemini 2.5 Pro daily quota exceeded. Please retry with model: 'gemini-2.5-flash'",
+  QUOTA_PATTERNS: [
+    "Quota exceeded for quota metric",
+    "Too Many Requests",
+    "429",
+    "quota metric 'Gemini 2.5 Pro Requests'",
+    "quota metric 'Gemini 2.5 Flash Requests'",
+    "Daily quota exceeded",
+    "Rate limit exceeded"
+  ],
   TOOL_NOT_FOUND: "not found in registry",
   NO_PROMPT_PROVIDED: "Please provide a prompt for analysis. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions",
-  CHANGE_MODE_NO_EDITS: "No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format.",
   // Chat system error messages
   CHAT_NOT_FOUND: "❌ Chat ID {chatId} not found. Use 'list-chats' to see available chats.",
   UNAUTHORIZED_ACCESS: "🚫 You are not a participant in this chat.",
@@ -116,9 +124,6 @@ export interface ToolArguments {
   prompt?: string;
   model?: string;
   sandbox?: boolean | string;
-  changeMode?: boolean | string;
-  chunkIndex?: number | string; // Which chunk to return (1-based)
-  chunkCacheKey?: string; // Optional cache key for continuation
   message?: string; // For Ping tool -- Un-used.
   
   // --> new tool

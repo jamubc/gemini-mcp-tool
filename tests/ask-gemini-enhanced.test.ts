@@ -38,14 +38,20 @@ describe('Enhanced ask_gemini Tool - Parameter Validation', () => {
         chatId: 5
       };
 
-      const invalidArgs = {
+      const validStringArgs = {
         prompt: 'Test prompt', 
         agentName: 'test-agent',
-        chatId: 'invalid' // Should be number
+        chatId: '456' // Now accepts strings
       };
 
       expect(() => askGeminiTool.zodSchema.parse(validArgs)).not.toThrow();
-      expect(() => askGeminiTool.zodSchema.parse(invalidArgs)).toThrow();
+      expect(() => askGeminiTool.zodSchema.parse(validStringArgs)).not.toThrow();
+      
+      // Both should be converted to strings
+      const parsedNumeric = askGeminiTool.zodSchema.parse(validArgs);
+      const parsedString = askGeminiTool.zodSchema.parse(validStringArgs);
+      expect(parsedNumeric.chatId).toBe('5');
+      expect(parsedString.chatId).toBe('456');
     });
 
     it('should default chatId to 0', () => {
@@ -56,7 +62,7 @@ describe('Enhanced ask_gemini Tool - Parameter Validation', () => {
       };
 
       const parsed = askGeminiTool.zodSchema.parse(args);
-      expect(parsed.chatId).toBe(0);
+      expect(parsed.chatId).toBe('0');
     });
 
     it('should validate agentName length constraints', () => {
@@ -76,24 +82,18 @@ describe('Enhanced ask_gemini Tool - Parameter Validation', () => {
       expect(() => askGeminiTool.zodSchema.parse(tooLongArgs)).toThrow();
     });
 
-    it('should preserve existing parameters (model, sandbox, changeMode)', () => {
+    it('should preserve existing parameters (model, sandbox)', () => {
       const args = {
         prompt: 'Test prompt',
         agentName: 'test-agent',
         chatId: 1,
         model: 'gemini-2.5-flash',
-        sandbox: true,
-        changeMode: true,
-        chunkIndex: 2,
-        chunkCacheKey: 'test-key'
+        sandbox: true
       };
 
       const parsed = askGeminiTool.zodSchema.parse(args);
       expect(parsed.model).toBe('gemini-2.5-flash');
       expect(parsed.sandbox).toBe(true);
-      expect(parsed.changeMode).toBe(true);
-      expect(parsed.chunkIndex).toBe(2);
-      expect(parsed.chunkCacheKey).toBe('test-key');
     });
   });
 
@@ -104,14 +104,14 @@ describe('Enhanced ask_gemini Tool - Parameter Validation', () => {
         {
           prompt: 'Hello',
           agentName: 'agent1',
-          expected: { chatId: 0, sandbox: false, changeMode: false }
+          expected: { chatId: '0', sandbox: false }
         },
         // With chatId
         {
           prompt: 'Hello',
           agentName: 'agent1', 
           chatId: 5,
-          expected: { chatId: 5, sandbox: false, changeMode: false }
+          expected: { chatId: '5', sandbox: false }
         },
         // With all optional parameters
         {
@@ -120,12 +120,10 @@ describe('Enhanced ask_gemini Tool - Parameter Validation', () => {
           chatId: 3,
           model: 'gemini-2.5-flash',
           sandbox: true,
-          changeMode: true,
           expected: { 
-            chatId: 3, 
+            chatId: '3', 
             model: 'gemini-2.5-flash',
-            sandbox: true, 
-            changeMode: true 
+            sandbox: true
           }
         }
       ];
