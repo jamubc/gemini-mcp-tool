@@ -31,6 +31,9 @@ export const askGeminiTool: UnifiedTool = {
   execute: async (args, onProgress) => {
     const { prompt, agentName, chatId, model, sandbox } = args;
     
+    // Ensure chatId is always a string (Zod transform should handle this)
+    const chatIdStr = chatId as string;
+    
     if (!prompt?.trim()) {
       throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED);
     }
@@ -44,20 +47,20 @@ export const askGeminiTool: UnifiedTool = {
       let chatContext = '';
 
       // Create new chat if chatId is "0" or not provided
-      if (!chatId || chatId === "0") {
+      if (!chatIdStr || chatIdStr === "0") {
         // Generate chat title from prompt (first 50 chars)
         const chatTitle = prompt.length > 50 ? prompt.substring(0, 47) + '...' : prompt;
         const newChatId = await chatManager.createChat(chatTitle, agentName);
-        targetChatId = newChatId.toString();
+        targetChatId = newChatId;
         chatContext = `📝 **New chat created**: "${chatTitle}" (ID: ${targetChatId})`;
       } else {
         // Use existing chat - get context
-        const chat = await chatManager.getChat(chatId.toString());
+        const chat = await chatManager.getChat(chatIdStr);
         if (!chat) {
-          return `❌ Chat ID ${chatId} not found. Use chatId=0 to create a new chat.`;
+          return `❌ Chat ID ${chatIdStr} not found. Use chatId=0 to create a new chat.`;
         }
-        targetChatId = chatId.toString();
-        chatContext = `💬 **Using existing chat**: "${chat.title || 'Untitled'}" (ID: ${chatId})`;
+        targetChatId = chatIdStr;
+        chatContext = `💬 **Using existing chat**: "${chat.title || 'Untitled'}" (ID: ${chatIdStr})`;
       }
 
       // Add agent's message to chat

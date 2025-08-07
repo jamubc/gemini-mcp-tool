@@ -52,7 +52,7 @@ describe('E2E - Complete Agent Conversation Flows', () => {
       const chatId = await chatManager.createChat('Alice and Bob Discussion', alice);
       
       expect(chatId).toBeDefined();
-      expect(typeof chatId).toBe('number');
+      expect(typeof chatId).toBe('string');
       
       // Phase 2: Both agents should see the chat in their list
       const aliceChats = await chatManager.listChats();

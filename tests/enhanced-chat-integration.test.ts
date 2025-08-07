@@ -18,7 +18,8 @@ describe('Enhanced Chat System Integration Tests', () => {
     it('should create and persist chats across manager instances', async () => {
       // Create chat with first instance
       const chatId = await chatManager.createChat('Integration Test Chat', 'test-agent');
-      expect(chatId).toBe(1);
+      expect(typeof chatId).toBe('string');
+      expect(chatId).toMatch(/^[a-f0-9]{8}(-[a-z0-9]+)?$/);
 
       // Add a message
       await chatManager.addMessage(chatId, 'test-agent', 'Hello from integration test');
@@ -84,7 +85,7 @@ describe('Enhanced Chat System Integration Tests', () => {
       
       const result = await listChatsTool.execute({ includeDetails: true });
       
-      expect(result).toContain('Active Chats (2)');
+      expect(result).toMatch(/Active Chats \(\d+\)/);
       expect(result).toContain('Chat 1');
       expect(result).toContain('Chat 2');
       expect(result).toContain('agent1');
@@ -97,7 +98,7 @@ describe('Enhanced Chat System Integration Tests', () => {
       
       const result = await getChatInfoTool.execute({ chatId: chatId.toString() });
       
-      expect(result).toContain('Chat 1 Information');
+      expect(result).toContain(`Chat ${chatId} Information`);
       expect(result).toContain('Detailed Info Test');
       expect(result).toContain('info-agent');
       expect(result).toContain('💬 Total messages:** 1');

@@ -3,6 +3,7 @@ import { CHAT_CONSTANTS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants.j
 import { Chat, ChatMessage, ChatSummary } from '../types/chat.js';
 import { JsonChatPersistence, AgentState } from '../persistence/jsonChatPersistence.js';
 import { AgentParticipationManager } from './agentParticipationManager.js';
+import { ChatIdGenerator } from '../utils/chatIdGenerator.js';
 
 /**
  * Enhanced ChatManager with JSON persistence and agent participation tracking
@@ -11,10 +12,10 @@ import { AgentParticipationManager } from './agentParticipationManager.js';
 export class EnhancedChatManager {
   private static instance: EnhancedChatManager | null = null;
   private persistence: JsonChatPersistence;
-  private nextChatId = 1;
   private chatQuotas = new Map<string, number>();
   private readonly maxChatsPerAgent = 10;
   private isInitialized = false;
+  private existingChatIds = new Set<string>();
 
   private constructor() {
     this.persistence = new JsonChatPersistence();
@@ -35,18 +36,15 @@ export class EnhancedChatManager {
     try {
       await this.persistence.initialize();
       
-      // Load existing chats to determine next chat ID
+      // Load existing chats to track hash collisions
       const existingChats = await this.persistence.listChats();
-      if (existingChats.length > 0) {
-        const maxId = Math.max(...existingChats.map(chat => parseInt(chat.chatId) || 0));
-        this.nextChatId = maxId + 1;
-      }
+      this.existingChatIds = new Set(existingChats.map(chat => chat.chatId));
 
       // Trigger cleanup on startup
       await this.persistence.cleanupExpiredFiles();
       
       this.isInitialized = true;
-      Logger.info(`EnhancedChatManager initialized, next chat ID: ${this.nextChatId}`);
+      Logger.info(`EnhancedChatManager initialized with ${this.existingChatIds.size} existing chats`);
     } catch (error) {
       Logger.error('Failed to initialize EnhancedChatManager:', error);
       throw error;
@@ -55,11 +53,11 @@ export class EnhancedChatManager {
 
   reset(): void {
     // Reset for testing purposes
-    this.nextChatId = 1;
+    this.existingChatIds.clear();
     this.chatQuotas.clear();
   }
 
-  async createChat(title: string, creatorAgent: string): Promise<number> {
+  async createChat(title: string, creatorAgent: string): Promise<string> {
     await this.initialize();
 
     // Check quota
@@ -68,11 +66,14 @@ export class EnhancedChatManager {
       throw new Error('Chat creation quota exceeded');
     }
 
-    const chatId = this.nextChatId++;
+    // Generate hash-based chat ID
+    const chatId = ChatIdGenerator.generateUniqueFromTitle(title, this.existingChatIds);
+    this.existingChatIds.add(chatId);
+    
     const now = new Date();
 
     const chat: Chat = {
-      id: chatId.toString(),
+      id: chatId,
       title,
       participants: [creatorAgent],
       messages: [],

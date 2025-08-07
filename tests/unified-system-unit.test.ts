@@ -34,15 +34,16 @@ describe('Unified System Unit Tests', () => {
     const chatTitle = 'Unified System Test Chat';
     const newChatId = await manager.createChat(chatTitle, testAgentName);
     
-    expect(newChatId).toBeGreaterThan(0);
+    expect(typeof newChatId).toBe('string');
+    expect(newChatId).toMatch(/^[a-f0-9]{8}(-[a-z0-9]+)?$/);
     Logger.info(`Created chat with ID: ${newChatId}`);
     
     // Add message
-    await manager.addMessage(newChatId.toString(), testAgentName, 'Test message 1');
-    await manager.addMessage(newChatId.toString(), 'Gemini', 'Mock response 1');
+    await manager.addMessage(newChatId, testAgentName, 'Test message 1');
+    await manager.addMessage(newChatId, 'Gemini', 'Mock response 1');
     
     // Verify chat exists and has correct data
-    const chat = await manager.getChat(newChatId.toString());
+    const chat = await manager.getChat(newChatId);
     expect(chat).toBeDefined();
     expect(chat?.title).toBe(chatTitle);
     expect(chat?.messages).toHaveLength(2);

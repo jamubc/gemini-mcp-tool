@@ -41,8 +41,8 @@ describe('Unified Chat System Validation', () => {
     expect(result1).toContain('Hello, this is a test message');
     expect(result1).toContain('Chat ID');
     
-    // Extract chat ID from the response
-    const chatIdMatch = result1.match(/Chat ID (\d+)/);
+    // Extract chat ID from the response (now hash-based)
+    const chatIdMatch = result1.match(/(?:ID: |Chat ID )([a-f0-9]{8}(?:-[a-z0-9]+)?)/);
     expect(chatIdMatch).toBeTruthy();
     const createdChatId = chatIdMatch![1];
     
@@ -69,8 +69,9 @@ describe('Unified Chat System Validation', () => {
       model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
-    // Extract chat ID
-    const chatIdMatch = result1.match(/Chat ID (\d+)/);
+    // Extract chat ID (now hash-based)
+    const chatIdMatch = result1.match(/(?:ID: |Chat ID )([a-f0-9]{8}(?:-[a-z0-9]+)?)/);
+    expect(chatIdMatch).toBeTruthy();
     const chatId = chatIdMatch![1];
 
     // Continue conversation with same chat ID
@@ -106,7 +107,8 @@ describe('Unified Chat System Validation', () => {
       model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
-    const chatIdMatch = result.match(/Chat ID (\d+)/);
+    const chatIdMatch = result.match(/(?:ID: |Chat ID )([a-f0-9]{8}(?:-[a-z0-9]+)?)/);
+    expect(chatIdMatch).toBeTruthy();
     const chatId = chatIdMatch![1];
 
     // Verify chat can be accessed directly via EnhancedChatManager
@@ -135,7 +137,8 @@ describe('Unified Chat System Validation', () => {
       model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
-    const chatIdMatch1 = result1.match(/Chat ID (\d+)/);
+    const chatIdMatch1 = result1.match(/(?:ID: |Chat ID )([a-f0-9]{8}(?:-[a-z0-9]+)?)/);
+    expect(chatIdMatch1).toBeTruthy();
     const chatId1 = chatIdMatch1![1];
 
     // Create another chat with string chatId "0"
@@ -146,7 +149,8 @@ describe('Unified Chat System Validation', () => {
       model: 'gemini-2.5-flash' // Use Flash for tests
     });
 
-    const chatIdMatch2 = result2.match(/Chat ID (\d+)/);
+    const chatIdMatch2 = result2.match(/(?:ID: |Chat ID )([a-f0-9]{8}(?:-[a-z0-9]+)?)/);
+    expect(chatIdMatch2).toBeTruthy();
     const chatId2 = chatIdMatch2![1];
 
     // Both should create new chats (different IDs)
@@ -161,7 +165,7 @@ describe('Unified Chat System Validation', () => {
     });
 
     expect(result3).toContain('Using existing chat');
-    expect(result3).toContain(`Chat ID ${chatId1}`);
+    expect(result3).toContain(`ID: ${chatId1}`);
 
     Logger.info(`ID compatibility confirmed - numeric and string IDs work consistently`);
   });
