@@ -215,3 +215,64 @@ When Gemini suggests improvements, ask:
 "explain why this approach is better"
 "show me more examples of this pattern"
 ```
+
+## Brainstorming Best Practices
+
+### Effective Prompt Construction
+```bash
+# Vague
+/gemini-cli:brainstorm prompt:"improve our product"
+
+# Specific with context
+/gemini-cli:brainstorm prompt:"improve user onboarding for our developer API" 
+domain:software existingContext:"Currently 60% drop-off in first week" 
+constraints:"must work with existing auth system"
+```
+
+### Methodology Selection
+- **Design-thinking**: Human-centered problems (UX, product features)
+- **SCAMPER**: Systematic improvement of existing solutions  
+- **Lateral**: Breaking conventional thinking patterns
+- **Divergent**: Maximum idea generation (explore all possibilities)
+- **Convergent**: Refining and prioritizing existing ideas
+- **Auto**: Let AI select best framework for your context
+
+### Context Optimization
+```bash
+# Include relevant background
+existingContext:"React app, 10k users, mobile-first, B2B SaaS"
+
+# Specify realistic constraints  
+constraints:"3-month timeline, 2 developers, $50k budget"
+
+# Define domain for specialized insights
+domain:software  # Gets technical patterns and frameworks
+domain:marketing # Gets campaign strategies and channels
+```
+
+### Idea Count Strategy
+- **Exploration Phase**: 15-20 ideas for broad discovery
+- **Focused Sessions**: 6-10 ideas for specific problems  
+- **Quick Brainstorms**: 3-5 ideas for rapid iteration
+- **Deep Analysis**: 8-12 ideas with `includeAnalysis:true`
+
+### Progressive Brainstorming
+```bash
+# Session 1: Broad exploration
+/gemini-cli:brainstorm prompt:"improve developer experience" methodology:divergent ideaCount:15
+
+# Session 2: Focus on top concepts  
+/gemini-cli:brainstorm prompt:"API documentation improvements" 
+existingContext:"From previous session, focus on documentation and onboarding"
+methodology:design-thinking includeAnalysis:true
+
+# Session 3: Implementation details
+/gemini-cli:brainstorm prompt:"interactive API docs implementation"
+constraints:"React, 2-week sprint, existing design system"
+```
+
+### Error Recovery Strategies
+The brainstorm tool includes enhanced error handling:
+- **Quota Exceeded**: Automatically suggests trying Flash model or reducing scope
+- **Timeout Issues**: Provides guidance on breaking complex prompts into smaller sessions
+- **Connection Problems**: Clear error messages with troubleshooting steps

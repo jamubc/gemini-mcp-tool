@@ -82,6 +82,19 @@ Claude recognizes these patterns:
 - "Use gemini to refactor this function"
 - "Help me optimize this algorithm with gemini"
 
+### Brainstorming and Ideation
+- "Gemini, brainstorm ways to improve our user onboarding"
+- "I need creative ideas for marketing our new feature - use design thinking"
+- "Help me brainstorm solutions for this performance issue"
+- "Generate some product feature ideas using SCAMPER method"
+- "Brainstorm technical approaches for implementing real-time chat"
+
+### Creative Problem Solving
+- "Gemini, I'm stuck on this architecture decision - help me explore options"
+- "Brainstorm ways to reduce our API response times"
+- "Generate ideas for improving our developer documentation"
+- "Help me think of alternative approaches to user authentication"
+
 ## Mixing Commands and Natural Language
 
 You can combine both approaches:

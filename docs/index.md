@@ -37,7 +37,9 @@ features:
     details: Choose from Gemini-2.5-Pro and Gemini-2.5-Flash, using natural language.
   - icon: 🧠
     title: Structured Brainstorming
-    details: Generate creative ideas with SCAMPER, design thinking, or lateral thinking frameworks.
+    details: |
+      Generate creative ideas with proven methodologies: SCAMPER, design thinking, lateral thinking, divergent/convergent approaches.<br>
+      <span style="color: #22c55e;">Context-aware</span> • <span style="color: #3b82f6;">Domain-specific</span> • <span style="color: #f59e0b;">Constraint-driven</span>
   - icon: 📦
     title: Large Edit Handling
     details: Change-mode responses can be chunked and retrieved on demand.

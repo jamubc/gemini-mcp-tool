@@ -95,9 +95,34 @@ give me an overview of this project's architecture
 
 ## Brainstorming
 
-### Generating Ideas
+### Product Development Ideas
 ```
-/gemini-cli:brainstorm prompt:"Ways to improve developer onboarding" methodology:design-thinking ideaCount:6
+/gemini-cli:brainstorm prompt:"New features for our code editor" domain:software methodology:design-thinking existingContext:"VSCode-like editor with 50k users" ideaCount:10
+```
+
+### Marketing Campaign Generation
+```
+/gemini-cli:brainstorm prompt:"Launch campaign for new developer tool" domain:marketing constraints:"budget under $5000, 30-day timeline" methodology:scamper includeAnalysis:true
+```
+
+### Business Process Improvement
+```
+/gemini-cli:brainstorm prompt:"Streamline customer support workflow" domain:business existingContext:"Currently 4-hour response time, 3-person team" methodology:lateral ideaCount:8
+```
+
+### Technical Problem Solving
+```
+/gemini-cli:brainstorm prompt:"Optimize database performance" domain:software constraints:"Can't change schema, limited downtime" methodology:convergent existingContext:"PostgreSQL, 1M+ records, slow queries"
+```
+
+### Creative Content Ideas
+```
+/gemini-cli:brainstorm prompt:"Blog post topics for tech audience" domain:creative methodology:divergent ideaCount:15 includeAnalysis:false
+```
+
+### Research Project Planning
+```
+/gemini-cli:brainstorm prompt:"User research methods for mobile app" domain:research constraints:"Remote only, 2-week timeframe, budget $1000" methodology:design-thinking
 ```
 
 ## Migration

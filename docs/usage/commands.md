@@ -23,11 +23,31 @@ Execute code in a safe environment.
 ```
 
 ### `/gemini-cli:brainstorm`
-Generate structured ideas using creative methodologies.
+Generate structured ideas using creative methodologies with advanced frameworks and context-aware analysis.
 
+**Parameters:**
+- `prompt` (required): The challenge or question to explore
+- `methodology` (optional): Creative framework - `divergent`, `convergent`, `scamper`, `design-thinking`, `lateral`, or `auto` (default: `auto`)
+- `domain` (optional): Subject area for specialized context (e.g., `software`, `business`, `creative`, `research`, `product`, `marketing`)
+- `constraints` (optional): Known limitations, requirements, or boundaries (budget, time, technical, legal, etc.)
+- `existingContext` (optional): Background information, previous attempts, or current state to build upon
+- `ideaCount` (optional): Number of ideas to generate (default: 12, max: 50)
+- `includeAnalysis` (optional): Include feasibility, impact, and implementation analysis (default: true)
+- `model` (optional): Gemini model to use (default: `gemini-2.5-pro`)
+
+**Examples:**
 ```
-/gemini-cli:brainstorm prompt:"Improve onboarding flow" methodology:scamper ideaCount:8
+/gemini-cli:brainstorm prompt:"Improve developer onboarding flow" methodology:design-thinking domain:software ideaCount:8
+
+/gemini-cli:brainstorm prompt:"Marketing campaign ideas" constraints:"budget under $500" includeAnalysis:true
+
+/gemini-cli:brainstorm prompt:"Product feature concepts" existingContext:"Current app has 10k users, mostly mobile" methodology:scamper
 ```
+
+**Enhanced Features:**
+- **Robust Error Handling**: User-friendly messages for quota limits, timeouts, and connection issues
+- **Progress Tracking**: Real-time updates during idea generation with resilient progress reporting
+- **Context Integration**: Smart context gathering with domain-specific insights
 
 
 ### `/gemini-cli:help`
