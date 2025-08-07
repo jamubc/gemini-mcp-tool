@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { UnifiedTool } from './registry.js';
 import { executeGeminiCLI, GeminiExecutionOptions } from '../utils/geminiExecutor.js';
 import { EnhancedChatManager } from '../managers/enhancedChatManager.js';
+import { processFileReferences } from '../utils/fileReferenceProcessor.js';
 import { 
   ERROR_MESSAGES, 
   STATUS_MESSAGES,
@@ -43,6 +44,33 @@ export const askGeminiTool: UnifiedTool = {
     }
 
     try {
+      // Process file references in the prompt first
+      Logger.debug('Processing file references in prompt');
+      const fileProcessingResult = await processFileReferences(prompt.trim());
+      
+      // Use processed prompt for further processing
+      const processedPrompt = fileProcessingResult.processedPrompt;
+      
+      // Log file processing results
+      if (fileProcessingResult.hasFileReferences) {
+        Logger.info('File references processed', {
+          processedFiles: fileProcessingResult.processedFiles.length,
+          failedFiles: fileProcessingResult.failedFiles.length
+        });
+        
+        // Report file processing status if there were any references
+        if (onProgress) {
+          const fileStatus = [];
+          if (fileProcessingResult.processedFiles.length > 0) {
+            fileStatus.push(`✅ ${fileProcessingResult.processedFiles.length} files processed`);
+          }
+          if (fileProcessingResult.failedFiles.length > 0) {
+            fileStatus.push(`⚠️ ${fileProcessingResult.failedFiles.length} files failed`);
+          }
+          onProgress(`📁 File Processing: ${fileStatus.join(', ')}\n`);
+        }
+      }
+
       let targetChatId: string;
       let chatContext = '';
 
@@ -63,7 +91,7 @@ export const askGeminiTool: UnifiedTool = {
         chatContext = `💬 **Using existing chat**: "${chat.title || 'Untitled'}" (ID: ${chatIdStr})`;
       }
 
-      // Add agent's message to chat
+      // Add agent's message to chat (use original prompt for chat history)
       await chatManager.addMessage(targetChatId, agentName, prompt);
 
       // Get updated chat for context
@@ -73,7 +101,8 @@ export const askGeminiTool: UnifiedTool = {
       }
 
       // Format prompt with chat history if there are previous messages
-      let geminiPrompt = prompt;
+      // Use the processed prompt (with file contents) for Gemini
+      let geminiPrompt = processedPrompt;
       if (chat.messages.length > 1) {
         try {
           // Try JSON file approach first
@@ -84,21 +113,21 @@ export const askGeminiTool: UnifiedTool = {
           );
           
           if (fileResult.success && fileResult.fileReference) {
-            geminiPrompt = `${fileResult.fileReference}\n\n[${agentName}]: ${prompt}`;
+            geminiPrompt = `${fileResult.fileReference}\n\n[${agentName}]: ${processedPrompt}`;
             Logger.info(`Using chat history file: ${fileResult.fileReference}`);
           } else {
             Logger.warn(`Failed to generate chat history file`);
             // Fallback to simple message history format
             const messages = chat.messages.slice(0, -1); // Exclude the just-added message
             const history = messages.map((m: any) => `[${m.agent}]: ${m.message}`).join('\n');
-            geminiPrompt = `${history}\n\n[${agentName}]: ${prompt}`;
+            geminiPrompt = `${history}\n\n[${agentName}]: ${processedPrompt}`;
           }
         } catch (error) {
           Logger.warn('Chat history file generation failed, using fallback:', error);
           // Fallback to simple message history format
           const messages = chat.messages.slice(0, -1); // Exclude the just-added message
           const history = messages.map((m: any) => `[${m.agent}]: ${m.message}`).join('\n');
-          geminiPrompt = `${history}\n\n[${agentName}]: ${prompt}`;
+          geminiPrompt = `${history}\n\n[${agentName}]: ${processedPrompt}`;
         }
       }
 
@@ -120,7 +149,27 @@ export const askGeminiTool: UnifiedTool = {
       // Add Gemini's response to chat
       await chatManager.addMessage(targetChatId, 'Gemini', result);
 
-      return `${chatContext}\n\n🤖 **Gemini's Response:**\n${result}\n\n💡 **Chat ID ${targetChatId}** - Use this ID for follow-up questions to maintain context.`;
+      // Prepare response with file processing status if applicable
+      let response = `${chatContext}\n\n`;
+      
+      // Add file processing summary if there were file references
+      if (fileProcessingResult.hasFileReferences) {
+        response += `📁 **File Processing Summary:**\n`;
+        if (fileProcessingResult.processedFiles.length > 0) {
+          response += `✅ Successfully processed: ${fileProcessingResult.processedFiles.join(', ')}\n`;
+        }
+        if (fileProcessingResult.failedFiles.length > 0) {
+          response += `⚠️ Failed to process:\n`;
+          fileProcessingResult.failedFiles.forEach(failed => {
+            response += `   • ${failed.path}: ${failed.error}\n`;
+          });
+        }
+        response += `\n`;
+      }
+      
+      response += `🤖 **Gemini's Response:**\n${result}\n\n💡 **Chat ID ${targetChatId}** - Use this ID for follow-up questions to maintain context.`;
+      
+      return response;
 
     } catch (error) {
       // If there was an error after creating a chat, still inform the user

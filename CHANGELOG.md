@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Fixed
+- **✅ MAJOR BUG FIX**: @ syntax file references now work as documented
+  - **Problem Solved**: @ syntax (e.g., `@package.json`) previously passed literal text to Gemini CLI instead of reading file contents
+  - **Implementation**: New `FileReferenceProcessor` utility provides robust file preprocessing with comprehensive security
+  - **Security Enhancements**: Path traversal prevention, file extension validation, size limits (1MB default)
+  - **Performance Improvements**: Concurrent file processing for optimal speed
+  - **Reliability**: Enhanced error handling with graceful degradation and detailed error messages
+  - **User Impact**: Commands like `ask gemini to explain @package.json` now work exactly as expected
+
 ### Removed
 - **BREAKING CHANGE**: Completely removed `changeMode` parameter and all structured edit functionality
   - Removed `changeMode` parameter from `ask-gemini` tool
@@ -14,6 +23,7 @@
 - Simplified MCP server architecture by removing changeMode complexity
 - Improved reliability by eliminating problematic structured editing features
 - Better error handling without changeMode edge cases
+- Enhanced file reference processing with security and performance optimizations
 
 ## [1.1.5]
 - Bump version to 1.1.5

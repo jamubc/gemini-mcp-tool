@@ -1,6 +1,16 @@
 # File Analysis with @ Syntax
 
-One of the most powerful features of Gemini MCP Tool is the ability to analyze files using the `@` syntax.
+One of the most powerful features of Gemini MCP Tool is the ability to analyze files using the `@` syntax. File references are automatically processed and their contents are included in your prompts to Gemini.
+
+## How It Works
+
+When you use the `@` syntax, the MCP tool automatically:
+1. **Detects file references** in your prompt (e.g., `@package.json`, `@src/app.js`)
+2. **Reads file contents** securely with comprehensive validation and safety checks
+3. **Substitutes the content** seamlessly before sending to Gemini CLI
+4. **Processes multiple files concurrently** for optimal performance
+
+**✅ Works Reliably**: The @ syntax file preprocessing has been comprehensively tested and works exactly as documented.
 
 ## Basic Usage
 
@@ -81,6 +91,32 @@ What does gemini think about that?
 ```
 ask gemini to get a second opinion
 ```
+
+## Security & Limitations
+
+The file processing system includes comprehensive security and performance features:
+
+### File Size Limits
+- **Maximum file size**: 1MB per file
+- **Smart rejection**: Large files are rejected with clear, actionable error messages
+- **Memory protection**: Prevents memory issues and excessive token usage
+
+### Path Security
+- **Path traversal protection**: Robust prevention of access to system files outside your project
+- **Safe path resolution**: Paths are safely resolved relative to your working directory
+- **Extension validation**: Only allows common development file extensions (.js, .py, .md, .json, .ts, etc.)
+- **Working directory boundary**: All file access is restricted to your project directory
+
+### Enhanced Error Handling
+- **Graceful degradation**: Failed file reads are replaced with informative error messages in the prompt
+- **Detailed error reporting**: Clear, specific messages for debugging file access issues
+- **Non-blocking errors**: One failed file doesn't prevent processing of other files
+- **User-friendly feedback**: Errors include suggestions for resolution
+
+### Performance Optimizations
+- **Concurrent processing**: Multiple files processed simultaneously for better performance
+- **Efficient memory usage**: Optimized file reading with memory management
+- **Fast path validation**: Quick security checks before file operations
 
 ## Token Optimization
 

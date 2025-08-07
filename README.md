@@ -120,9 +120,14 @@ After updating the configuration, restart your terminal session.
 
 ### With File References (using @ syntax)
 
+File analysis works seamlessly with automatic content preprocessing and robust security:
+
 - `ask gemini to analyze @src/main.js and explain what it does`
 - `use gemini to summarize @. the current directory`
 - `analyze @package.json and tell me about dependencies`
+- `examine @src/components/*.tsx and suggest improvements`
+
+**✅ Reliable & Secure**: File references are automatically processed with path validation, size limits (1MB max), and concurrent processing for optimal performance. The @ syntax now works exactly as documented.
 
 ### General Questions (without files)
 

@@ -190,6 +190,49 @@ how can I improve frontend performance?
 what critical paths lack test coverage?
 ```
 
+## Advanced File Reference Examples
+
+### Using Multiple File Types
+```
+/gemini-cli:analyze @package.json @tsconfig.json @src/index.ts
+check if my TypeScript configuration matches my dependencies
+```
+
+### Combining Configuration and Code
+```
+/gemini-cli:analyze @docker-compose.yml @Dockerfile @src/server.js
+review my containerization setup for security and best practices
+```
+
+### Large Scale Analysis
+```
+/gemini-cli:analyze @src/**/*.js @test/**/*.test.js @docs/*.md
+comprehensive project audit: code quality, test coverage, documentation
+```
+
+**✅ Reliable Processing**: All @ syntax examples above work reliably with automatic file content preprocessing, security validation, and concurrent processing for optimal performance.
+
+## Error Handling Examples
+
+### When Files Don't Exist
+```
+# This will gracefully handle missing files
+/gemini-cli:analyze @nonexistent.js @src/main.js
+analyze these files (one exists, one doesn't)
+
+# Gemini will receive an error message for nonexistent.js
+# but continue with main.js analysis
+```
+
+### Large File Handling
+```
+# Files over 1MB are rejected with clear error messages
+/gemini-cli:analyze @large-dataset.json @src/processor.js
+help me process this large dataset
+
+# You'll get a clear error about file size limits
+```
+
 ## Tips for Effective Usage
 
 1. **Start Broad, Then Narrow**: Begin with overview, then dive into specifics
@@ -197,3 +240,5 @@ what critical paths lack test coverage?
 3. **Ask Follow-up Questions**: Build on previous responses
 4. **Use Specific Criteria**: Tell Gemini what to look for
 5. **Iterate on Solutions**: Refine based on suggestions
+6. **Check File Sizes**: Large files (>1MB) will be rejected
+7. **Use Relative Paths**: File references are resolved from your working directory

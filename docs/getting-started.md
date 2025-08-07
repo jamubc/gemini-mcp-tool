@@ -141,6 +141,7 @@ Type in Claude:
 ```
 /gemini-cli:analyze @README.md summarize this file
 ```
+**✅ Expected Result**: The @ syntax will automatically read and include your README.md content in the analysis.
 
 ### 3. Test Sandbox Mode
 ```
@@ -196,10 +197,10 @@ npm install -g @google/gemini-cli
 ## Next Steps
 
 Now that you're set up:
-- Learn about file analysis with @ syntax
-- Explore sandbox mode for safe code execution
-- Check out real-world examples in the README
-- Join the community for support
+- **Learn about file analysis with @ syntax** - Now works reliably with comprehensive security and performance features
+- **Explore sandbox mode** for safe code execution
+- **Check out real-world examples** in the usage documentation
+- **Join the community** for support and feedback
 
 ::: info Need Help?
 If you run into issues, [open an issue](https://github.com/jamubc/gemini-mcp-tool/issues) on GitHub.
