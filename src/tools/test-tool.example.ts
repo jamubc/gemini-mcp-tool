@@ -5,12 +5,12 @@
  * 2. Import and register in src/tools/index.ts:
  *    import { testTool } from './test-tool.js';
  *    toolRegistry.push(testTool);
- * 
+ *
  * That's it! No more editing multiple files.
  */
 
-import { z } from 'zod';
-import { UnifiedTool } from './registry.js';
+import { z } from "zod";
+import { UnifiedTool } from "./registry.js";
 
 const testToolArgsSchema = z.object({
   message: z.string().describe("Test message to echo"), // Required field (no .optional())
@@ -22,14 +22,16 @@ export const testTool: UnifiedTool = {
   zodSchema: testToolArgsSchema,
   prompt: {
     description: "Test the new unified tool registration",
-    arguments: [{
-      name: "message",
-      description: "Message to test with",
-      required: true
-    }]
+    arguments: [
+      {
+        name: "message",
+        description: "Message to test with",
+        required: true,
+      },
+    ],
   },
-  category: 'utility',
+  category: "utility",
   execute: async (args) => {
     return `Test tool received: ${args.message}`;
-  }
+  },
 };

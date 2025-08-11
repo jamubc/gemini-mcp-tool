@@ -7,9 +7,12 @@ export interface ChangeModeEdit {
   newEndLine: number;
   newCode: string;
 }
-export function parseChangeModeOutput(geminiResponse: string): ChangeModeEdit[] {
+export function parseChangeModeOutput(
+  geminiResponse: string,
+): ChangeModeEdit[] {
   const edits: ChangeModeEdit[] = [];
-  const markdownPattern = /\*\*FILE:\s*(.+?):(\d+)\*\*\s*\n```\s*\nOLD:\s*\n([\s\S]*?)\nNEW:\s*\n([\s\S]*?)\n```/g;
+  const markdownPattern =
+    /\*\*FILE:\s*(.+?):(\d+)\*\*\s*\n```\s*\nOLD:\s*\n([\s\S]*?)\nNEW:\s*\n([\s\S]*?)\n```/g;
 
   let match;
   while ((match = markdownPattern.exec(geminiResponse)) !== null) {
@@ -19,8 +22,8 @@ export function parseChangeModeOutput(geminiResponse: string): ChangeModeEdit[] 
     const newCode = newCodeRaw.trimEnd();
     const startLine = parseInt(startLineStr, 10);
 
-    const oldLineCount = oldCode === '' ? 0 : oldCode.split('\n').length;
-    const newLineCount = newCode === '' ? 0 : newCode.split('\n').length;
+    const oldLineCount = oldCode === "" ? 0 : oldCode.split("\n").length;
+    const newLineCount = newCode === "" ? 0 : newCode.split("\n").length;
 
     const oldEndLine = startLine + (oldLineCount > 0 ? oldLineCount - 1 : 0);
 
@@ -39,7 +42,8 @@ export function parseChangeModeOutput(geminiResponse: string): ChangeModeEdit[] 
   }
 
   if (edits.length === 0) {
-    const editPattern = /\/old\/ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)\s*\n\s*\\new\\ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)/g;
+    const editPattern =
+      /\/old\/ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)\s*\n\s*\/new\/ \* (.+?) 'start:' (\d+)\n([\s\S]*?)\n\/\/ 'end:' (\d+)/g;
 
     while ((match = editPattern.exec(geminiResponse)) !== null) {
       const [
@@ -55,7 +59,9 @@ export function parseChangeModeOutput(geminiResponse: string): ChangeModeEdit[] 
       ] = match;
 
       if (oldFilename !== newFilename) {
-        console.warn(`[changeModeParser] Filename mismatch: ${oldFilename} vs ${newFilename}`);
+        console.warn(
+          `[changeModeParser] Filename mismatch: ${oldFilename} vs ${newFilename}`,
+        );
         continue;
       }
 
@@ -81,15 +87,19 @@ export function validateChangeModeEdits(edits: ChangeModeEdit[]): {
 
   for (const edit of edits) {
     if (!edit.filename) {
-      errors.push('Edit missing filename');
+      errors.push("Edit missing filename");
     }
 
     if (edit.oldStartLine > edit.oldEndLine) {
-      errors.push(`Invalid line range for ${edit.filename}: ${edit.oldStartLine} > ${edit.oldEndLine}`);
+      errors.push(
+        `Invalid line range for ${edit.filename}: ${edit.oldStartLine} > ${edit.oldEndLine}`,
+      );
     }
 
     if (edit.newStartLine > edit.newEndLine) {
-      errors.push(`Invalid new line range for ${edit.filename}: ${edit.newStartLine} > ${edit.newEndLine}`);
+      errors.push(
+        `Invalid new line range for ${edit.filename}: ${edit.newStartLine} > ${edit.newEndLine}`,
+      );
     }
 
     if (!edit.oldCode && !edit.newCode) {

@@ -29,6 +29,7 @@ jobs:
           path: docs/.vitepress/dist
 
   deploy:
+    if: github.repository == 'jamubc/gemini-mcp-tool'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

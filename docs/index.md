@@ -24,7 +24,7 @@ features:
     details: We dont re-invent the wheel.
   - icon: 🤝
     title: Claude's new best friend
-    details: Let Claude use Gemini naturally, because 3 is a party. 
+    details: Let Claude use Gemini naturally, because 3 is a party.
   - icon: 🔌
     title: MCP Standards
     details: |
@@ -35,6 +35,12 @@ features:
   - icon: 🚦
     title: Model Selection
     details: Choose from Gemini-2.5-Pro and Gemini-2.5-Flash, using natural language.
+  - icon: 🧠
+    title: Structured Brainstorming
+    details: Generate creative ideas with SCAMPER, design thinking, or lateral thinking frameworks.
+  - icon: 📦
+    title: Large Edit Handling
+    details: Change-mode responses can be chunked and retrieved on demand.
 ---
 
 <div class="explore-hint" style="text-align: center; margin: 32px 0 48px; position: relative;">

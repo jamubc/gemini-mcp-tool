@@ -20,7 +20,7 @@ layout: funding
   
   <ul>
     <li><strong>Docs & Listing:</strong> Updating and maintaining the documentation website & outreach</li>
-    <li><strong>API Testing Credits:</strong> Funds are used for testing various deployements of gemini-mcp-tool on popular clients.</li>
+    <li><strong>API Testing Credits:</strong> Funds are used for testing various deployments of `Gemini MCP Tool` on popular clients.</li>
   </ul>
   
   <div class="progress-bar">

@@ -9,6 +9,7 @@ export const ERROR_MESSAGES = {
   QUOTA_EXCEEDED_SHORT: "⚠️ Gemini 2.5 Pro daily quota exceeded. Please retry with model: 'gemini-2.5-flash'",
   TOOL_NOT_FOUND: "not found in registry",
   NO_PROMPT_PROVIDED: "Please provide a prompt for analysis. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions",
+  CHANGE_MODE_NO_EDITS: "No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format.",
 } as const;
 
 // Status messages
