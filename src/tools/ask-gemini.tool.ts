@@ -5,13 +5,23 @@ import {
   ERROR_MESSAGES, 
   STATUS_MESSAGES
 } from '../constants.js';
+import { isGeminiTarget } from '../utils/config.js';
 
 const askGeminiArgsSchema = z.object({
   prompt: z.string().min(1).describe("Analysis request. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions"),
   model: z.string().optional().describe("Optional model to use (e.g., 'gemini-2.5-flash'). If not specified, uses the default model (gemini-2.5-pro)."),
   sandbox: z.boolean().default(false).describe("Use sandbox mode (-s flag) to safely test code changes, execute scripts, or run potentially risky operations in an isolated environment"),
   changeMode: z.boolean().default(false).describe("Enable structured change mode - formats prompts to prevent tool errors and returns structured edit suggestions that Claude can apply directly"),
-  chunkIndex: z.union([z.number(), z.string()]).optional().describe("Which chunk to return (1-based)"),
+  // Gemini's API has a stricter schema validation and does not support `z.union`.
+  // When in "gemini" mode, we expose a simple `string` schema. However, the model may
+  // still send a number based on the description, so we use `z.preprocess` to
+  // coerce the value to a string before validation to prevent a Zod error on the server.
+  chunkIndex: isGeminiTarget()
+    ? z.preprocess(
+        (val) => (val === undefined || val === null ? val : String(val)),
+        z.string().optional()
+      ).describe("Which chunk to return (1-based)")
+    : z.union([z.number(), z.string()]).optional().describe("Which chunk to return (1-based)"),
   chunkCacheKey: z.string().optional().describe("Optional cache key for continuation"),
 });
 
@@ -24,12 +34,26 @@ export const askGeminiTool: UnifiedTool = {
   },
   category: 'gemini',
   execute: async (args, onProgress) => {
-    const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
-  
-    if (changeMode && chunkIndex && chunkCacheKey) {
+    const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args;
+    if (!prompt?.trim()) {
+      throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED);
+    }
+
+    // Helper function to safely parse chunkIndex to a number.
+    // This is necessary because the model may provide a string or number,
+    // and internal logic requires a number.
+    const parseChunkIndex = (index: unknown): number | undefined => {
+      if (index === undefined || index === null) return undefined;
+      const num = parseInt(String(index), 10);
+      return isNaN(num) ? undefined : num;
+    };
+
+    const chunkIndexNum = parseChunkIndex(chunkIndex);
+
+    if (changeMode && chunkIndexNum !== undefined && chunkCacheKey) {
       return processChangeModeOutput(
         '', // empty for cache...
-        chunkIndex as number,
+        chunkIndexNum,
         chunkCacheKey as string,
         prompt as string
       );
@@ -46,7 +70,7 @@ export const askGeminiTool: UnifiedTool = {
     if (changeMode) {
       return processChangeModeOutput(
         result,
-        args.chunkIndex as number | undefined,
+        chunkIndexNum,
         undefined,
         prompt as string
       );
