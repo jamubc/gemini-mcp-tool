@@ -69,14 +69,14 @@ Register the MCP server with your MCP client:
 
 ### For NPX Usage (Recommended)
 
-Add this configuration to your Claude Desktop config file:
+Add this configuration to your Claude Desktop config file. The `--target-model gemini` flag is recommended to ensure compatibility with Gemini's stricter tool schema.
 
 ```json
 {
   "mcpServers": {
     "gemini-cli": {
       "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
+      "args": ["-y", "gemini-mcp-tool", "--", "--target-model", "gemini"]
     }
   }
 }
@@ -90,7 +90,8 @@ If you installed globally, use this configuration instead:
 {
   "mcpServers": {
     "gemini-cli": {
-      "command": "gemini-mcp"
+      "command": "gemini-mcp",
+      "args": ["--target-model", "gemini"]
     }
   }
 }
@@ -104,6 +105,32 @@ If you installed globally, use this configuration instead:
   - **Linux**: `~/.config/claude/claude_desktop_config.json`
 
 After updating the configuration, restart your terminal session.
+
+## Model Compatibility
+
+Different Large Language Models can have different requirements for how tool schemas are defined. This server can adapt its tool schemas to ensure compatibility with the target model you are using.
+
+This is controlled by a startup flag or an environment variable.
+
+### Command-Line Flag
+
+The recommended way to enable compatibility mode is by passing the `--target-model` flag when starting the server.
+
+```bash
+# Example for Gemini
+npx gemini-mcp-tool --target-model gemini
+```
+
+### Environment Variable
+
+Alternatively, you can set the `MCP_TARGET_MODEL` environment variable.
+
+```bash
+export MCP_TARGET_MODEL=gemini
+npx gemini-mcp-tool
+```
+
+Currently, the only special target is `gemini`. If the flag is omitted, it will use a `default` mode with more expressive schemas.
 
 ## Example Workflow
 

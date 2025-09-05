@@ -10,21 +10,11 @@
 import { Logger } from './logger.js';
 
 /**
- * Defines the possible schema compatibility targets for the server.
- */
-export enum ModelTarget {
-  /** Enables compatibility mode for Google Gemini, which requires a stricter tool schema. */
-  GEMINI = 'gemini',
-  /** Uses the standard, more expressive schema format for other models. */
-  DEFAULT = 'default',
-}
-
-/**
  * An immutable, frozen object containing the server's runtime configuration.
  */
 export interface AppConfig {
   /** The target model environment, used for feature switching like schema generation. */
-  readonly target: ModelTarget;
+  readonly target: string;
 }
 
 /**
@@ -32,37 +22,30 @@ export interface AppConfig {
  * This function should only be executed once when the application starts.
  *
  * The configuration is resolved with the following precedence:
- * 1. Command-line argument: `--target-model gemini`
- * 2. Environment variable: `MCP_TARGET_MODEL=gemini`
- * 3. Default value (`ModelTarget.DEFAULT`)
+ * 1. Command-line argument: `--target-model <value>`
+ * 2. Environment variable: `MCP_TARGET_MODEL=<value>`
+ * 3. Default value (`'default'`)
  *
  * @returns A frozen `AppConfig` object.
  */
 function initializeConfig(): AppConfig {
-  let target = ModelTarget.DEFAULT;
+  let target = 'default';
   let detectedVia = '';
 
   // 1. Check for the command-line argument
   const argIndex = process.argv.indexOf('--target-model');
   if (argIndex > -1 && process.argv.length > argIndex + 1) {
-    const modelArg = process.argv[argIndex + 1].toLowerCase();
-    if (modelArg === ModelTarget.GEMINI) {
-      target = ModelTarget.GEMINI;
-      detectedVia = 'command-line argument';
-    }
+    target = process.argv[argIndex + 1].toLowerCase();
+    detectedVia = 'command-line argument';
+  }
+  // 2. Check for the environment variable if not already set by arg
+  else if (process.env.MCP_TARGET_MODEL) {
+    target = process.env.MCP_TARGET_MODEL.toLowerCase();
+    detectedVia = 'environment variable';
   }
 
-  // 2. Check for the environment variable if not already set
-  if (target === ModelTarget.DEFAULT) {
-    const envVar = process.env.MCP_TARGET_MODEL?.toLowerCase();
-    if (envVar === ModelTarget.GEMINI) {
-      target = ModelTarget.GEMINI;
-      detectedVia = 'environment variable';
-    }
-  }
-
-  if (target === ModelTarget.GEMINI) {
-    Logger.debug(`Gemini compatibility mode enabled via ${detectedVia}.`);
+  if (target !== 'default') {
+    Logger.debug(`Target model set to "${target}" via ${detectedVia}.`);
   }
 
   // Return a frozen, read-only configuration object
@@ -82,5 +65,5 @@ export const config: AppConfig = initializeConfig();
  * @returns `true` if the target model is Gemini, otherwise `false`.
  */
 export function isGeminiTarget(): boolean {
-  return config.target === ModelTarget.GEMINI;
+  return config.target === 'gemini';
 }
