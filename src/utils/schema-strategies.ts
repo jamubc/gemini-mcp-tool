@@ -6,7 +6,7 @@
  */
 
 import { ZodTypeAny } from 'zod';
-import { config } from './config.js';
+import { isGeminiTarget } from './config.js';
 
 /**
  * A schema strategy that selects the appropriate schema for the `chunkIndex` parameter
@@ -22,7 +22,7 @@ export const selectChunkIndexSchema = (schemas: {
   standard: ZodTypeAny;
   gemini: ZodTypeAny;
 }): ZodTypeAny => {
-  if (config.target === 'gemini') {
+  if (isGeminiTarget()) {
     return schemas.gemini;
   }
   return schemas.standard;

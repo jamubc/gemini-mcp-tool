@@ -31,8 +31,8 @@ export const askGeminiTool: UnifiedTool = {
   },
   category: 'gemini',
   execute: async (args, onProgress) => {
-    const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args;
-    if (!prompt?.trim()) {
+    const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args as z.infer<typeof askGeminiArgsSchema>;
+    if (!prompt.trim()) {
       throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED);
     }
 
@@ -51,14 +51,14 @@ export const askGeminiTool: UnifiedTool = {
       return processChangeModeOutput(
         '', // empty for cache...
         chunkIndexNum,
-        chunkCacheKey as string,
-        prompt as string
+        chunkCacheKey,
+        prompt
       );
     }
 
     const result = await executeGeminiCLI(
-      prompt as string,
-      model as string | undefined,
+      prompt,
+      model,
       !!sandbox,
       !!changeMode,
       onProgress
@@ -69,7 +69,7 @@ export const askGeminiTool: UnifiedTool = {
         result,
         chunkIndexNum,
         undefined,
-        prompt as string
+        prompt
       );
     }
     return `${STATUS_MESSAGES.GEMINI_RESPONSE}\n${result}`; // changeMode false
