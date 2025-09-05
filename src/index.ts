@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+// Initialize the application configuration at startup.
+// This must be one of the first imports to ensure the configuration is available to all other modules.
+import "./utils/config.js";
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
