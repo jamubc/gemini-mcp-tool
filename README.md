@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/jamubc-gemini-mcp-tool-badge.png)](https://mseep.ai/app/jamubc-gemini-mcp-tool)
+
 
 # Gemini MCP Tool
 
