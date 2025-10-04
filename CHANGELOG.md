@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [1.1.4]
+- Added new diagnostic module: `src/tools/diagnostic.tool.ts` with `gemini_version`, `gemini_help`, and `gemini_models` for CLI introspection and model selection.
+- Enhanced tool registry with `utility` category for system introspection tools
+
 ## [1.1.3]
 - "gemini reads, claude edits"
 - Added `changeMode` parameter to ask-gemini tool for structured edit responses using claude edit diff.
