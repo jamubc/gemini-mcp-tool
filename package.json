@@ -51,6 +51,7 @@
     "chalk": "^5.0.0",
     "d3-shape": "^3.2.0",
     "inquirer": "^9.0.0",
+    "lru-cache": "^11.2.4",
     "prismjs": "^1.30.0",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.6"

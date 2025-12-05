@@ -13,18 +13,34 @@ const askGeminiArgsSchema = z.object({
   changeMode: z.boolean().default(false).describe("Enable structured change mode - formats prompts to prevent tool errors and returns structured edit suggestions that Claude can apply directly"),
   chunkIndex: z.union([z.number(), z.string()]).optional().describe("Which chunk to return (1-based)"),
   chunkCacheKey: z.string().optional().describe("Optional cache key for continuation"),
+
+  // Phase 1: Critical flags
+  yolo: z.boolean().default(false).describe("Auto-accept all actions (YOLO mode). Automatically approves all confirmations without prompting. Use with caution in automated workflows."),
+  approvalMode: z.enum(["default", "auto_edit", "yolo"]).optional().describe("Set approval mode: 'default' (prompt for approval), 'auto_edit' (auto-approve edit tools only), 'yolo' (auto-approve all tools). Overrides yolo flag if both are set."),
+  outputFormat: z.enum(["text", "json", "stream-json"]).optional().describe("Output format: 'text' (default human-readable), 'json' (structured JSON), 'stream-json' (streaming JSON for real-time processing)"),
+  includeDirectories: z.union([z.string(), z.array(z.string())]).optional().describe("Additional directories to include in workspace (comma-separated string or array). Example: 'src,tests' or ['src', 'tests']"),
+  debug: z.boolean().default(false).describe("Enable debug mode for verbose logging and troubleshooting"),
+
+  // Phase 2: Enhanced features (for future implementation)
+  promptInteractive: z.string().optional().describe("Execute the provided prompt and continue in interactive mode"),
+  extensions: z.union([z.string(), z.array(z.string())]).optional().describe("Specific extensions to use (comma-separated or array). If not provided, all extensions are used."),
+  resume: z.string().optional().describe("Resume a previous session. Use 'latest' for most recent or session index number"),
 });
 
 export const askGeminiTool: UnifiedTool = {
   name: "ask-gemini",
-  description: "model selection [-m], sandbox [-s], and changeMode:boolean for providing edits",
+  description: "Ask Google Gemini with full CLI support: model selection [-m], sandbox [-s], YOLO mode [-y], approval modes, output formats, and more",
   zodSchema: askGeminiArgsSchema,
   prompt: {
-    description: "Execute 'gemini -p <prompt>' to get Gemini AI's response. Supports enhanced change mode for structured edit suggestions.",
+    description: "Execute Gemini CLI with advanced options. Supports file analysis (@syntax), YOLO mode, different approval levels, output formats (text/json), debug mode, and structured change mode for edit suggestions.",
   },
   category: 'gemini',
   execute: async (args, onProgress) => {
-    const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
+    const {
+      prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey,
+      yolo, approvalMode, outputFormat, includeDirectories, debug,
+      promptInteractive, extensions, resume
+    } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
   
     if (changeMode && chunkIndex && chunkCacheKey) {
       return processChangeModeOutput(
@@ -37,9 +53,19 @@ export const askGeminiTool: UnifiedTool = {
     
     const result = await executeGeminiCLI(
       prompt as string,
-      model as string | undefined,
-      !!sandbox,
-      !!changeMode,
+      {
+        model: model as string | undefined,
+        sandbox: !!sandbox,
+        changeMode: !!changeMode,
+        yolo: !!yolo,
+        approvalMode: approvalMode as string | undefined,
+        outputFormat: outputFormat as string | undefined,
+        includeDirectories: includeDirectories,
+        debug: !!debug,
+        promptInteractive: promptInteractive as string | undefined,
+        extensions: extensions,
+        resume: resume as string | undefined,
+      },
       onProgress
     );
     

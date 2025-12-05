@@ -36,7 +36,6 @@ const server = new Server(
       tools: {},
       prompts: {},
       notifications: {},
-      logging: {},
     },
   },
 );
