@@ -55,18 +55,12 @@ export function getToolDefinitions(): Tool[] { // get Tool definitions from regi
       required: def.required || [],
     };
 
-    const toolDef: Tool = {
+    return {
       name: tool.name,
       description: tool.description,
       inputSchema,
+      annotations: tool.annotations,
     };
-
-    // Include annotations if defined
-    if (tool.annotations) {
-      toolDef.annotations = tool.annotations;
-    }
-
-    return toolDef;
   });
 }
 
