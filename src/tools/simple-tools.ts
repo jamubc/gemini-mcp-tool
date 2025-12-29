@@ -14,6 +14,11 @@ export const pingTool: UnifiedTool = {
     description: "Echo test message with structured response.",
   },
   category: 'simple',
+  annotations: {
+    title: "Ping",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   execute: async (args, onProgress) => {
     const message = args.prompt || args.message || "Pong!";
     return executeCommand("echo", [message as string], onProgress);
@@ -30,6 +35,11 @@ export const helpTool: UnifiedTool = {
     description: "receive help information",
   },
   category: 'simple',
+  annotations: {
+    title: "Help",
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
   execute: async (args, onProgress) => {
     return executeCommand("gemini", ["-help"], onProgress);
   }

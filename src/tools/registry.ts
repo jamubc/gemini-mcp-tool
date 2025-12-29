@@ -4,11 +4,28 @@ import { ToolArguments } from "../constants.js";
 import { ZodTypeAny, ZodError } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
+/**
+ * MCP Tool annotations per specification.
+ * @see https://spec.modelcontextprotocol.io/specification/2025-03-26/server/tools/#annotations
+ */
+export interface ToolAnnotations {
+  /** Human-readable title for the tool */
+  title?: string;
+  /** If true, the tool does not modify its environment */
+  readOnlyHint?: boolean;
+  /** If true, the tool may perform destructive updates */
+  destructiveHint?: boolean;
+  /** If true, repeated calls with same args have no additional effect */
+  idempotentHint?: boolean;
+  /** If true, the tool interacts with external entities */
+  openWorldHint?: boolean;
+}
+
 export interface UnifiedTool {
   name: string;
   description: string;
   zodSchema: ZodTypeAny;
-  
+
   prompt?: {
     description: string;
     arguments?: Array<{
@@ -17,9 +34,11 @@ export interface UnifiedTool {
       required: boolean;
     }>;
   };
-  
+
   execute: (args: ToolArguments, onProgress?: (newOutput: string) => void) => Promise<string>;
   category?: 'simple' | 'gemini' | 'utility';
+  /** MCP tool annotations for AI assistants */
+  annotations?: ToolAnnotations;
 }
 
 export const toolRegistry: UnifiedTool[] = [];
@@ -35,12 +54,19 @@ export function getToolDefinitions(): Tool[] { // get Tool definitions from regi
       properties: def.properties || {},
       required: def.required || [],
     };
-    
-    return {
+
+    const toolDef: Tool = {
       name: tool.name,
       description: tool.description,
       inputSchema,
     };
+
+    // Include annotations if defined
+    if (tool.annotations) {
+      toolDef.annotations = tool.annotations;
+    }
+
+    return toolDef;
   });
 }
 

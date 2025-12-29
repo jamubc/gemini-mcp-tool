@@ -134,6 +134,11 @@ export const brainstormTool: UnifiedTool = {
     description: "Generate structured brainstorming prompt with methodology-driven ideation, domain context integration, and analytical evaluation framework",
   },
   category: 'gemini',
+  annotations: {
+    title: "Brainstorm",
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
   execute: async (args, onProgress) => {
     const {
       prompt,

@@ -23,6 +23,11 @@ export const askGeminiTool: UnifiedTool = {
     description: "Execute 'gemini -p <prompt>' to get Gemini AI's response. Supports enhanced change mode for structured edit suggestions.",
   },
   category: 'gemini',
+  annotations: {
+    title: "Ask Gemini",
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
   execute: async (args, onProgress) => {
     const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
   

@@ -13,6 +13,10 @@ export const timeoutTestTool: UnifiedTool = {
     description: "Test the timeout prevention system by running a long operation",
   },
   category: 'simple',
+  annotations: {
+    title: "Timeout Test",
+    readOnlyHint: true,
+  },
   execute: async (args, onProgress) => {
     const duration = args.duration as number;
     const steps = Math.ceil(duration / 5000); // Progress every 5 seconds
