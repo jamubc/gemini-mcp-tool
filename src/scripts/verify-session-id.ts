@@ -10,7 +10,7 @@ async function verify() {
     try {
         // We can't import executeCommand easily if it's not exported or if we are outside module context,
         // but since we are in src/scripts, we can use relative imports as defined above.
-        const rawOutput = await executeCommand(CLI.COMMANDS.GEMINI, ['--list-sessions']);
+        const rawOutput = await executeCommand(CLI.COMMANDS.GEMINI, ['--list-sessions'], undefined, { captureStderr: true });
         console.log('RAW OUTPUT:\n', rawOutput);
     } catch (e: any) {
         console.log('No sessions found or error:', e.message);
