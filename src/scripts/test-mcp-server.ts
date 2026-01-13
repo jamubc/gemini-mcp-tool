@@ -57,7 +57,7 @@ async function runMcpTest() {
             send('tools/list');
         } else if (msg.id === 1) { // tools/list response
             const tools = msg.result.tools;
-            const askGemini = tools.find((t: any) => t.name === 'ask-gemini');
+            const askGemini = tools.find((t: { name: string }) => t.name === 'ask-gemini');
             if (askGemini) {
                 console.log('✅ Found ask-gemini tool');
                 // Test 1: Ask without session ID
