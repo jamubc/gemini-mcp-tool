@@ -133,6 +133,15 @@ The sandbox mode allows you to safely test code changes, run scripts, or execute
 - `use gemini sandbox to install numpy and create a data visualization`
 - `test this code safely: Create a script that makes HTTP requests to an API`
 
+### Session Management
+
+Resume the most recent conversation context:
+- `ask gemini to continue the discussion about the previous file with sessionId='latest'`
+- `ask gemini to refactor the code we just discussed with sessionId='latest'`
+
+Resume a specific session (if ID is known):
+- `ask gemini to explain the changes with sessionId='5'`
+
 ### Tools (for the AI)
 
 These tools are designed to be used by the AI assistant.
@@ -141,6 +150,7 @@ These tools are designed to be used by the AI assistant.
   - **`prompt`** (required): The analysis request. Use the `@` syntax to include file or directory references (e.g., `@src/main.js explain this code`) or ask general questions (e.g., `Please use a web search to find the latest news stories`).
   - **`model`** (optional): The Gemini model to use. Defaults to `gemini-2.5-pro`.
   - **`sandbox`** (optional): Set to `true` to run in sandbox mode for safe code execution.
+  - **`sessionId`** (optional): Session ID to resume a previous conversation. Use 'latest' for the most recent session.
 - **`sandbox-test`**: Safely executes code or commands in Gemini's sandbox environment. Always runs in sandbox mode.
   - **`prompt`** (required): Code testing request (e.g., `Create and run a Python script that...` or `@script.py Run this safely`).
   - **`model`** (optional): The Gemini model to use.
@@ -153,6 +163,7 @@ You can use these commands directly in Claude Code's interface (compatibility wi
 
 - **/analyze**: Analyzes files or directories using Gemini, or asks general questions.
   - **`prompt`** (required): The analysis prompt. Use `@` syntax to include files (e.g., `/analyze prompt:@src/ summarize this directory`) or ask general questions (e.g., `/analyze prompt:Please use a web search to find the latest news stories`).
+  - **`sessionId`** (optional): Session ID to resume a previous conversation. Use 'latest' for the most recent session.
 - **/sandbox**: Safely tests code or scripts in Gemini's sandbox environment.
   - **`prompt`** (required): Code testing request (e.g., `/sandbox prompt:Create and run a Python script that processes CSV data` or `/sandbox prompt:@script.py Test this script safely`).
 - **/help**: Displays the Gemini CLI help information.

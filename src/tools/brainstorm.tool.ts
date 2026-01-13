@@ -13,10 +13,10 @@ function buildBrainstormPrompt(config: {
   includeAnalysis: boolean;
 }): string {
   const { prompt, methodology, domain, constraints, existingContext, ideaCount, includeAnalysis } = config;
-  
+
   // Select methodology framework
   let frameworkInstructions = getMethodologyInstructions(methodology, domain);
-  
+
   let enhancedPrompt = `# BRAINSTORMING SESSION
 
 ## Core Challenge
@@ -161,11 +161,11 @@ export const brainstormTool: UnifiedTool = {
     });
 
     Logger.debug(`Brainstorm: Using methodology '${methodology}' for domain '${domain || 'general'}'`);
-    
+
     // Report progress to user
     onProgress?.(`Generating ${ideaCount} ideas via ${methodology} methodology...`);
-    
+
     // Execute with Gemini
-    return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false, onProgress);
+    return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false, undefined, onProgress);
   }
 };
