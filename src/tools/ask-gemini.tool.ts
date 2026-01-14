@@ -18,7 +18,7 @@ const askGeminiArgsSchema = z.object({
 
 export const askGeminiTool: UnifiedTool = {
   name: "ask-gemini",
-  description: "Interacts with Gemini for analysis, search, or code generation. Supports multi-turn conversations via sessionId.",
+  description: "model selection [-m], sandbox [-s], session resume [-r], and changeMode:boolean for providing edits",
   zodSchema: askGeminiArgsSchema,
   prompt: {
     description: "Execute 'gemini -p <prompt>' to get Gemini AI's response. Supports enhanced change mode for structured edit suggestions.",
