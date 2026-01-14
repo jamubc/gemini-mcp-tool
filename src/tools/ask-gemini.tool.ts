@@ -13,12 +13,12 @@ const askGeminiArgsSchema = z.object({
   changeMode: z.boolean().default(false).describe("Enable structured change mode - formats prompts to prevent tool errors and returns structured edit suggestions that Claude can apply directly"),
   chunkIndex: z.union([z.number(), z.string()]).optional().describe("Which chunk to return (1-based)"),
   chunkCacheKey: z.string().optional().describe("Optional cache key for continuation"),
-  sessionId: z.string().optional().describe("Session ID to resume a previous conversation. Use 'latest' for the most recent session."),
+  sessionId: z.string().optional().describe("Session ID to resume a previous conversation. Use 'latest' for the most recent session. New sessions return a Session ID for future reference."),
 });
 
 export const askGeminiTool: UnifiedTool = {
   name: "ask-gemini",
-  description: "model selection [-m], sandbox [-s], session resume, and changeMode:boolean for providing edits",
+  description: "Interacts with Gemini for analysis, search, or code generation. Supports multi-turn conversations via sessionId.",
   zodSchema: askGeminiArgsSchema,
   prompt: {
     description: "Execute 'gemini -p <prompt>' to get Gemini AI's response. Supports enhanced change mode for structured edit suggestions.",
