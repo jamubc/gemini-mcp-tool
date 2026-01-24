@@ -207,7 +207,7 @@ claude mcp list
 ### "Token limit exceeded" / "Response exceeds maximum allowed tokens (25000)"
 **Problem**: Error shows response of 45,735 tokens even for small prompts
 
-**Root cause**: Model-specific bug in `gemini-2.5-pro` (default model)
+**Root cause**: Model-specific bug in `gemini-3-pro-preview` (default model)
 
 **Working models**:
 - ✅ `gemini-2.5-flash` - Works perfectly
