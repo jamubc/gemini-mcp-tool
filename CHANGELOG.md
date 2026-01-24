@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Updated default model to `gemini-3-pro-preview`
 
 ## [1.1.3]
 - "gemini reads, claude edits"
