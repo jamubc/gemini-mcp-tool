@@ -26,7 +26,7 @@ export const STATUS_MESSAGES = {
 
 // Models
 export const MODELS = {
-  PRO: "gemini-2.5-pro",
+  PRO: "gemini-3-pro-preview",
   FLASH: "gemini-2.5-flash",
 } as const;
 
