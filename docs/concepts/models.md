@@ -4,7 +4,7 @@ Choose the right Gemini model for your task.
 
 ## Available Models
 
-### Gemini-2.5-pro
+### Gemini-3-Pro-Preview
 - **Best for**: Complex analysis, large codebases
 - **Context**: 2M tokens
 - **Use when**: Analyzing entire projects, architectural reviews, stronger reasoning

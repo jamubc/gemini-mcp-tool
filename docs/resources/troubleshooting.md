@@ -211,7 +211,7 @@ claude mcp list
 
 **Working models**:
 - ✅ `gemini-2.5-flash` - Works perfectly
-- ❌ `gemini-2.5-pro` - Always returns 45k+ tokens
+- ❌ `gemini-3-pro-preview` - Always returns 45k+ tokens
 - ❌ `gemini-2.0-flash-thinking` - Model not found
 
 **Solutions**:
@@ -223,7 +223,7 @@ claude mcp list
 /gemini-cli:analyze -m gemini-2.5-flash @file1.js @file2.js
 
 # Alternative: Use Pro for larger contexts when it works
-/gemini-cli:analyze -m gemini-2.5-pro "brief analysis only"
+/gemini-cli:analyze -m gemini-3-pro-preview "brief analysis only"
 ```
 
 ## Configuration Issues
@@ -292,7 +292,7 @@ Enable debug logging:
 
 ## Model-Specific Issues
 
-### Gemini-2.5-Pro Issues
+### Gemini-3-Pro-Preview Issues
 **Known problems**:
 - Always returns 45,735 token responses (bug)
 - May cause "response exceeds limit" errors
