@@ -20,7 +20,7 @@ export const askGeminiTool: UnifiedTool = {
   description: "model selection [-m], sandbox [-s], and changeMode:boolean for providing edits",
   zodSchema: askGeminiArgsSchema,
   prompt: {
-    description: "Execute 'gemini -p <prompt>' to get Gemini AI's response. Supports enhanced change mode for structured edit suggestions.",
+    description: "Execute 'gemini <prompt>' to get Gemini AI's response. Supports enhanced change mode for structured edit suggestions.",
   },
   category: 'gemini',
   execute: async (args, onProgress) => {

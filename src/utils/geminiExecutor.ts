@@ -96,7 +96,8 @@ ${prompt_processed}
     ? `"${prompt_processed}"` 
     : prompt_processed;
     
-  args.push(CLI.FLAGS.PROMPT, finalPrompt);
+  // Use positional argument instead of deprecated -p flag (removed in Gemini CLI v0.23.0+)
+  args.push('--', finalPrompt);
   
   try {
     return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
@@ -116,7 +117,8 @@ ${prompt_processed}
         ? `"${prompt_processed}"` 
         : prompt_processed;
         
-      fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
+      // Use positional argument instead of deprecated -p flag
+      fallbackArgs.push('--', fallbackPrompt);
       try {
         const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
