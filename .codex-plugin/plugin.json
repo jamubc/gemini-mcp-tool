@@ -1,0 +1,24 @@
+{
+  "name": "gemini-mcp-tool",
+  "version": "0.1.0",
+  "description": "Google Gemini CLI integration for large file analysis from Codex via MCP",
+  "author": {
+    "name": "jamubc",
+    "url": "https://github.com/jamubc/gemini-mcp-tool"
+  },
+  "homepage": "https://github.com/jamubc/gemini-mcp-tool",
+  "repository": "https://github.com/jamubc/gemini-mcp-tool",
+  "keywords": [
+    "mcp",
+    "codex"
+  ],
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Gemini MCP Tool",
+    "shortDescription": "Google Gemini CLI integration for large file analysis from Codex via MCP",
+    "longDescription": "MCP server that enables AI assistants to interact with Google Gemini CLI, leveraging Gemini's massive token window for large file analysis and codebase understanding.",
+    "category": "Development",
+    "websiteURL": "https://github.com/jamubc/gemini-mcp-tool"
+  }
+}
