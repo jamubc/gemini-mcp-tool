@@ -2,16 +2,24 @@
 import { LOG_PREFIX } from "../constants.js";
 
 export class Logger {
+  private static get isDebugEnabled(): boolean {
+    return process.env.GEMINI_MCP_DEBUG === "1";
+  }
+
   private static formatMessage(message: string): string {
     return `${LOG_PREFIX} ${message}` + "\n";
   }
 
   static log(message: string, ...args: any[]): void {
-    console.warn(this.formatMessage(message), ...args);
+    if (this.isDebugEnabled) {
+      console.error(this.formatMessage(message), ...args);
+    }
   }
 
   static warn(message: string, ...args: any[]): void {
-    console.warn(this.formatMessage(message), ...args);
+    if (this.isDebugEnabled) {
+      console.error(this.formatMessage(message), ...args);
+    }
   }
 
   static error(message: string, ...args: any[]): void {
@@ -19,11 +27,13 @@ export class Logger {
   }
 
   static debug(message: string, ...args: any[]): void {
-    console.warn(this.formatMessage(message), ...args);
+    if (this.isDebugEnabled) {
+      console.error(this.formatMessage(message), ...args);
+    }
   }
 
   static toolInvocation(toolName: string, args: any): void {
-    this.warn("Raw:", JSON.stringify(args, null, 2));
+    this.debug("Raw:", JSON.stringify(args, null, 2));
   }
 
   static toolParsedArgs(prompt: string, model?: string, sandbox?: boolean, changeMode?: boolean): void {
