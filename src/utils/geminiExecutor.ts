@@ -1,4 +1,4 @@
-import { executeCommand } from './commandExecutor.js';
+import { executeCliCommand } from './cliExecutor.js';
 import { Logger } from './logger.js';
 import { 
   ERROR_MESSAGES, 
@@ -11,6 +11,8 @@ import { parseChangeModeOutput, validateChangeModeEdits } from './changeModePars
 import { formatChangeModeResponse, summarizeChangeModeEdits } from './changeModeTranslator.js';
 import { chunkChangeModeEdits } from './changeModeChunker.js';
 import { cacheChunks, getChunks } from './chunkCache.js';
+
+const GEMINI_CLI_TIMEOUT_MS = 300_000;
 
 export async function executeGeminiCLI(
   prompt: string,
@@ -99,7 +101,14 @@ ${prompt_processed}
   args.push(CLI.FLAGS.PROMPT, finalPrompt);
   
   try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    const result = await executeCliCommand({
+      command: CLI.COMMANDS.GEMINI,
+      args,
+      timeoutMs: GEMINI_CLI_TIMEOUT_MS,
+      onStdout: onProgress,
+      onStderr: onProgress,
+    });
+    return result.stdout.trim();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
@@ -118,10 +127,16 @@ ${prompt_processed}
         
       fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
       try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
+        const result = await executeCliCommand({
+          command: CLI.COMMANDS.GEMINI,
+          args: fallbackArgs,
+          timeoutMs: GEMINI_CLI_TIMEOUT_MS,
+          onStdout: onProgress,
+          onStderr: onProgress,
+        });
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
-        return result;
+        return result.stdout.trim();
       } catch (fallbackError) {
         const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
         throw new Error(`${MODELS.PRO} quota exceeded, ${MODELS.FLASH} fallback also failed: ${fallbackErrorMessage}`);
