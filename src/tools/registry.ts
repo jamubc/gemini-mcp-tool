@@ -66,9 +66,15 @@ export function getPromptDefinitions(): Prompt[] { // Helper to get MCP Prompt d
 
 export async function executeTool(toolName: string, args: ToolArguments, onProgress?: (newOutput: string) => void): Promise<string> {
   const tool = toolRegistry.find(t => t.name === toolName);
-  if (!tool) { throw new Error(`Unknown tool: ${toolName}`); } try { const validatedArgs = tool.zodSchema.parse(args) as ToolArguments;
+  if (!tool) {
+    throw new Error(`Unknown tool: ${toolName}`);
+  }
+
+  try {
+    const validatedArgs = tool.zodSchema.parse(args) as ToolArguments;
     return tool.execute(validatedArgs, onProgress);
-  } catch (error) { if (error instanceof ZodError) {
+  } catch (error) {
+    if (error instanceof ZodError) {
       const issues = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ');
       throw new Error(`Invalid arguments for ${toolName}: ${issues}`);
     }

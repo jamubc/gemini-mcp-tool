@@ -1,7 +1,7 @@
 {
-  "name": "@jacobcxdev/gemini-mcp-tool",
+  "name": "gemini-mcp-tool",
   "version": "1.1.4",
-  "description": "MCP server for Gemini CLI OAuth integration",
+  "description": "MCP server for Gemini CLI integration",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -30,18 +30,18 @@
     "ai",
     "llm"
   ],
-  "author": "Jacob Clayden",
+  "author": "jamubc",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jacobcxdev/gemini-mcp-tool.git"
+    "url": "git+https://github.com/jamubc/gemini-mcp-tool.git"
   },
   "bugs": {
-    "url": "https://github.com/jacobcxdev/gemini-mcp-tool/issues"
+    "url": "https://github.com/jamubc/gemini-mcp-tool/issues"
   },
-  "homepage": "https://github.com/jacobcxdev/gemini-mcp-tool#readme",
+  "homepage": "https://github.com/jamubc/gemini-mcp-tool#readme",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=22.13.0"
   },
   "files": [
     "dist/",
@@ -55,8 +55,7 @@
     "d3-shape": "^3.2.0",
     "inquirer": "^13.4.2",
     "prismjs": "^1.30.0",
-    "zod": "^4.3.6",
-    "zod-to-json-schema": "^3.25.2"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.9",

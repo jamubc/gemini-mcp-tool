@@ -75,17 +75,17 @@ export async function executeCliCommand(options: CliExecutionOptions): Promise<C
       })));
     });
 
-    child.on("close", (code) => {
-      const exitCode = code ?? 0;
+    child.on("close", (code, signal) => {
+      const exitCode = code ?? -1;
       const result = { stdout, stderr, exitCode };
 
       settle(() => {
-        if (exitCode === 0) {
+        if (code === 0) {
           resolve(result);
           return;
         }
 
-        const detail = stderr.trim() || stdout.trim() || `exit code ${exitCode}`;
+        const detail = stderr.trim() || stdout.trim() || (signal ? `terminated by signal ${signal}` : `exit code ${exitCode}`);
         reject(new CliExecutionError(`${options.command} failed: ${detail}`, result));
       });
     });

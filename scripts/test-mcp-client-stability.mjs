@@ -1,10 +1,11 @@
 #!/usr/bin/env node
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { CallToolResultSchema, ListToolsResultSchema } from "@modelcontextprotocol/sdk/types.js";
 
 const iterations = Number.parseInt(process.argv[2] ?? "10", 10);
-const serverPath = new URL("../dist/index.js", import.meta.url).pathname;
+const serverPath = fileURLToPath(new URL("../dist/index.js", import.meta.url));
 
 const transport = new StdioClientTransport({
   command: "node",

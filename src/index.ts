@@ -20,7 +20,9 @@ import { Logger } from "./utils/logger.js";
 import { trace } from "./utils/fileTrace.js";
 import { PROTOCOL, ToolArguments } from "./constants.js";
 
-trace("process.start", { argv: process.argv });
+const PROGRESS_NOTIFICATIONS_ENABLED = process.env.GEMINI_MCP_ENABLE_PROGRESS === "1";
+
+trace("process.start", { argvCount: process.argv.length });
 
 process.stdin.on("end", () => trace("stdin.end"));
 process.stdin.on("close", () => trace("stdin.close"));
@@ -193,11 +195,15 @@ server.setRequestHandler(ListToolsRequestSchema, async (request: ListToolsReques
 server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<CallToolResult> => {
   const toolName: string = request.params.name;
 
-  trace("tools.call.received", { name: toolName, params: request.params });
+  const rawArguments = request.params.arguments;
+  trace("tools.call.received", {
+    name: toolName,
+    hasArguments: rawArguments !== undefined,
+    argumentKeys: rawArguments && typeof rawArguments === "object" ? Object.keys(rawArguments as Record<string, unknown>) : [],
+  });
 
   if (toolExists(toolName)) {
-    // Claude Code 2.1.x closes stdio after progress notifications from this server.
-    const progressToken = undefined;
+    const progressToken = PROGRESS_NOTIFICATIONS_ENABLED ? request.params._meta?.progressToken : undefined;
 
     const progressData = startProgressUpdates(toolName, progressToken);
     

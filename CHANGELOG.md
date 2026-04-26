@@ -2,10 +2,6 @@
 
 ## [Unreleased]
 
-- Preserve Gemini CLI OAuth by routing model calls through the installed `gemini` binary.
-- Harden child-process handling so Gemini command completion does not terminate the MCP stdio server.
-- Update fork documentation and installation instructions for `jacobcxdev/gemini-mcp-tool`.
-
 ## [1.1.3]
 - "gemini reads, claude edits"
 - Added `changeMode` parameter to ask-gemini tool for structured edit responses using claude edit diff.
