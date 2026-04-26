@@ -1,8 +1,7 @@
 import { Tool, Prompt } from "@modelcontextprotocol/sdk/types.js"; // Each tool definition includes its metadata, schema, prompt, and execution logic in one place.
 
 import { ToolArguments } from "../constants.js";
-import { ZodTypeAny, ZodError } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { ZodTypeAny, ZodError, toJSONSchema } from "zod";
 
 export interface UnifiedTool {
   name: string;
@@ -28,8 +27,7 @@ export function toolExists(toolName: string): boolean {
 }
 export function getToolDefinitions(): Tool[] { // get Tool definitions from registry
   return toolRegistry.map(tool => {
-    const raw = zodToJsonSchema(tool.zodSchema, tool.name) as any;
-    const def = raw.definitions?.[tool.name] ?? raw;
+    const def = toJSONSchema(tool.zodSchema) as any;
     const inputSchema: Tool['inputSchema'] = {
       type: "object",
       properties: def.properties || {},
@@ -45,7 +43,7 @@ export function getToolDefinitions(): Tool[] { // get Tool definitions from regi
 }
 
 function extractPromptArguments(zodSchema: ZodTypeAny): Array<{name: string; description: string; required: boolean}> {
-  const jsonSchema = zodToJsonSchema(zodSchema) as any;
+  const jsonSchema = toJSONSchema(zodSchema) as any;
   const properties = jsonSchema.properties || {};
   const required = jsonSchema.required || [];
   
@@ -68,7 +66,7 @@ export function getPromptDefinitions(): Prompt[] { // Helper to get MCP Prompt d
 
 export async function executeTool(toolName: string, args: ToolArguments, onProgress?: (newOutput: string) => void): Promise<string> {
   const tool = toolRegistry.find(t => t.name === toolName);
-  if (!tool) { throw new Error(`Unknown tool: ${toolName}`); } try { const validatedArgs = tool.zodSchema.parse(args);
+  if (!tool) { throw new Error(`Unknown tool: ${toolName}`); } try { const validatedArgs = tool.zodSchema.parse(args) as ToolArguments;
     return tool.execute(validatedArgs, onProgress);
   } catch (error) { if (error instanceof ZodError) {
       const issues = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ');
