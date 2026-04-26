@@ -17,7 +17,7 @@ async function runGeminiPing(iteration) {
     const timeout = setTimeout(() => {
       child.kill("SIGTERM");
       reject(new Error(`iteration ${iteration} timed out`));
-    }, 120_000);
+    }, 300_000);
 
     child.stdout.on("data", (data) => {
       stdout += data.toString();
