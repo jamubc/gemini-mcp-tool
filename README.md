@@ -3,23 +3,19 @@
 
 <div align="center">
 
-[![GitHub Release](https://img.shields.io/github/v/release/jamubc/gemini-mcp-tool?logo=github&label=GitHub)](https://github.com/jamubc/gemini-mcp-tool/releases)
-[![npm version](https://img.shields.io/npm/v/gemini-mcp-tool)](https://www.npmjs.com/package/gemini-mcp-tool)
-[![npm downloads](https://img.shields.io/npm/dt/gemini-mcp-tool)](https://www.npmjs.com/package/gemini-mcp-tool)
+[![GitHub](https://img.shields.io/badge/GitHub-jacobcxdev%2Fgemini--mcp--tool-blue?logo=github)](https://github.com/jacobcxdev/gemini-mcp-tool)
+[![Fork](https://img.shields.io/badge/Forked%20from-jamubc%2Fgemini--mcp--tool-lightgrey?logo=github)](https://github.com/jamubc/gemini-mcp-tool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Open Source](https://img.shields.io/badge/Open%20Source-❤️-red.svg)](https://github.com/jamubc/gemini-mcp-tool)
 
 </div>
 
-> 📚 **[View Full Documentation](https://jamubc.github.io/gemini-mcp-tool/)** - Search me!, Examples, FAQ, Troubleshooting, Best Practices
+This fork focuses on Claude Code stability while preserving the original Gemini CLI OAuth behaviour from `jamubc/gemini-mcp-tool`.
 
 This is a simple Model Context Protocol (MCP) server that allows AI assistants to interact with the [Gemini CLI](https://github.com/google-gemini/gemini-cli). It enables the AI to leverage the power of Gemini's massive token window for large analysis, especially with large files and codebases using the `@` syntax for direction.
 
-- Ask gemini natural questions, through claude or Brainstorm new ideas in a party of 3!
+Authentication is handled by the installed `gemini` CLI. This server does not require `GEMINI_API_KEY` and does not call the Google GenAI SDK directly.
 
-<a href="https://glama.ai/mcp/servers/@jamubc/gemini-mcp-tool">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@jamubc/gemini-mcp-tool/badge" alt="Gemini Tool MCP server" />
-</a>
+- Ask gemini natural questions, through claude or Brainstorm new ideas in a party of 3!
 
 ## TLDR: [![Claude](https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff)](#) + [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff)](#)
 
@@ -34,67 +30,53 @@ Before using this tool, ensure you have:
 2. **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured
 
 
-### One-Line Setup
+### Local Setup
+
+Build the fork locally:
 
 ```bash
-claude mcp add gemini-cli -- npx -y gemini-mcp-tool
+cd /Users/jacob/Developer/src/github/jacobcxdev/gemini-mcp-tool
+npm install
+npm run build
+```
+
+Register the local build with Claude Code:
+
+```bash
+claude mcp remove gemini-cli -s user
+claude mcp add gemini-cli -s user -- node /Users/jacob/Developer/src/github/jacobcxdev/gemini-mcp-tool/dist/index.js
 ```
 
 ### Verify Installation
+
+Before configuring MCP, verify the Gemini CLI OAuth path works:
+
+```bash
+gemini -p ping
+```
 
 Type `/mcp` inside Claude Code to verify the gemini-cli MCP is active.
 
 ---
 
-### Alternative: Import from Claude Desktop
-
-If you already have it configured in Claude Desktop:
-
-1. Add to your Claude Desktop config:
-```json
-"gemini-cli": {
-  "command": "npx",
-  "args": ["-y", "gemini-mcp-tool"]
-}
-```
-
-2. Import to Claude Code:
-```bash
-claude mcp add-from-claude-desktop
-```
-
 ## Configuration
 
 Register the MCP server with your MCP client:
 
-### For NPX Usage (Recommended)
-
-Add this configuration to your Claude Desktop config file:
-
 ```json
 {
   "mcpServers": {
     "gemini-cli": {
-      "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
+      "command": "node",
+      "args": [
+        "/Users/jacob/Developer/src/github/jacobcxdev/gemini-mcp-tool/dist/index.js"
+      ]
     }
   }
 }
 ```
 
-### For Global Installation
-
-If you installed globally, use this configuration instead:
-
-```json
-{
-  "mcpServers": {
-    "gemini-cli": {
-      "command": "gemini-mcp"
-    }
-  }
-}
-```
+The fork is intentionally documented as a local build until it is published under the `@jacobcxdev` npm scope.
 
 **Configuration File Locations:**
 
@@ -104,6 +86,21 @@ If you installed globally, use this configuration instead:
   - **Linux**: `~/.config/claude/claude_desktop_config.json`
 
 After updating the configuration, restart your terminal session.
+
+## Stability smoke test
+
+Run this before registering the MCP server:
+
+```bash
+npm run verify
+```
+
+Then test through Claude Code:
+
+1. Run `/mcp` and confirm `gemini-cli` is connected.
+2. Call `mcp__gemini-cli__ping`.
+3. Call `mcp__gemini-cli__ask-gemini` several times with short prompts.
+4. Run `/mcp` again and confirm the server stayed connected.
 
 ## Example Workflow
 

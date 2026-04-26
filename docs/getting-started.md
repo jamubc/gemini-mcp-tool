@@ -35,6 +35,8 @@ Before installing, ensure you have:
 - **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured on your system
 - **[Claude Desktop](https://claude.ai/download)** or **[Claude Code](https://www.anthropic.com/claude-code)** with MCP support
 
+This fork uses the installed `gemini` CLI for all model calls. Authentication is handled by the Gemini CLI’s OAuth flow, so this server does not require `GEMINI_API_KEY` and does not use the Google GenAI SDK directly.
+
 
 ## Claude Code (Recommended)
 ::: warning 💡 gemini-mcp-tool is tested extensively with claude code
@@ -42,8 +44,17 @@ Before installing, ensure you have:
 Claude Code offers the smoothest experience.
 
 ```bash
-# install for claude code
-claude mcp add gemini-cli -- npx -y gemini-mcp-tool
+# verify Gemini CLI OAuth first
+gemini -p ping
+
+# build this local fork
+cd /Users/jacob/Developer/src/github/jacobcxdev/gemini-mcp-tool
+npm install
+npm run build
+
+# register the local fork with Claude Code
+claude mcp remove gemini-cli -s user
+claude mcp add gemini-cli -s user -- node /Users/jacob/Developer/src/github/jacobcxdev/gemini-mcp-tool/dist/index.js
 
 # Start Claude Code - it's automatically configured!
 claude
@@ -71,8 +82,10 @@ For Claude Desktop users, add this to your configuration file:
 {
   "mcpServers": {
     "gemini-cli": {
-      "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
+      "command": "node",
+      "args": [
+        "/Users/jacob/Developer/src/github/jacobcxdev/gemini-mcp-tool/dist/index.js"
+      ]
     }
   }
 }
@@ -90,8 +103,8 @@ Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration pa
 {
   "transport": {
     "type": "stdio",
-    "command": "npx",
-    "args": ["-y", "gemini-mcp-tool"]
+    "command": "node",
+    "args": ["/Users/jacob/Developer/src/github/jacobcxdev/gemini-mcp-tool/dist/index.js"]
   }
 }
 ```
@@ -106,7 +119,7 @@ Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration pa
 ```json
 {
   "gemini-cli": {
-    "command": "npx",
+    "command": "node",
     "args": [
       "-y",
       "gemini-mcp-tool"
