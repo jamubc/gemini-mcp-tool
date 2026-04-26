@@ -12,6 +12,8 @@
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
     "test": "echo \"No tests yet\" && exit 0",
+    "smoke:gemini-cli": "node scripts/test-mcp-stability.mjs 10",
+    "verify": "npm run build && npm run smoke:gemini-cli",
     "lint": "tsc --noEmit",
     "contribute": "tsx src/contribute.ts",
     "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
