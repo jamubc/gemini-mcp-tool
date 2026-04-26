@@ -35,4 +35,4 @@ Run the local verification script before registering the MCP server:
 npm run verify
 ```
 
-Then validate from Claude Code with `/mcp`, `mcp__gemini-cli__ping`, and repeated `mcp__gemini-cli__ask-gemini` calls.
+Then validate with your MCP client by listing tools, calling `ping`, and making repeated `ask-gemini` calls to confirm the server stays connected.
