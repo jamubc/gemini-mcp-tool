@@ -19,6 +19,14 @@ import {
 import { Logger } from "./utils/logger.js";
 import { PROTOCOL, ToolArguments } from "./constants.js";
 
+process.on("unhandledRejection", (reason) => {
+  Logger.error("Unhandled promise rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  Logger.error("Uncaught exception:", error);
+});
+
 import { 
   getToolDefinitions, 
   getPromptDefinitions, 
@@ -253,6 +261,12 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
 // Start the server
 async function main() {
   Logger.debug("init gemini-mcp-tool");
-  const transport = new StdioServerTransport(); await server.connect(transport);
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
   Logger.debug("gemini-mcp-tool listening on stdio");
-} main().catch((error) => {Logger.error("Fatal error:", error); process.exit(1); }); 
+}
+
+main().catch((error) => {
+  Logger.error("Fatal startup error:", error);
+  process.exit(1);
+});
