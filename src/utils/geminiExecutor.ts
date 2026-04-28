@@ -91,10 +91,8 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
   
-  // Ensure @ symbols work cross-platform by wrapping in quotes if needed
-  const finalPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-    ? `"${prompt_processed}"` 
-    : prompt_processed;
+  // spawn() uses shell: false — arguments are passed directly, no quoting needed
+  const finalPrompt = prompt_processed;
     
   args.push(CLI.FLAGS.PROMPT, finalPrompt);
   
@@ -111,10 +109,8 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Same @ symbol handling for fallback
-      const fallbackPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-        ? `"${prompt_processed}"` 
-        : prompt_processed;
+      // Same direct argument passing for fallback
+      const fallbackPrompt = prompt_processed;
         
       fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
       try {
