@@ -89,7 +89,9 @@ export interface ToolArguments {
   chunkIndex?: number | string; // Which chunk to return (1-based)
   chunkCacheKey?: string; // Optional cache key for continuation
   message?: string; // For Ping tool -- Un-used.
-  
+  /** Injected by index.ts from --no-fallback CLI flag or GEMINI_MCP_NO_FALLBACK=1 env var. */
+  noFallback?: boolean;
+
   // --> new tool
   methodology?: string; // Brainstorming framework to use
   domain?: string; // Domain context for specialized brainstorming
@@ -97,6 +99,6 @@ export interface ToolArguments {
   existingContext?: string; // Background information to build upon
   ideaCount?: number; // Target number of ideas to generate
   includeAnalysis?: boolean; // Include feasibility and impact analysis
-  
+
   [key: string]: string | boolean | number | undefined; // Allow additional properties
 }
