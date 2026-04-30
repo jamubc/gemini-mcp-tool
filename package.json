@@ -11,7 +11,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "vitest run",
     "smoke:gemini-cli": "node scripts/test-mcp-stability.mjs 10",
     "smoke:mcp-client": "node scripts/test-mcp-client-stability.mjs 10",
     "verify": "npm run build && npm run smoke:gemini-cli && npm run smoke:mcp-client",
@@ -65,7 +65,8 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17"
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vitest": "^4.1.5"
   },
   "publishConfig": {
     "access": "public"
