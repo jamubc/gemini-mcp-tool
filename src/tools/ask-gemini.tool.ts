@@ -24,7 +24,7 @@ export const askGeminiTool: UnifiedTool = {
   },
   category: 'gemini',
   execute: async (args, onProgress) => {
-    const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey, noFallback } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
+    const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
   
     if (changeMode && chunkIndex && chunkCacheKey) {
       return processChangeModeOutput(
@@ -40,8 +40,7 @@ export const askGeminiTool: UnifiedTool = {
       model as string | undefined,
       !!sandbox,
       !!changeMode,
-      onProgress,
-      noFallback === true
+      onProgress
     );
     
     if (changeMode) {

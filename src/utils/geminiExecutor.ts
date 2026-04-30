@@ -19,8 +19,7 @@ export async function executeGeminiCLI(
   model?: string,
   sandbox?: boolean,
   changeMode?: boolean,
-  onProgress?: (newOutput: string) => void,
-  noFallback?: boolean
+  onProgress?: (newOutput: string) => void
 ): Promise<string> {
   let prompt_processed = prompt;
   
@@ -113,10 +112,6 @@ ${prompt_processed}
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
-      const noFallbackEffective = noFallback === true || process.env.GEMINI_MCP_NO_FALLBACK === '1';
-      if (noFallbackEffective) {
-        throw error;  // propagate 429 unchanged; caller receives the error
-      }
       Logger.warn(`${ERROR_MESSAGES.QUOTA_EXCEEDED}. Falling back to ${MODELS.FLASH}.`);
       await sendStatusMessage(STATUS_MESSAGES.FLASH_RETRY);
       const fallbackArgs = [];
