@@ -31,7 +31,7 @@
 
 Before installing, ensure you have:
 
-- **[Node.js](https://nodejs.org/)** v16.0.0 or higher
+- **[Node.js](https://nodejs.org/)** v20.12.0 or higher
 - **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured on your system
 - **[Claude Desktop](https://claude.ai/download)** or **[Claude Code](https://www.anthropic.com/claude-code)** with MCP support
 

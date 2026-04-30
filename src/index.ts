@@ -17,7 +17,32 @@ import {
   CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
 import { Logger } from "./utils/logger.js";
+import { trace } from "./utils/fileTrace.js";
 import { PROTOCOL, ToolArguments } from "./constants.js";
+
+const PROGRESS_NOTIFICATIONS_ENABLED = process.env.GEMINI_MCP_ENABLE_PROGRESS === "1";
+const NO_FALLBACK_ENABLED = process.argv.includes("--no-fallback");
+
+trace("process.start", { argvCount: process.argv.length });
+
+process.stdin.on("end", () => trace("stdin.end"));
+process.stdin.on("close", () => trace("stdin.close"));
+process.stdin.on("error", (error) => trace("stdin.error", { message: error.message, stack: error.stack }));
+
+process.on("beforeExit", (code) => trace("process.beforeExit", { code }));
+process.on("exit", (code) => trace("process.exit", { code }));
+process.on("SIGTERM", () => trace("process.signal", { signal: "SIGTERM" }));
+process.on("SIGINT", () => trace("process.signal", { signal: "SIGINT" }));
+
+process.on("unhandledRejection", (reason) => {
+  trace("process.unhandledRejection", { reason: String(reason) });
+  Logger.error("Unhandled promise rejection:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  trace("process.uncaughtException", { message: error.message, stack: error.stack });
+  Logger.error("Uncaught exception:", error);
+});
 
 import { 
   getToolDefinitions, 
@@ -35,7 +60,6 @@ const server = new Server(
     capabilities: {
       tools: {},
       prompts: {},
-      notifications: {},
       logging: {},
     },
   },
@@ -162,34 +186,49 @@ function stopProgressUpdates(
 
 // tools/list
 server.setRequestHandler(ListToolsRequestSchema, async (request: ListToolsRequest): Promise<{ tools: Tool[] }> => {
-  return { tools: getToolDefinitions() as unknown as Tool[] };
+  trace("tools.list.start", { request });
+  const tools = getToolDefinitions() as unknown as Tool[];
+  trace("tools.list.end", { count: tools.length, names: tools.map((tool) => tool.name) });
+  return { tools };
 });
 
 // tools/get
 server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<CallToolResult> => {
   const toolName: string = request.params.name;
 
+  const rawArguments = request.params.arguments;
+  trace("tools.call.received", {
+    name: toolName,
+    hasArguments: rawArguments !== undefined,
+    argumentKeys: rawArguments && typeof rawArguments === "object" ? Object.keys(rawArguments as Record<string, unknown>) : [],
+  });
+
   if (toolExists(toolName)) {
-    // Check if client requested progress updates
-    const progressToken = (request.params as any)._meta?.progressToken;
-    
-    // Start progress updates if client requested them
+    const progressToken = PROGRESS_NOTIFICATIONS_ENABLED ? request.params._meta?.progressToken : undefined;
+
     const progressData = startProgressUpdates(toolName, progressToken);
     
     try {
       // Get prompt and other parameters from arguments with proper typing
-      const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
+      const args: ToolArguments = {
+        ...((request.params.arguments as ToolArguments) || {}),
+        noFallback: NO_FALLBACK_ENABLED,
+      };
 
       Logger.toolInvocation(toolName, request.params.arguments);
+      trace("tools.call.execute.start", { name: toolName });
 
       // Execute the tool using the unified registry with progress callback
       const result = await executeTool(toolName, args, (newOutput) => {
         latestOutput = newOutput;
       });
 
+      trace("tools.call.execute.end", { name: toolName, resultLength: result.length });
+
       // Stop progress updates
       stopProgressUpdates(progressData, true);
 
+      trace("tools.call.response", { name: toolName, isError: false });
       return {
         content: [
           {
@@ -208,6 +247,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
       const errorMessage =
         error instanceof Error ? error.message : String(error);
 
+      trace("tools.call.response", { name: toolName, isError: true, error: errorMessage });
       return {
         content: [
           {
@@ -252,7 +292,34 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
 
 // Start the server
 async function main() {
+  trace("server.main.start");
   Logger.debug("init gemini-mcp-tool");
-  const transport = new StdioServerTransport(); await server.connect(transport);
+  const transport = new StdioServerTransport();
+
+  const originalSend = transport.send.bind(transport);
+  transport.send = async (message) => {
+    trace("transport.send", { method: "method" in message ? message.method : undefined, id: "id" in message ? message.id : undefined });
+    await originalSend(message);
+    trace("transport.send.done", { method: "method" in message ? message.method : undefined, id: "id" in message ? message.id : undefined });
+  };
+
+  const originalOnMessage = transport.onmessage;
+  transport.onmessage = (message) => {
+    trace("transport.message", { method: "method" in message ? message.method : undefined, id: "id" in message ? message.id : undefined });
+    originalOnMessage?.(message);
+  };
+
+  transport.onclose = () => trace("transport.close");
+  transport.onerror = (error) => trace("transport.error", { message: error.message, stack: error.stack });
+  server.oninitialized = () => trace("server.initialized", { client: server.getClientVersion(), capabilities: server.getClientCapabilities() });
+  server.onclose = () => trace("server.close");
+
+  await server.connect(transport);
+  trace("server.connected");
   Logger.debug("gemini-mcp-tool listening on stdio");
-} main().catch((error) => {Logger.error("Fatal error:", error); process.exit(1); }); 
+}
+
+main().catch((error) => {
+  Logger.error("Fatal startup error:", error);
+  process.exit(1);
+});

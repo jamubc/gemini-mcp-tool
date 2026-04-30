@@ -1,6 +1,6 @@
 {
   "name": "gemini-mcp-tool",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "MCP server for Gemini CLI integration",
   "type": "module",
   "main": "dist/index.js",
@@ -11,7 +11,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "smoke:gemini-cli": "node scripts/test-mcp-stability.mjs 10",
+    "smoke:mcp-client": "node scripts/test-mcp-client-stability.mjs 10",
+    "verify": "npm run build && npm run smoke:gemini-cli && npm run smoke:mcp-client",
     "lint": "tsc --noEmit",
     "contribute": "tsx src/contribute.ts",
     "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
@@ -38,7 +41,7 @@
   },
   "homepage": "https://github.com/jamubc/gemini-mcp-tool#readme",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.12.0"
   },
   "files": [
     "dist/",
@@ -46,23 +49,22 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0",
-    "ai": "^4.3.17",
-    "chalk": "^5.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "ai": "^6.0.168",
+    "chalk": "^5.6.2",
     "d3-shape": "^3.2.0",
-    "inquirer": "^9.0.0",
+    "inquirer": "^13.4.2",
     "prismjs": "^1.30.0",
-    "zod": "^3.25.76",
-    "zod-to-json-schema": "^3.24.6"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.0",
-    "@types/node": "^20.0.0",
+    "@types/inquirer": "^9.0.9",
+    "@types/node": "^25.6.0",
     "archiver": "^7.0.1",
-    "mermaid": "^11.9.0",
-    "tsx": "^4.0.0",
-    "typescript": "^5.0.0",
-    "vitepress": "^1.6.3",
+    "mermaid": "^11.14.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17"
   },
   "publishConfig": {
