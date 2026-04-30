@@ -10,9 +10,24 @@ export async function executeCommand(
     const startTime = Date.now();
     Logger.commandExecution(command, args, startTime);
 
-    const childProcess = spawn(command, args, {
+    // Windows quirk: Node 22+ blocks spawning `.cmd` / `.bat` shims without
+    // `shell: true` (CVE-2024-27980). But `shell: true` causes cmd.exe to
+    // re-tokenise the argument list on whitespace, which mangles any prompt
+    // that contains spaces (Gemini sees `-p Hello` plus stray positionals
+    // `world.`). The fix is to enable the shell on Windows AND wrap any arg
+    // containing whitespace or a double quote in cmd.exe-safe quotes
+    // (internal `"` is escaped as `""`). This is a no-op on macOS / Linux.
+    const isWindows = process.platform === "win32";
+    const safeArgs = isWindows
+      ? args.map(a => {
+          const s = String(a);
+          return /[\s"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        })
+      : args;
+
+    const childProcess = spawn(command, safeArgs, {
       env: process.env,
-      shell: false,
+      shell: isWindows,
       stdio: ["ignore", "pipe", "pipe"],
     });
 
