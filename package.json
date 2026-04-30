@@ -1,5 +1,5 @@
 {
-  "name": "@jacobcxdev/gemini-mcp-tool",
+  "name": "gemini-mcp-tool",
   "version": "1.2.0",
   "description": "MCP server for Gemini CLI integration",
   "type": "module",
