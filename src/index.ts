@@ -21,6 +21,7 @@ import { trace } from "./utils/fileTrace.js";
 import { PROTOCOL, ToolArguments } from "./constants.js";
 
 const PROGRESS_NOTIFICATIONS_ENABLED = process.env.GEMINI_MCP_ENABLE_PROGRESS === "1";
+const NO_FALLBACK_ENABLED = process.argv.includes("--no-fallback");
 
 trace("process.start", { argvCount: process.argv.length });
 
@@ -209,7 +210,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     
     try {
       // Get prompt and other parameters from arguments with proper typing
-      const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
+      const args: ToolArguments = {
+        ...((request.params.arguments as ToolArguments) || {}),
+        noFallback: NO_FALLBACK_ENABLED,
+      };
 
       Logger.toolInvocation(toolName, request.params.arguments);
       trace("tools.call.execute.start", { name: toolName });

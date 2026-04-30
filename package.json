@@ -1,6 +1,6 @@
 {
-  "name": "gemini-mcp-tool",
-  "version": "1.1.4",
+  "name": "@jacobcxdev/gemini-mcp-tool",
+  "version": "1.2.0",
   "description": "MCP server for Gemini CLI integration",
   "type": "module",
   "main": "dist/index.js",
@@ -11,7 +11,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "node --import tsx --test src/**/*.test.ts",
     "smoke:gemini-cli": "node scripts/test-mcp-stability.mjs 10",
     "smoke:mcp-client": "node scripts/test-mcp-client-stability.mjs 10",
     "verify": "npm run build && npm run smoke:gemini-cli && npm run smoke:mcp-client",
