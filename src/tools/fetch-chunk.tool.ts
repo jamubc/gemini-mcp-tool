@@ -34,6 +34,13 @@ export const fetchChunkTool: UnifiedTool = {
     Logger.toolInvocation('fetch-chunk', args);
     Logger.debug(`Fetching chunk ${chunkIndex} with cache key: ${cacheKey}`);
     
+    // Security: validate cacheKey format before any filesystem access
+    // cacheChunks() always generates 8 lowercase hex characters via sha256
+    const CACHE_KEY_RE = /^[a-f0-9]{8}$/;
+    if (typeof cacheKey !== 'string' || !CACHE_KEY_RE.test(cacheKey)) {
+      return `❌ Invalid cacheKey format. Expected 8 lowercase hex characters (got ${JSON.stringify(cacheKey)}).`;
+    }
+    
     // Retrieve cached chunks
     const chunks = getChunks(cacheKey);
     
