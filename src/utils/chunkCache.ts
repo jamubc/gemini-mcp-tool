@@ -59,6 +59,13 @@ export function cacheChunks(prompt: string, chunks: EditChunk[]): string {
  * @returns The cached chunks or null if expired/not found
  */
 export function getChunks(cacheKey: string): EditChunk[] | null {
+  // Primary validation: cacheKey must be exactly 8 lowercase hex chars (sha256 slice).
+  // This blocks path traversal payloads (../, absolute paths, etc.) at the source.
+  if (typeof cacheKey !== 'string' || !/^[a-f0-9]{8}$/.test(cacheKey)) {
+    Logger.debug(`Rejected invalid cacheKey format: ${JSON.stringify(cacheKey)}`);
+    return null;
+  }
+
   const filePath = path.join(CACHE_DIR, `${cacheKey}.json`);
   
   // Defense-in-depth: ensure resolved path stays inside CACHE_DIR
