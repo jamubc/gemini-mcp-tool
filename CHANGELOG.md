@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+- Security fix: OS command-injection / `@file` exfiltration via prompt quoting in `geminiExecutor.ts` (CVE-2026-0755, CWE-78). Fixes #73 (and the literal-quote corruption in #66).
+  - Removed the broken double-quote wrapping from both the primary and fallback paths. With `spawn` running `shell: false`, those quotes were passed as literal characters — they provided no protection and corrupted `@file` references. Windows `.cmd` quoting is already handled safely in `commandExecutor.ts`.
+  - Added `assertSafeFileReferences()`, which rejects any `@file` reference that resolves outside the project working directory (absolute paths, `~` home references, and `../` traversal), closing the arbitrary-file-read exfiltration vector while preserving legitimate in-project `@file` usage.
 - Fixed `spawn EINVAL` error on Windows with Node 22+ when launching `.cmd` shims (PR #69).
 
 ## [1.1.5]

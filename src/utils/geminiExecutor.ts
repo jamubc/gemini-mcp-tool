@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { executeCommand } from './commandExecutor.js';
 import { Logger } from './logger.js';
 import { 
@@ -11,6 +12,36 @@ import { parseChangeModeOutput, validateChangeModeEdits } from './changeModePars
 import { formatChangeModeResponse, summarizeChangeModeEdits } from './changeModeTranslator.js';
 import { chunkChangeModeEdits } from './changeModeChunker.js';
 import { cacheChunks, getChunks } from './chunkCache.js';
+
+const FILE_REF_PATTERN = /@(\S+)/g;
+
+/**
+ * Rejects @file references that resolve outside the working directory.
+ *
+ * The Gemini CLI inlines the contents of any `@path` token it finds in the
+ * prompt. Because prompt text can originate from untrusted input, an
+ * unrestricted reference such as `@/etc/passwd`, `@~/.ssh/id_rsa` or
+ * `@../../secret` would let that input exfiltrate arbitrary local files
+ * (CVE-2026-0755). Constraining references to the project root preserves the
+ * legitimate `@file` feature while removing the exfiltration primitive.
+ */
+export function assertSafeFileReferences(prompt: string, root: string = process.cwd()): void {
+  const normalizedRoot = path.resolve(root);
+  for (const match of prompt.matchAll(FILE_REF_PATTERN)) {
+    const ref = match[1];
+    const resolved = path.resolve(normalizedRoot, ref);
+    const escapesRoot =
+      resolved !== normalizedRoot && !resolved.startsWith(normalizedRoot + path.sep);
+    // `~` is rejected explicitly: path.resolve treats it as a literal segment,
+    // so a home-directory reference would otherwise look contained.
+    if (ref.startsWith('~') || escapesRoot) {
+      throw new Error(
+        `Refusing @file reference outside the project directory: "@${ref}". ` +
+        `Only files within ${normalizedRoot} may be referenced.`
+      );
+    }
+  }
+}
 
 export async function executeGeminiCLI(
   prompt: string,
@@ -86,18 +117,21 @@ ${prompt_processed}
 `;
     prompt_processed = changeModeInstructions;
   }
-  
+
+  // Block @file references that escape the project root before the prompt
+  // reaches the Gemini CLI's file-inlining parser (CVE-2026-0755).
+  assertSafeFileReferences(prompt_processed);
+
   const args = [];
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
-  
-  // Ensure @ symbols work cross-platform by wrapping in quotes if needed
-  const finalPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-    ? `"${prompt_processed}"` 
-    : prompt_processed;
-    
-  args.push(CLI.FLAGS.PROMPT, finalPrompt);
-  
+
+  // spawn runs with shell: false (and cmd.exe-safe quoting on Windows is
+  // handled in commandExecutor), so the prompt is passed verbatim as a single
+  // argv entry. No manual quoting here — wrapping in `"` only injects literal
+  // quote characters and corrupts @file references (#66, CVE-2026-0755).
+  args.push(CLI.FLAGS.PROMPT, prompt_processed);
+
   try {
     return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
   } catch (error) {
@@ -111,12 +145,8 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Same @ symbol handling for fallback
-      const fallbackPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-        ? `"${prompt_processed}"` 
-        : prompt_processed;
-        
-      fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
+      // Pass the prompt verbatim here too (see note in the primary path).
+      fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed);
       try {
         const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
