@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.1.5]
+- Security fix: prevent path-traversal READ and DELETE of arbitrary `.json` files via `cacheKey` parameter (CWE-22).
+  - The `cacheKey` is now validated against the expected format (`/^[a-f0-9]{8}$/`) inside `getChunks()` itself, so all callers are protected.
+  - Added matching format validation to the `ask-gemini` tool's `chunkCacheKey` parameter, which was previously unguarded and bypassed the `fetch-chunk` regex entirely.
+  - Added defense-in-depth path-containment check (`path.resolve` + `startsWith`) in the cache layer.
+  - Removed the silent `fs.unlinkSync` on parse errors — it previously created a DELETE primitive outside `CACHE_DIR`.
+  - Rewrote the path-traversal test to import and validate the real source functions instead of local reimplementations.
+
 ## [1.1.3]
 - "gemini reads, claude edits"
 - Added `changeMode` parameter to ask-gemini tool for structured edit responses using claude edit diff.

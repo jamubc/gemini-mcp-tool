@@ -59,7 +59,21 @@ export function cacheChunks(prompt: string, chunks: EditChunk[]): string {
  * @returns The cached chunks or null if expired/not found
  */
 export function getChunks(cacheKey: string): EditChunk[] | null {
+  // Primary validation: cacheKey must be exactly 8 lowercase hex chars (sha256 slice).
+  // This blocks path traversal payloads (../, absolute paths, etc.) at the source.
+  if (typeof cacheKey !== 'string' || !/^[a-f0-9]{8}$/.test(cacheKey)) {
+    Logger.debug(`Rejected invalid cacheKey format: ${JSON.stringify(cacheKey)}`);
+    return null;
+  }
+
   const filePath = path.join(CACHE_DIR, `${cacheKey}.json`);
+  
+  // Defense-in-depth: ensure resolved path stays inside CACHE_DIR
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(path.resolve(CACHE_DIR) + path.sep)) {
+    Logger.debug(`Rejected cacheKey escaping CACHE_DIR: ${cacheKey}`);
+    return null;
+  }
   
   try {
     if (!fs.existsSync(filePath)) {
@@ -79,9 +93,11 @@ export function getChunks(cacheKey: string): EditChunk[] | null {
     return data.chunks;
   } catch (error) {
     Logger.debug(`Cache read error for ${cacheKey}: ${error}`);
-    try {
-      fs.unlinkSync(filePath); // Clean up bad file
-    } catch {}
+    // Note: intentionally NOT deleting the file here. The old behaviour
+    // silently unlinked files on parse errors, which created a DELETE
+    // path-traversal primitive when cacheKey was not validated upstream.
+    // With the format check in fetch-chunk.tool.ts this path is unreachable
+    // for valid callers, but leave the file alone regardless.
     return null;
   }
 }

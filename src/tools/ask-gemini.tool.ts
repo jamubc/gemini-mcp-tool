@@ -27,6 +27,10 @@ export const askGeminiTool: UnifiedTool = {
     const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
   
     if (changeMode && chunkIndex && chunkCacheKey) {
+      // Security: validate cacheKey format before any cache access
+      if (typeof chunkCacheKey !== 'string' || !/^[a-f0-9]{8}$/.test(chunkCacheKey)) {
+        return `❌ Invalid chunkCacheKey format. Expected 8 lowercase hex characters (got ${JSON.stringify(chunkCacheKey)}).`;
+      }
       return processChangeModeOutput(
         '', // empty for cache...
         chunkIndex as number,
