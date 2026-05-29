@@ -4,7 +4,8 @@ import { Logger } from "./logger.js";
 export async function executeCommand(
   command: string,
   args: string[],
-  onProgress?: (newOutput: string) => void
+  onProgress?: (newOutput: string) => void,
+  options: { captureStderr?: boolean } = {}
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -35,10 +36,10 @@ export async function executeCommand(
     let stderr = "";
     let isResolved = false;
     let lastReportedLength = 0;
-    
+
     childProcess.stdout.on("data", (data) => {
       stdout += data.toString();
-      
+
       // Report new content if callback provided
       if (onProgress && stdout.length > lastReportedLength) {
         const newContent = stdout.substring(lastReportedLength);
@@ -85,7 +86,8 @@ export async function executeCommand(
         isResolved = true;
         if (code === 0) {
           Logger.commandComplete(startTime, code, stdout.length);
-          resolve(stdout.trim());
+          const result = options.captureStderr ? `${stdout}\n${stderr}` : stdout;
+          resolve(result.trim());
         } else {
           Logger.commandComplete(startTime, code);
           Logger.error(`Failed with exit code ${code}`);
