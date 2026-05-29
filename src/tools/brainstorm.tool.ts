@@ -166,6 +166,14 @@ export const brainstormTool: UnifiedTool = {
     onProgress?.(`Generating ${ideaCount} ideas via ${methodology} methodology...`);
     
     // Execute with Gemini
-    return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false, onProgress);
+    return await executeGeminiCLI(
+      enhancedPrompt,
+      {
+        model: model as string | undefined,
+        sandbox: false,
+        changeMode: false,
+      },
+      onProgress
+    );
   }
 };

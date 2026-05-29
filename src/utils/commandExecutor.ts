@@ -31,31 +31,32 @@ export async function executeCommand(
       stdio: ["ignore", "pipe", "pipe"],
     });
 
-    let stdout = "";
-    let stderr = "";
+    // Use array buffers for O(n) performance instead of O(n²) string concatenation
+    const stdoutChunks: string[] = [];
+    const stderrChunks: string[] = [];
     let isResolved = false;
-    let lastReportedLength = 0;
-    
+
     childProcess.stdout.on("data", (data) => {
-      stdout += data.toString();
-      
-      // Report new content if callback provided
-      if (onProgress && stdout.length > lastReportedLength) {
-        const newContent = stdout.substring(lastReportedLength);
-        lastReportedLength = stdout.length;
-        onProgress(newContent);
+      const chunk = data.toString();
+      stdoutChunks.push(chunk);
+
+      // Report immediately if callback provided (no substring calculation needed)
+      if (onProgress) {
+        onProgress(chunk);
       }
     });
 
 
     // CLI level errors
     childProcess.stderr.on("data", (data) => {
-      stderr += data.toString();
+      const chunk = data.toString();
+      stderrChunks.push(chunk);
       // find RESOURCE_EXHAUSTED when gemini-2.5-pro quota is exceeded
-      if (stderr.includes("RESOURCE_EXHAUSTED")) {
-        const modelMatch = stderr.match(/Quota exceeded for quota metric '([^']+)'/);
-        const statusMatch = stderr.match(/status["\s]*[:=]\s*(\d+)/);
-        const reasonMatch = stderr.match(/"reason":\s*"([^"]+)"/);
+      if (chunk.includes("RESOURCE_EXHAUSTED")) {
+        const stderrSoFar = stderrChunks.join('');
+        const modelMatch = stderrSoFar.match(/Quota exceeded for quota metric '([^']+)'/);
+        const statusMatch = stderrSoFar.match(/status["\s]*[:=]\s*(\d+)/);
+        const reasonMatch = stderrSoFar.match(/"reason":\s*"([^"]+)"/);
         const model = modelMatch ? modelMatch[1] : "Unknown Model";
         const status = statusMatch ? statusMatch[1] : "429";
         const reason = reasonMatch ? reasonMatch[1] : "rateLimitExceeded";
@@ -83,6 +84,10 @@ export async function executeCommand(
     childProcess.on("close", (code) => {
       if (!isResolved) {
         isResolved = true;
+        // Join array buffers efficiently
+        const stdout = stdoutChunks.join('');
+        const stderr = stderrChunks.join('');
+
         if (code === 0) {
           Logger.commandComplete(startTime, code, stdout.length);
           resolve(stdout.trim());

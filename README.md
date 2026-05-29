@@ -137,27 +137,69 @@ The sandbox mode allows you to safely test code changes, run scripts, or execute
 
 These tools are designed to be used by the AI assistant.
 
-- **`ask-gemini`**: Asks Google Gemini for its perspective. Can be used for general questions or complex analysis of files.
+- **`ask-gemini`**: Execute Gemini CLI with full feature support including advanced flags, caching, and change mode.
   - **`prompt`** (required): The analysis request. Use the `@` syntax to include file or directory references (e.g., `@src/main.js explain this code`) or ask general questions (e.g., `Please use a web search to find the latest news stories`).
-  - **`model`** (optional): The Gemini model to use. Defaults to `gemini-2.5-pro`.
+  - **`model`** (optional): The Gemini model to use. Defaults to `gemini-2.5-pro`. Use `gemini-2.5-flash` for faster responses.
   - **`sandbox`** (optional): Set to `true` to run in sandbox mode for safe code execution.
-- **`sandbox-test`**: Safely executes code or commands in Gemini's sandbox environment. Always runs in sandbox mode.
-  - **`prompt`** (required): Code testing request (e.g., `Create and run a Python script that...` or `@script.py Run this safely`).
+  - **`changeMode`** (optional): Enable structured change mode for edit suggestions that Claude can apply directly.
+  - **`yolo`** (optional): Auto-accept all actions (YOLO mode). Use with caution.
+  - **`approvalMode`** (optional): Fine-grained approval control: `default`, `auto_edit`, or `yolo`.
+  - **`outputFormat`** (optional): Control output format: `text`, `json`, or `stream-json`.
+  - **`includeDirectories`** (optional): Additional directories to include in workspace.
+  - **`debug`** (optional): Enable verbose logging for troubleshooting.
+  - **`promptInteractive`** (optional): Execute prompt and continue in interactive mode.
+  - **`extensions`** (optional): Filter specific file extensions.
+  - **`resume`** (optional): Resume previous session (use `latest` or session number).
+
+- **`brainstorm`**: Generate creative ideas with structured methodologies and domain context.
+  - **`prompt`** (required): Brainstorming challenge or question to explore.
   - **`model`** (optional): The Gemini model to use.
-- **`Ping`**: A simple test tool that echoes back a message.
-- **`Help`**: Shows the Gemini CLI help text.
+  - **`methodology`** (optional): Framework to use: `divergent`, `convergent`, `scamper`, `design-thinking`, `lateral`, or `auto` (default).
+  - **`domain`** (optional): Domain context (e.g., 'software', 'business', 'creative', 'research').
+  - **`constraints`** (optional): Known limitations or requirements.
+  - **`ideaCount`** (optional): Number of ideas to generate (default: 12).
+  - **`includeAnalysis`** (optional): Include feasibility and impact analysis (default: true).
+
+- **`fetch-chunk`**: Retrieve cached chunks from large changeMode responses.
+  - **`cacheKey`** (required): Cache key from initial changeMode response.
+  - **`chunkIndex`** (required): Chunk number to retrieve (1-based index).
+
+- **`ping`**: Echo test message to verify server connection.
+  - **`prompt`** (optional): Message to echo back.
+
+- **`Help`**: Display Gemini CLI help information.
 
 ### Slash Commands (for the User)
 
 You can use these commands directly in Claude Code's interface (compatibility with other clients has not been tested).
 
-- **/analyze**: Analyzes files or directories using Gemini, or asks general questions.
-  - **`prompt`** (required): The analysis prompt. Use `@` syntax to include files (e.g., `/analyze prompt:@src/ summarize this directory`) or ask general questions (e.g., `/analyze prompt:Please use a web search to find the latest news stories`).
-- **/sandbox**: Safely tests code or scripts in Gemini's sandbox environment.
-  - **`prompt`** (required): Code testing request (e.g., `/sandbox prompt:Create and run a Python script that processes CSV data` or `/sandbox prompt:@script.py Test this script safely`).
-- **/help**: Displays the Gemini CLI help information.
-- **/ping**: Tests the connection to the server.
-  - **`message`** (optional): A message to echo back.
+- **/ask-gemini**: Execute Gemini CLI with advanced features and caching.
+  - **Example**: `/ask-gemini prompt:@src/ summarize this directory`
+  - **With sandbox**: `/ask-gemini prompt:@script.py test this safely sandbox:true`
+  - **With change mode**: `/ask-gemini prompt:Refactor this code changeMode:true`
+  - **Supports all flags**: yolo, approvalMode, outputFormat, debug, etc.
+
+- **/brainstorm**: Generate structured ideas with creative methodologies.
+  - **Example**: `/brainstorm prompt:How can we improve user onboarding? methodology:design-thinking domain:software`
+  - **Quick use**: `/brainstorm prompt:Ideas for a mobile app feature`
+
+- **/fetch-chunk**: Retrieve next chunk of a large changeMode response.
+  - **Example**: `/fetch-chunk cacheKey:abc123 chunkIndex:2`
+
+- **/Help**: Display Gemini CLI help information.
+  - **Example**: `/Help`
+
+- **/ping**: Test the MCP server connection.
+  - **Example**: `/ping prompt:Hello server!`
+
+## Performance Features
+
+This MCP server includes several performance optimizations:
+
+- **LRU Response Cache**: Near-instant responses for repeated queries with 30-minute TTL and 10MB max size
+- **Efficient Command Execution**: O(n) array buffer performance for large outputs
+- **Smart Chunking**: Large changeMode responses are automatically chunked for better handling
+- **Progress Notifications**: Real-time progress updates during long-running operations
 
 ## Contributing
 

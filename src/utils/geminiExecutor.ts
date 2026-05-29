@@ -1,9 +1,9 @@
 import { executeCommand } from './commandExecutor.js';
 import { Logger } from './logger.js';
-import { 
-  ERROR_MESSAGES, 
-  STATUS_MESSAGES, 
-  MODELS, 
+import {
+  ERROR_MESSAGES,
+  STATUS_MESSAGES,
+  MODELS,
   CLI
 } from '../constants.js';
 
@@ -11,19 +11,120 @@ import { parseChangeModeOutput, validateChangeModeEdits } from './changeModePars
 import { formatChangeModeResponse, summarizeChangeModeEdits } from './changeModeTranslator.js';
 import { chunkChangeModeEdits } from './changeModeChunker.js';
 import { cacheChunks, getChunks } from './chunkCache.js';
+import { generateCacheKey, getCachedResponse, cacheResponse } from './responseCache.js';
+
+export interface GeminiCLIOptions {
+  model?: string;
+  sandbox?: boolean;
+  changeMode?: boolean;
+  yolo?: boolean;
+  approvalMode?: string;
+  outputFormat?: string;
+  includeDirectories?: string | string[];
+  debug?: boolean;
+  promptInteractive?: string;
+  extensions?: string | string[];
+  resume?: string;
+}
+
+/**
+ * Helper function to build Gemini CLI arguments from options
+ * Eliminates code duplication between main execution and fallback
+ */
+function buildGeminiArgs(opts: GeminiCLIOptions, prompt: string, forceModel?: string): string[] {
+  const args: string[] = [];
+  const model = forceModel || opts.model;
+
+  // Model selection
+  if (model) {
+    args.push(CLI.FLAGS.MODEL, model);
+  }
+
+  // Boolean flags
+  if (opts.sandbox) {
+    args.push(CLI.FLAGS.SANDBOX);
+  }
+  if (opts.yolo) {
+    args.push(CLI.FLAGS.YOLO);
+  }
+  if (opts.debug) {
+    args.push(CLI.FLAGS.DEBUG);
+  }
+
+  // Approval mode (overrides yolo if both are set)
+  if (opts.approvalMode) {
+    args.push(CLI.FLAGS.APPROVAL_MODE, opts.approvalMode);
+  }
+
+  // Output format
+  if (opts.outputFormat) {
+    args.push(CLI.FLAGS.OUTPUT_FORMAT, opts.outputFormat);
+  }
+
+  // Include directories (array or comma-separated string)
+  if (opts.includeDirectories) {
+    const dirs = Array.isArray(opts.includeDirectories)
+      ? opts.includeDirectories.join(',')
+      : opts.includeDirectories;
+    args.push(CLI.FLAGS.INCLUDE_DIRECTORIES, dirs);
+  }
+
+  // Extensions (array or comma-separated string)
+  if (opts.extensions) {
+    const exts = Array.isArray(opts.extensions)
+      ? opts.extensions.join(',')
+      : opts.extensions;
+    args.push(CLI.FLAGS.EXTENSIONS, exts);
+  }
+
+  // Resume session
+  if (opts.resume) {
+    args.push(CLI.FLAGS.RESUME, opts.resume);
+  }
+
+  // Prompt interactive
+  if (opts.promptInteractive) {
+    args.push(CLI.FLAGS.PROMPT_INTERACTIVE, opts.promptInteractive);
+  }
+
+  // Ensure @ symbols work cross-platform by wrapping in quotes if needed
+  const finalPrompt = prompt.includes('@') && !prompt.startsWith('"')
+    ? `"${prompt}"`
+    : prompt;
+
+  args.push(CLI.FLAGS.PROMPT, finalPrompt);
+
+  return args;
+}
 
 export async function executeGeminiCLI(
   prompt: string,
-  model?: string,
-  sandbox?: boolean,
-  changeMode?: boolean,
+  options: GeminiCLIOptions | string,
   onProgress?: (newOutput: string) => void
 ): Promise<string> {
+  // Handle backward compatibility - if options is a string, it's the old 'model' parameter
+  let opts: GeminiCLIOptions;
+  if (typeof options === 'string') {
+    opts = { model: options };
+  } else {
+    opts = options || {};
+  }
+
+  // Check cache first for non-changeMode requests (changeMode needs fresh responses)
+  if (!opts.changeMode) {
+    const cacheKey = generateCacheKey(prompt, opts);
+    const cached = getCachedResponse(cacheKey);
+    if (cached) {
+      Logger.debug('Returning cached response');
+      return cached;
+    }
+  }
+
   let prompt_processed = prompt;
-  
-  if (changeMode) {
+
+  if (opts.changeMode) {
     prompt_processed = prompt.replace(/file:(\S+)/g, '@$1');
-    
+
     const changeModeInstructions = `
 [CHANGEMODE INSTRUCTIONS]
 You are generating code modifications that will be processed by an automated system. The output format is critical because it enables programmatic application of changes without human intervention.
@@ -86,41 +187,40 @@ ${prompt_processed}
 `;
     prompt_processed = changeModeInstructions;
   }
-  
-  const args = [];
-  if (model) { args.push(CLI.FLAGS.MODEL, model); }
-  if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
-  
-  // Ensure @ symbols work cross-platform by wrapping in quotes if needed
-  const finalPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-    ? `"${prompt_processed}"` 
-    : prompt_processed;
-    
-  args.push(CLI.FLAGS.PROMPT, finalPrompt);
-  
+
+  // Use helper function to build args (eliminates code duplication)
+  const args = buildGeminiArgs(opts, prompt_processed);
+
   try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    const result = await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+
+    // Cache successful non-changeMode responses
+    if (!opts.changeMode) {
+      const cacheKey = generateCacheKey(prompt, opts);
+      cacheResponse(cacheKey, result);
+    }
+
+    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
+    if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && opts.model !== MODELS.FLASH) {
       Logger.warn(`${ERROR_MESSAGES.QUOTA_EXCEEDED}. Falling back to ${MODELS.FLASH}.`);
       await sendStatusMessage(STATUS_MESSAGES.FLASH_RETRY);
-      const fallbackArgs = [];
-      fallbackArgs.push(CLI.FLAGS.MODEL, MODELS.FLASH);
-      if (sandbox) {
-        fallbackArgs.push(CLI.FLAGS.SANDBOX);
-      }
-      
-      // Same @ symbol handling for fallback
-      const fallbackPrompt = prompt_processed.includes('@') && !prompt_processed.startsWith('"') 
-        ? `"${prompt_processed}"` 
-        : prompt_processed;
-        
-      fallbackArgs.push(CLI.FLAGS.PROMPT, fallbackPrompt);
+
+      // Use helper function with Flash model override (eliminates code duplication)
+      const fallbackArgs = buildGeminiArgs(opts, prompt_processed, MODELS.FLASH);
+
       try {
         const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
+
+        // Cache successful fallback response (non-changeMode only)
+        if (!opts.changeMode) {
+          const cacheKey = generateCacheKey(prompt, opts);
+          cacheResponse(cacheKey, result);
+        }
+
         return result;
       } catch (fallbackError) {
         const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
