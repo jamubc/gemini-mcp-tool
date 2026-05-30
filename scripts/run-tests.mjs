@@ -25,9 +25,15 @@ if (tests.length === 0) {
   process.exit(0);
 }
 
+// tsx is loaded via `--import` on Node >= 20.6, and the older `--loader` flag
+// below that (the engines floor is >=18, where `--import` may be unavailable).
+const [major, minor] = process.versions.node.split(".").map(Number);
+const supportsImport = major > 20 || (major === 20 && minor >= 6);
+const loaderArgs = supportsImport ? ["--import", "tsx"] : ["--loader", "tsx"];
+
 const result = spawnSync(
   process.execPath,
-  ["--import", "tsx", "--test", ...tests],
+  [...loaderArgs, "--test", ...tests],
   { stdio: "inherit" },
 );
 process.exit(result.status ?? 1);

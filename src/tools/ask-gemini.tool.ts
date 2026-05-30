@@ -61,9 +61,13 @@ export const askGeminiTool: UnifiedTool = {
         prompt as string
       );
     }
-    // Surface the active session id so the caller can resume the conversation.
-    const activeSession = (resume as string | undefined) || (sessionId as string | undefined);
-    const sessionNote = activeSession ? `\n\n[session: ${activeSession}]` : '';
+    // Echo back the session id the caller supplied so follow-up calls can continue
+    // it. This is the requested id, not one parsed from the CLI; 'latest' is a
+    // resume selector (not an id), so it is not surfaced.
+    const requestedSession =
+      (typeof resume === 'string' && resume !== 'latest' ? resume : undefined) ||
+      (sessionId as string | undefined);
+    const sessionNote = requestedSession ? `\n\n[session: ${requestedSession}]` : '';
     return `${STATUS_MESSAGES.GEMINI_RESPONSE}\n${result}${sessionNote}`; // changeMode false
   }
 };

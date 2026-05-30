@@ -134,9 +134,10 @@ claude mcp add gemini-cli -- npx gemini-mcp-tool
    ```
 
 4. **For very large codebases, the tool prevents timeouts automatically**:
-   - Progress updates keep the connection alive
-   - Clear status messages show processing is active
-   - No manual configuration needed
+    - Progress updates keep the connection alive
+    - Clear status messages show processing is active
+    - No manual configuration needed
+    - You can also configure the timeout via `GEMINI_MCP_TIMEOUT_MS` (default 30 min; set to `0` to disable)
 
 </TroubleshootingModal>
 
@@ -147,7 +148,7 @@ claude mcp add gemini-cli -- npx gemini-mcp-tool
 
 **Common causes**:
 
-1. **Node.js version compatibility** - Ensure Node.js ≥ v16.0.0
+1. **Node.js version compatibility** - Ensure Node.js ≥ v18.0.0
 2. **Gemini CLI not installed** - Install with `npm install -g @google/gemini-cli`
 3. **API key not configured** - Run `gemini config set api_key YOUR_API_KEY`
 4. **PATH issues** - Restart terminal after installing Node.js/npm
@@ -260,6 +261,7 @@ echo $GOOGLE_GENERATIVE_AI_API_KEY
 - Backup heartbeat every 20 seconds to ensure connection stays alive
 - Clear status messages showing the tool is working
 - Automatic completion notification when done
+- Configurable via `GEMINI_MCP_TIMEOUT_MS` env var (default 30 min; `0` disables)
 
 **For very large codebases** (10,000+ files):
 - Consider breaking analysis into smaller chunks
@@ -340,8 +342,9 @@ gemini "Hello"
 
 ### Windows 11
 - **NPX flag issues**: Use `--yes` instead of `-y`
-- **Path problems**: Restart terminal after Node.js installation
+- **Path problems**: Restart terminal after Node.js installation, or set `GEMINI_CLI_PATH` to the full path of `gemini.cmd`
 - **Connection issues**: Ensure Windows Defender isn't blocking Node.js
+- **"Command not found"**: The MCP server may not inherit your shell's PATH. Set `GEMINI_CLI_PATH` in your config `env` block.
 
 ### macOS
 - **Permission issues**: Use `sudo` if npm install fails

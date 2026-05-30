@@ -31,7 +31,7 @@
 
 Before installing, ensure you have:
 
-- **[Node.js](https://nodejs.org/)** v16.0.0 or higher
+- **[Node.js](https://nodejs.org/)** v18.0.0 or higher
 - **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured on your system
 - **[Claude Desktop](https://claude.ai/download)** or **[Claude Code](https://www.anthropic.com/claude-code)** with MCP support
 
@@ -77,6 +77,27 @@ For Claude Desktop users, add this to your configuration file:
   }
 }
 ```
+
+### Optional Environment Variables <Badge text="1.2.0" type="tip" />
+
+You can pass environment variables to configure the server:
+
+```json
+{
+  "mcpServers": {
+    "gemini-cli": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "env": {
+        "GEMINI_MCP_APPROVAL_MODE": "plan",
+        "GEMINI_MCP_TIMEOUT_MS": "1800000"
+      }
+    }
+  }
+}
+```
+
+See [Configuration](/concepts/configuration) for all available environment variables.
 
 ::: warning
 You must restart Claude Desktop ***completely*** for changes to take effect.
@@ -162,6 +183,13 @@ Type `/gemini-cli` and these commands will appear:
 - `/gemini-cli:sandbox` - Safe code execution
 - `/gemini-cli:help` - Show help information
 - `/gemini-cli:ping` - Test connectivity
+- `/gemini-cli:brainstorm` - Structured brainstorming with methodology frameworks
+
+### New in v1.2.0
+- **Approval mode** — control Gemini's autonomy: `approvalMode: "plan"` (read-only) or `"yolo"` (auto-approve)
+- **Multi-turn sessions** — pass `sessionId` / `resume` to continue conversations across calls
+- **Pluggable backends** — set `GEMINI_MCP_BACKEND=agy` to use the experimental Antigravity CLI
+- **Per-call timeout** — configurable via `GEMINI_MCP_TIMEOUT_MS` (default 30 min)
 
 ## Need a Different Client?
 
@@ -186,7 +214,7 @@ npm install -g @google/gemini-cli
 1. Check your configuration file path
 2. Ensure JSON syntax is correct
 3. Restart your MCP client completely
-4. Verify Gemini CLI works: `gemini -help`
+4. Verify Gemini CLI works: `gemini --help`
 
 
 ### Client-Specific Issues

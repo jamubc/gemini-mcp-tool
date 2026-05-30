@@ -36,8 +36,11 @@ export function resolveCommandForExecution(command: string): string {
       });
       const candidates = out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
       const byExt = (ext: string) => candidates.find((c) => c.toLowerCase().endsWith(ext));
+      // Prefer extensions cmd.exe can launch directly (.cmd/.exe/.bat). A `.ps1`
+      // shim is NOT runnable via shell:true, so it is never preferred — only the
+      // raw first candidate is used as a last resort.
       resolved =
-        byExt(".cmd") || byExt(".ps1") || byExt(".bat") || byExt(".exe") ||
+        byExt(".cmd") || byExt(".exe") || byExt(".bat") ||
         candidates[0] || `${command}.cmd`;
     } catch {
       resolved = `${command}.cmd`;
@@ -106,6 +109,12 @@ export async function executeCommand(
     });
 
     if (stdinData !== undefined && childProcess.stdin) {
+      // If the child has already exited/closed its stdin, write() emits EPIPE on
+      // the stream; without this listener that becomes an uncaught exception and
+      // crashes the (long-lived) MCP server.
+      childProcess.stdin.on("error", (err) => {
+        Logger.error(`stdin write failed: ${err instanceof Error ? err.message : String(err)}`);
+      });
       childProcess.stdin.write(stdinData);
       childProcess.stdin.end();
     }
@@ -130,11 +139,19 @@ export async function executeCommand(
         if (isResolved) return;
         isResolved = true;
         Logger.error(`Command timed out after ${timeoutMs}ms; terminating: ${command}`);
-        try { childProcess.kill("SIGTERM"); } catch { /* already gone */ }
-        const sigkill = setTimeout(() => {
-          try { childProcess.kill("SIGKILL"); } catch { /* already gone */ }
-        }, 2000);
-        sigkill.unref?.();
+        if (isWindows && childProcess.pid) {
+          // With shell:true the child is cmd.exe; kill() would orphan the real
+          // gemini/agy process. taskkill /T terminates the whole process tree.
+          try {
+            execSync(`taskkill /pid ${childProcess.pid} /T /F`, { stdio: "ignore" });
+          } catch { /* already gone */ }
+        } else {
+          try { childProcess.kill("SIGTERM"); } catch { /* already gone */ }
+          const sigkill = setTimeout(() => {
+            try { childProcess.kill("SIGKILL"); } catch { /* already gone */ }
+          }, 2000);
+          sigkill.unref?.();
+        }
         reject(new Error(`Command timed out after ${timeoutMs}ms: ${command}`));
       }, timeoutMs);
       timeoutHandle.unref?.();

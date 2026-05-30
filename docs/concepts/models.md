@@ -27,19 +27,27 @@ You can also append with '-m' or ask specifically with
 {
   "mcpServers": {
     "gemini-cli": {
-      "command": "gemini-mcp",
-      "env": {
-        "GEMINI_MODEL": "gemini-1.5-flash"
-      }
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"]
     }
   }
 }
 ```
 
-### Per Request (Coming Soon)
+The model is selected per-request via natural language or the `model` tool argument.
+
+### Per Request
 ```
-/gemini-cli:analyze --model=flash @file.js quick review
+ask gemini using flash to review this file
 ```
+or explicitly:
+```
+ask-gemini with model: "gemini-2.5-flash" — review @index.ts
+```
+
+::: warning Antigravity CLI (agy) backend
+When using `GEMINI_MCP_BACKEND=agy`, model selection is ignored — print mode is hardcoded to **Gemini 3.5 Flash**.
+:::
 
 ## Model Comparison
 
