@@ -13,7 +13,8 @@ function quoteForCmd(arg: string): string {
 export async function executeCommand(
   command: string,
   args: string[],
-  onProgress?: (newOutput: string) => void
+  onProgress?: (newOutput: string) => void,
+  stdinData?: string,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -29,18 +30,27 @@ export async function executeCommand(
     const isWindows = process.platform === "win32";
     const safeArgs = isWindows ? args.map(quoteForCmd) : args;
 
+    // Complex prompts arrive on stdin (see geminiExecutor) to bypass cmd.exe
+    // parsing and the OS command-line length limit; only open stdin then.
+    // windowsHide suppresses the popup console window on Windows (no-op elsewhere).
     const childProcess = spawn(command, safeArgs, {
       env: process.env,
       shell: isWindows,
-      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+      stdio: [stdinData !== undefined ? "pipe" : "ignore", "pipe", "pipe"],
     });
+
+    if (stdinData !== undefined && childProcess.stdin) {
+      childProcess.stdin.write(stdinData);
+      childProcess.stdin.end();
+    }
 
     let stdout = "";
     let stderr = "";
     let isResolved = false;
     let lastReportedLength = 0;
     
-    childProcess.stdout.on("data", (data) => {
+    childProcess.stdout?.on("data", (data) => {
       stdout += data.toString();
       
       // Report new content if callback provided
@@ -53,7 +63,7 @@ export async function executeCommand(
 
 
     // CLI level errors
-    childProcess.stderr.on("data", (data) => {
+    childProcess.stderr?.on("data", (data) => {
       stderr += data.toString();
       // find RESOURCE_EXHAUSTED when gemini-2.5-pro quota is exceeded
       if (stderr.includes("RESOURCE_EXHAUSTED")) {

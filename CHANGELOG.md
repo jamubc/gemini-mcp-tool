@@ -5,6 +5,7 @@
   - Removed the broken double-quote wrapping from both the primary and fallback paths. With `spawn` running `shell: false`, those quotes were passed as literal characters — they provided no protection and corrupted `@file` references. Windows `.cmd` argument quoting is hardened separately (see below).
   - Added `assertSafeFileReferences()`, which rejects any `@file` reference that resolves outside the project working directory (absolute paths, `~` home references, and `../` traversal), closing the arbitrary-file-read exfiltration vector while preserving legitimate in-project `@file` usage.
   - Hardened the Windows `shell: true` path in `commandExecutor.ts`: every argument is now quoted (previously only those containing whitespace), so cmd metacharacters (`& | < > ^ ( )`) in spaceless tokens such as `a&calc` can no longer break out into command injection. Affected every tool that shells out (`ask-gemini`, `brainstorm`, `ping`).
+- Windows robustness: complex prompts (`changeMode` / `@file`) are now sent to the Gemini CLI on **stdin** instead of the `-p` flag, sidestepping cmd.exe argument parsing and the OS command-line length limit on large prompts. Added `windowsHide` to suppress the popup console window on Windows. (Harvested from the tested work in #27.)
 - Fixed `spawn EINVAL` error on Windows with Node 22+ when launching `.cmd` shims (PR #69).
 
 ## [1.1.5]
