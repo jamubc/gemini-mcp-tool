@@ -1,6 +1,15 @@
 import { spawn } from "child_process";
 import { Logger } from "./logger.js";
 
+// Quote a single argument for cmd.exe (used by spawn's shell:true on Windows).
+// Embedded quotes are doubled and backslash runs before a quote (or the closing
+// quote) are doubled so they don't escape it, per CommandLineToArgvW rules. Note
+// cmd still expands %VAR%/!VAR! inside quotes — an env read at worst, not RCE.
+function quoteForCmd(arg: string): string {
+  const body = String(arg).replace(/(\\*)"/g, '$1$1""').replace(/(\\+)$/, '$1$1');
+  return `"${body}"`;
+}
+
 export async function executeCommand(
   command: string,
   args: string[],
@@ -11,19 +20,14 @@ export async function executeCommand(
     Logger.commandExecution(command, args, startTime);
 
     // Windows quirk: Node 22+ blocks spawning `.cmd` / `.bat` shims without
-    // `shell: true` (CVE-2024-27980). But `shell: true` causes cmd.exe to
-    // re-tokenise the argument list on whitespace, which mangles any prompt
-    // that contains spaces (Gemini sees `-p Hello` plus stray positionals
-    // `world.`). The fix is to enable the shell on Windows AND wrap any arg
-    // containing whitespace or a double quote in cmd.exe-safe quotes
-    // (internal `"` is escaped as `""`). This is a no-op on macOS / Linux.
+    // `shell: true` (CVE-2024-27980). But shell:true routes the command through
+    // cmd.exe, which re-parses the joined line — so EVERY argument must be
+    // quoted, not just those with whitespace. cmd metacharacters (& | < > ^ ( ))
+    // trigger command injection even in tokens without spaces (e.g. a prompt
+    // `a&calc`); wrapping each arg in double quotes makes them inert. This is a
+    // no-op on macOS / Linux, where shell:false passes argv directly.
     const isWindows = process.platform === "win32";
-    const safeArgs = isWindows
-      ? args.map(a => {
-          const s = String(a);
-          return /[\s"]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-        })
-      : args;
+    const safeArgs = isWindows ? args.map(quoteForCmd) : args;
 
     const childProcess = spawn(command, safeArgs, {
       env: process.env,
