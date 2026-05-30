@@ -126,14 +126,16 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
 
-  // spawn runs with shell: false (and cmd.exe-safe quoting on Windows is
-  // handled in commandExecutor), so the prompt is passed verbatim as a single
-  // argv entry. No manual quoting here — wrapping in `"` only injects literal
-  // quote characters and corrupts @file references (#66, CVE-2026-0755).
-  args.push(CLI.FLAGS.PROMPT, prompt_processed);
+  // changeMode and @file prompts go on stdin instead of -p: keeps large prompts
+  // under the OS command-line length limit and never exposes them to cmd.exe
+  // parsing on Windows. Simple prompts use -p verbatim (commandExecutor handles
+  // Windows quoting); no manual quoting — that only injects literal quote
+  // characters and corrupts @file references (#66, CVE-2026-0755).
+  const useStdin = !!changeMode || prompt_processed.includes('@');
+  if (!useStdin) { args.push(CLI.FLAGS.PROMPT, prompt_processed); }
 
   try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress, useStdin ? prompt_processed : undefined);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
@@ -145,10 +147,10 @@ ${prompt_processed}
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
       
-      // Pass the prompt verbatim here too (see note in the primary path).
-      fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed);
+      // Same stdin/-p routing as the primary path (see note above).
+      if (!useStdin) { fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed); }
       try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
+        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress, useStdin ? prompt_processed : undefined);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
         return result;
