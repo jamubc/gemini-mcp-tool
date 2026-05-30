@@ -13,7 +13,7 @@ First feature release after the 1.1.6 security patch. Hardens cross-platform exe
 
 ### Changed
 - `engines.node` raised to `>=18`.
-- The server version is now read from `package.json` at runtime, instead of a hardcoded string that had drifted to `1.1.4`.
+- The server version and the documentation navbar badge are now read from `package.json` dynamically, instead of hardcoded strings that had drifted to `1.1.4`.
 - Installing from a Git checkout now builds automatically via a `prepare` script.
 
 ### Fixed
