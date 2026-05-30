@@ -16,6 +16,7 @@ import {
   GetPromptResult,
   CallToolResult,
 } from "@modelcontextprotocol/sdk/types.js";
+import { readFileSync } from "node:fs";
 import { Logger } from "./utils/logger.js";
 import { PROTOCOL, ToolArguments } from "./constants.js";
 
@@ -27,10 +28,16 @@ import {
   getPromptMessage 
 } from "./tools/index.js";
 
+// Read the version from package.json at runtime so it never drifts from the
+// published version (it previously hardcoded an out-of-date "1.1.4").
+const pkg = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
+
 const server = new Server(
   {
     name: "gemini-cli-mcp",
-    version: "1.1.4",
+    version: pkg.version,
   },{
     capabilities: {
       tools: {},

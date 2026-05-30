@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { UnifiedTool } from './registry.js';
 import { Logger } from '../utils/logger.js';
 import { executeGeminiCLI } from '../utils/geminiExecutor.js';
+import { type ApprovalMode } from '../constants.js';
 
 function buildBrainstormPrompt(config: {
   prompt: string;
@@ -118,6 +119,7 @@ ${domain ? `Given the ${domain} domain, I'll apply the most effective combinatio
 const brainstormArgsSchema = z.object({
   prompt: z.string().min(1).describe("Primary brainstorming challenge or question to explore"),
   model: z.string().optional().describe("Optional model to use (e.g., 'gemini-2.5-flash'). If not specified, uses the default model (gemini-2.5-pro)."),
+  approvalMode: z.enum(['default', 'auto_edit', 'yolo', 'plan']).optional().describe("Optional Gemini approval mode. If omitted, no mode is forced."),
   methodology: z.enum(['divergent', 'convergent', 'scamper', 'design-thinking', 'lateral', 'auto']).default('auto').describe("Brainstorming framework: 'divergent' (generate many ideas), 'convergent' (refine existing), 'scamper' (systematic triggers), 'design-thinking' (human-centered), 'lateral' (unexpected connections), 'auto' (AI selects best)"),
   domain: z.string().optional().describe("Domain context for specialized brainstorming (e.g., 'software', 'business', 'creative', 'research', 'product', 'marketing')"),
   constraints: z.string().optional().describe("Known limitations, requirements, or boundaries (budget, time, technical, legal, etc.)"),
@@ -138,6 +140,7 @@ export const brainstormTool: UnifiedTool = {
     const {
       prompt,
       model,
+      approvalMode,
       methodology = 'auto',
       domain,
       constraints,
@@ -166,6 +169,10 @@ export const brainstormTool: UnifiedTool = {
     onProgress?.(`Generating ${ideaCount} ideas via ${methodology} methodology...`);
     
     // Execute with Gemini
-    return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false, onProgress);
+    return await executeGeminiCLI(enhancedPrompt, {
+      model: model as string | undefined,
+      approvalMode: approvalMode as ApprovalMode | undefined,
+      onProgress,
+    });
   }
 };

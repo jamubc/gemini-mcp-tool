@@ -1,6 +1,6 @@
 {
   "name": "gemini-mcp-tool",
-  "version": "1.1.6",
+  "version": "1.2.0",
   "description": "MCP server for Gemini CLI integration",
   "type": "module",
   "main": "dist/index.js",
@@ -8,10 +8,11 @@
     "gemini-mcp": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
-    "test": "echo \"No tests yet\" && exit 0",
+    "test": "node scripts/run-tests.mjs",
     "lint": "tsc --noEmit",
     "contribute": "tsx src/contribute.ts",
     "prepublishOnly": "echo '⚠️  Remember to test locally first!' && npm run build",
@@ -38,7 +39,7 @@
   },
   "homepage": "https://github.com/jamubc/gemini-mcp-tool#readme",
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "files": [
     "dist/",

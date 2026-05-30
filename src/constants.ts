@@ -62,14 +62,18 @@ export const CLI = {
   // Command names
   COMMANDS: {
     GEMINI: "gemini",
+    AGY: "agy", // Antigravity CLI — experimental backend (gemini-cli's successor)
     ECHO: "echo",
   },
-  // Command flags
+  // Command flags (Gemini CLI)
   FLAGS: {
     MODEL: "-m",
     SANDBOX: "-s",
     PROMPT: "-p",
-    HELP: "-help",
+    HELP: "--help", // was "-help" — yargs parsed that as -h -e -l -p (the help bug)
+    APPROVAL_MODE: "--approval-mode",
+    SESSION_ID: "--session-id",
+    RESUME: "--resume",
   },
   // Default values
   DEFAULTS: {
@@ -77,6 +81,26 @@ export const CLI = {
     BOOLEAN_TRUE: "true",
     BOOLEAN_FALSE: "false",
   },
+} as const;
+
+// Gemini CLI approval modes (`gemini --approval-mode <mode>`, confirmed in v0.43).
+// Opt-in only — when unset, no mode is forced (preserves plain Q&A behaviour).
+// plan = autonomous read-only planner · auto_edit = auto-approve edit tools ·
+// yolo = auto-approve all tools.
+export const APPROVAL_MODES = {
+  DEFAULT: "default",
+  AUTO_EDIT: "auto_edit",
+  YOLO: "yolo",
+  PLAN: "plan",
+} as const;
+export type ApprovalMode = (typeof APPROVAL_MODES)[keyof typeof APPROVAL_MODES];
+
+// Environment variables that configure the server.
+export const ENV = {
+  BACKEND: "GEMINI_MCP_BACKEND", // "gemini" (default) | "agy"
+  APPROVAL_MODE: "GEMINI_MCP_APPROVAL_MODE", // overridden per-call by the approvalMode arg
+  GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
+  TIMEOUT_MS: "GEMINI_MCP_TIMEOUT_MS", // per-call command timeout in milliseconds
 } as const;
 
 
@@ -88,6 +112,9 @@ export interface ToolArguments {
   changeMode?: boolean | string;
   chunkIndex?: number | string; // Which chunk to return (1-based)
   chunkCacheKey?: string; // Optional cache key for continuation
+  approvalMode?: string; // Gemini approval mode: default | auto_edit | yolo | plan
+  sessionId?: string; // Start/identify a session (gemini --session-id, agy --conversation)
+  resume?: string; // Resume a prior session id or "latest" (gemini --resume, agy --continue)
   message?: string; // For Ping tool -- Un-used.
   
   // --> new tool
