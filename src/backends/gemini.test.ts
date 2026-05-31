@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveApprovalMode, buildGeminiArgs } from "./gemini.js";
+import { resolveApprovalMode, buildGeminiArgs, resolveModel } from "./gemini.js";
 
 const ENV_KEY = "GEMINI_MCP_APPROVAL_MODE";
 
@@ -45,6 +45,23 @@ test("buildGeminiArgs forces no approval mode by default", () => {
       "xyz",
     ]);
   });
+});
+
+test("resolveModel: arg > GEMINI_MODEL env > undefined", () => {
+  const prev = process.env.GEMINI_MODEL;
+  delete process.env.GEMINI_MODEL;
+  try {
+    assert.equal(resolveModel(), undefined);
+    assert.equal(resolveModel("gemini-2.5-flash"), "gemini-2.5-flash");
+    process.env.GEMINI_MODEL = "gemini-3-pro-preview";
+    assert.equal(resolveModel(), "gemini-3-pro-preview");
+    assert.equal(resolveModel("gemini-2.5-flash"), "gemini-2.5-flash"); // explicit arg wins
+    process.env.GEMINI_MODEL = "   ";
+    assert.equal(resolveModel(), undefined); // blank env ignored
+  } finally {
+    if (prev === undefined) delete process.env.GEMINI_MODEL;
+    else process.env.GEMINI_MODEL = prev;
+  }
 });
 
 test("buildGeminiArgs adds the approval flag only when requested; resume beats sessionId", () => {

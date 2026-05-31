@@ -6,6 +6,8 @@ All configuration is done via environment variables in your MCP client config. N
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `GEMINI_MODEL` | *(CLI default)* | Default model when a call doesn't pass one |
+| `GEMINI_FLASH_MODEL` | `gemini-2.5-flash` | Model used for the automatic quota fallback |
 | `GEMINI_MCP_APPROVAL_MODE` | *(unset)* | Default approval mode for all calls |
 | `GEMINI_MCP_BACKEND` | `gemini` | CLI backend: `gemini` or `agy` |
 | `GEMINI_MCP_TIMEOUT_MS` | `1800000` (30 min) | Per-call timeout; `0` disables |
@@ -33,6 +35,26 @@ claude mcp add gemini-cli -e GEMINI_MCP_APPROVAL_MODE=plan -- npx -y gemini-mcp-
   }
 }
 ```
+
+---
+
+## Default Model <Badge text="1.2.0" type="tip" />
+
+By default the model is chosen per request (natural language or the `model` argument); if none is given, the Gemini CLI uses its own default. Set `GEMINI_MODEL` to pin a default so the assistant can't fall back to an older model ([issue #49](https://github.com/jamubc/gemini-mcp-tool/issues/49)):
+
+```json
+{
+  "env": {
+    "GEMINI_MODEL": "gemini-3-pro-preview"
+  }
+}
+```
+
+**Precedence:** per-call `model` argument → `GEMINI_MODEL` → Gemini CLI default. `GEMINI_FLASH_MODEL` overrides the model used for the automatic quota fallback (default `gemini-2.5-flash`).
+
+::: info
+The `agy` backend ignores model selection — its print mode is hardcoded to Gemini 3.5 Flash.
+:::
 
 ---
 
@@ -167,3 +189,21 @@ If you get "command not found" errors on Windows, set `GEMINI_CLI_PATH` to the f
   }
 }
 ```
+
+---
+
+## Diagnostics: the setup doctor <Badge text="1.2.0" type="tip" />
+
+Run the bundled doctor to see exactly what the tool will do on your machine — the active backend, the detected `gemini` / `agy` versions and paths, your effective model/approval/timeout configuration, and any problems:
+
+```bash
+npx -p gemini-mcp-tool gemini-mcp-doctor
+# or, from a clone of the repo:
+npm run doctor
+```
+
+It exits non-zero if the active backend's CLI can't be found, which makes it handy in setup scripts.
+
+::: info
+The doctor reads the environment of the shell you run it in. Your MCP client sets its own `env` for the server process, so values there may differ from what the doctor prints.
+:::

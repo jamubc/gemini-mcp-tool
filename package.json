@@ -5,13 +5,15 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gemini-mcp": "dist/index.js"
+    "gemini-mcp": "dist/index.js",
+    "gemini-mcp-doctor": "scripts/doctor.mjs"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsc && node dist/index.js",
+    "doctor": "node scripts/doctor.mjs",
     "test": "node scripts/run-tests.mjs",
     "lint": "tsc --noEmit",
     "contribute": "tsx src/contribute.ts",
@@ -43,6 +45,7 @@
   },
   "files": [
     "dist/",
+    "scripts/doctor.mjs",
     "README.md",
     "LICENSE"
   ],

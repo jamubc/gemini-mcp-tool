@@ -9,6 +9,8 @@ First feature release after the 1.1.6 security patch. Hardens cross-platform exe
 - **Pluggable backends** — the executor is now backend-agnostic. The Gemini CLI stays the default; set `GEMINI_MCP_BACKEND=agy` to use the **experimental** Antigravity CLI (`agy`) backend, ahead of Gemini CLI's 2026-06-18 retirement for free/Pro/Ultra tiers. (agy print-mode is Flash-only, and its reply is recovered from agy's transcript files to work around the upstream `agy -p` empty-stdout bug.)
 - **Per-command timeout** — a hung CLI call is now terminated (SIGTERM → SIGKILL). Configurable via `GEMINI_MCP_TIMEOUT_MS` (default 30 minutes; `0` disables).
 - **Windows executable resolution** — honours `GEMINI_CLI_PATH`, otherwise resolves the real `gemini` shim via `where` (preferring `.cmd`), fixing "command not found" when the MCP server doesn't inherit your shell's PATH.
+- **Configurable default model** — `GEMINI_MODEL` sets the model used when a call doesn't pass one, so the assistant can't silently fall back to an older model (#49); `GEMINI_FLASH_MODEL` overrides the quota-fallback target. Precedence: per-call `model` arg → `GEMINI_MODEL` → Gemini CLI default.
+- **Setup doctor** — `npm run doctor` / the `gemini-mcp-doctor` bin reports the active backend, detected `gemini`/`agy` installs (path + version), and the effective model/approval/timeout/env configuration, with actionable hints.
 - **Test suite** — `node:test` coverage for the `@file` security guard, Windows quoting/resolution, approval-mode and session argument building, backend selection, and timeout parsing (`npm test`).
 
 ### Changed

@@ -26,6 +26,20 @@ export function resolveApprovalMode(arg?: string): ApprovalMode | undefined {
   return VALID_APPROVAL_MODES.includes(candidate) ? (candidate as ApprovalMode) : undefined;
 }
 
+/**
+ * Resolve the model to use: explicit per-call arg > GEMINI_MODEL env > undefined
+ * (let the Gemini CLI pick its own default). The env default lets users pin a
+ * model in their MCP config so Claude can't fall back to an older one (issue #49).
+ */
+export function resolveModel(argModel?: string): string | undefined {
+  return argModel || process.env[ENV.MODEL]?.trim() || undefined;
+}
+
+/** The model the quota fallback retries on (GEMINI_FLASH_MODEL or the default). */
+export function resolveFlashModel(): string {
+  return process.env[ENV.FLASH_MODEL]?.trim() || MODELS.FLASH;
+}
+
 /** Build the Gemini CLI argv (minus the prompt, which may go on stdin). */
 export function buildGeminiArgs(
   model: string | undefined,
@@ -61,23 +75,24 @@ export const geminiBackend: Backend = {
   name: "gemini",
   supportsModelSelection: true,
   async run(prompt, opts) {
-    const model = opts.model;
+    const model = resolveModel(opts.model);
+    const flashModel = resolveFlashModel();
     try {
       return await runOnce(prompt, model, opts);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       // gemini-2.5-pro quota exhausted → retry once on flash (unless already flash).
-      if (message.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
-        Logger.warn(`${ERROR_MESSAGES.QUOTA_EXCEEDED}. Falling back to ${MODELS.FLASH}.`);
+      if (message.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== flashModel) {
+        Logger.warn(`${ERROR_MESSAGES.QUOTA_EXCEEDED}. Falling back to ${flashModel}.`);
         try {
-          const result = await runOnce(prompt, MODELS.FLASH, opts);
-          Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
+          const result = await runOnce(prompt, flashModel, opts);
+          Logger.warn(`Successfully executed with ${flashModel} fallback.`);
           return result;
         } catch (fallbackError) {
           const fe =
             fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
           throw new Error(
-            `${MODELS.PRO} quota exceeded, ${MODELS.FLASH} fallback also failed: ${fe}`,
+            `${MODELS.PRO} quota exceeded, ${flashModel} fallback also failed: ${fe}`,
           );
         }
       }

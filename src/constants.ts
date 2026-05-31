@@ -101,6 +101,8 @@ export const ENV = {
   APPROVAL_MODE: "GEMINI_MCP_APPROVAL_MODE", // overridden per-call by the approvalMode arg
   GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
   TIMEOUT_MS: "GEMINI_MCP_TIMEOUT_MS", // per-call command timeout in milliseconds
+  MODEL: "GEMINI_MODEL", // default model when a call doesn't pass one (issue #49)
+  FLASH_MODEL: "GEMINI_FLASH_MODEL", // overrides the quota-fallback model (default gemini-2.5-flash)
 } as const;
 
 

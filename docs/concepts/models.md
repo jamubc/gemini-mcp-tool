@@ -23,18 +23,22 @@ You can also append with '-m' or ask specifically with
 ```
 
 ### In Configuration
+
+Set `GEMINI_MODEL` to choose a default model for **every** call. This is the fix for the assistant occasionally falling back to an older model ([issue #49](https://github.com/jamubc/gemini-mcp-tool/issues/49)) — pin it once in your MCP config:
+
 ```json
 {
   "mcpServers": {
     "gemini-cli": {
       "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
+      "args": ["-y", "gemini-mcp-tool"],
+      "env": { "GEMINI_MODEL": "gemini-3-pro-preview" }
     }
   }
 }
 ```
 
-The model is selected per-request via natural language or the `model` tool argument.
+**Precedence:** a per-request `model` argument overrides `GEMINI_MODEL`, which overrides the Gemini CLI's own default. So you can pin a default here and still say "use flash" for a one-off.
 
 ### Per Request
 ```

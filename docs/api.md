@@ -65,6 +65,8 @@ Returns `gemini --help` output.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `GEMINI_MODEL` | *(CLI default)* | Default model when a call omits `model` |
+| `GEMINI_FLASH_MODEL` | `gemini-2.5-flash` | Model used for the quota fallback |
 | `GEMINI_MCP_BACKEND` | `gemini` | Backend: `gemini` or `agy` (experimental) |
 | `GEMINI_MCP_APPROVAL_MODE` | *(unset)* | Default approval mode for all calls |
 | `GEMINI_MCP_TIMEOUT_MS` | `1800000` | Per-call timeout in ms; `0` disables |
