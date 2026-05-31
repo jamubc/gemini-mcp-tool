@@ -5,8 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gemini-mcp": "dist/index.js",
-    "gemini-mcp-doctor": "scripts/doctor.mjs"
+    "gemini-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -45,7 +44,6 @@
   },
   "files": [
     "dist/",
-    "scripts/doctor.mjs",
     "README.md",
     "LICENSE"
   ],

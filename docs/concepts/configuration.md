@@ -10,7 +10,7 @@ All configuration is done via environment variables in your MCP client config. N
 | `GEMINI_FLASH_MODEL` | `gemini-2.5-flash` | Model used for the automatic quota fallback |
 | `GEMINI_MCP_APPROVAL_MODE` | *(unset)* | Default approval mode for all calls |
 | `GEMINI_MCP_BACKEND` | `gemini` | CLI backend: `gemini` or `agy` |
-| `GEMINI_MCP_TIMEOUT_MS` | `1800000` (30 min) | Per-call timeout; `0` disables |
+| `GEMINI_MCP_TIMEOUT_MS` | *(disabled)* | Opt-in per-call timeout in ms; unset/`0` waits forever |
 | `GEMINI_CLI_PATH` | *(auto-detect)* | Explicit path to the gemini executable |
 
 ### Setting Environment Variables
@@ -126,24 +126,24 @@ You don't need to do anything today. Gemini CLI still works for headless/automat
 
 ## Timeout
 
-A per-call timeout protects against hung CLI processes. If the timeout fires, the child is sent `SIGTERM`, then `SIGKILL` after 2 seconds.
+An **opt-in** per-call timeout can protect against hung CLI processes. It is **disabled by default** — exactly like 1.1.6, the server waits indefinitely for the CLI unless you set this. When enabled and the timeout fires, the child is sent `SIGTERM`, then `SIGKILL` after 2 seconds.
 
 | Value | Behaviour |
 |-------|-----------|
-| `1800000` (default) | 30-minute timeout |
-| Any positive number | Timeout in milliseconds |
+| *(unset, default)* | Disabled — wait forever (1.1.6 behaviour) |
 | `0` | Disabled — wait forever |
+| Any positive number | Timeout in milliseconds |
 
 ```json
 {
   "env": {
-    "GEMINI_MCP_TIMEOUT_MS": "600000"
+    "GEMINI_MCP_TIMEOUT_MS": "1800000"
   }
 }
 ```
 
 ::: tip
-Large codebase analyses can legitimately run for many minutes. The 30-minute default is deliberately generous — it exists to release genuinely hung processes, not to cap normal work.
+Large codebase analyses can legitimately run for many minutes, so there is no default cap. If you enable a timeout, make it generous (e.g. `1800000` = 30 minutes) — it should release genuinely hung processes, not cap normal work.
 :::
 
 ---
@@ -189,21 +189,3 @@ If you get "command not found" errors on Windows, set `GEMINI_CLI_PATH` to the f
   }
 }
 ```
-
----
-
-## Diagnostics: the setup doctor <Badge text="1.2.0" type="tip" />
-
-Run the bundled doctor to see exactly what the tool will do on your machine — the active backend, the detected `gemini` / `agy` versions and paths, your effective model/approval/timeout configuration, and any problems:
-
-```bash
-npx -p gemini-mcp-tool gemini-mcp-doctor
-# or, from a clone of the repo:
-npm run doctor
-```
-
-It exits non-zero if the active backend's CLI can't be found, which makes it handy in setup scripts.
-
-::: info
-The doctor reads the environment of the shell you run it in. Your MCP client sets its own `env` for the server process, so values there may differ from what the doctor prints.
-:::

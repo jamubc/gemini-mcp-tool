@@ -1,9 +1,14 @@
 #!/usr/bin/env node
-// gemini-mcp-tool setup doctor.
+// gemini-mcp-tool setup doctor — INTERNAL development / diagnostic tool.
 //
-// Reports what the tool will actually do on this machine: which CLI backend is
-// active, whether the gemini / agy executables are installed (path + version),
-// the effective model configuration, and every related environment variable.
+// Not published: deliberately excluded from package.json "bin" and "files", so
+// it ships with the repo but NOT the npm package. Run it from a checkout with
+// `npm run doctor` (or `node scripts/doctor.mjs`). May be released publicly later.
+//
+// Reports the live state of the system as it pertains to the MCP server: which
+// CLI backend is active, whether the gemini / agy executables are installed
+// (path + version), the effective model / approval / timeout configuration, and
+// every related environment variable — for debugging and at-a-glance awareness.
 //
 // Self-contained: pure Node, no build step or dependencies. The constant names
 // below mirror src/constants.ts — keep them in sync.
@@ -22,7 +27,6 @@ const ENV = {
   FLASH_MODEL: "GEMINI_FLASH_MODEL",
 };
 const DEFAULT_FLASH_MODEL = "gemini-2.5-flash";
-const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 const APPROVAL_MODES = ["default", "auto_edit", "yolo", "plan"];
 
 const isWindows = process.platform === "win32";
@@ -174,12 +178,12 @@ if (!approval) {
   console.log(`  approval mode   ${c.yellow(approval)} ${WARN} not one of ${APPROVAL_MODES.join("/")} — will be ignored`);
 }
 const rawTimeout = (process.env[ENV.TIMEOUT_MS] || "").trim();
-let timeoutMs = DEFAULT_TIMEOUT_MS;
+let timeoutMs = 0; // disabled by default (1.1.6 parity: waits forever)
 if (rawTimeout) {
   const n = Number(rawTimeout);
   timeoutMs = Number.isFinite(n) && n > 0 ? n : 0;
 }
-console.log(`  timeout         ${c.cyan(humanizeMs(timeoutMs))}${rawTimeout ? c.dim("  (GEMINI_MCP_TIMEOUT_MS)") : c.dim("  (default)")}`);
+console.log(`  timeout         ${c.cyan(humanizeMs(timeoutMs))}${rawTimeout ? c.dim("  (GEMINI_MCP_TIMEOUT_MS)") : c.dim("  (default: disabled)")}`);
 
 // ── Environment variables ──────────────────────────────────────────────────--
 heading("Environment variables (this shell)");

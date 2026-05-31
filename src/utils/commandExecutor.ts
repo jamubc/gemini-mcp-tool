@@ -124,8 +124,9 @@ export async function executeCommand(
     let isResolved = false;
     let lastReportedLength = 0;
 
-    // Release a genuinely hung child after the configured timeout (default 30m;
-    // GEMINI_MCP_TIMEOUT_MS overrides, 0 disables). SIGTERM first, then SIGKILL.
+    // Optional safety timeout to release a genuinely hung child. Disabled by
+    // default (1.1.6 parity: wait forever); set GEMINI_MCP_TIMEOUT_MS > 0 to
+    // enable. When it fires: SIGTERM first, then SIGKILL.
     const timeoutMs = resolveTimeoutMs();
     let timeoutHandle: NodeJS.Timeout | undefined;
     const clearTimer = () => {

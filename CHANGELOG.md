@@ -1,16 +1,15 @@
 # Changelog
 
 ## [1.2.0] - 2026-05-30
-First feature release after the 1.1.6 security patch. Hardens cross-platform execution, adds an opt-in safety control and native multi-turn sessions, makes the CLI backend pluggable (ahead of Gemini CLI's retirement), and adds a real test suite.
+First feature release after the 1.1.6 security patch. Hardens cross-platform execution, adds an opt-in safety control and native multi-turn sessions, makes the CLI backend pluggable (ahead of Gemini CLI's retirement), and adds a real test suite. **With no environment variables set, behaviour is identical to 1.1.6** — every new knob (backend, model, approval mode, timeout, executable path) is off/unset by default and only changes behaviour when you opt in.
 
 ### Added
 - **Approval mode** — optional `approvalMode` argument on `ask-gemini`/`brainstorm` (and `GEMINI_MCP_APPROVAL_MODE` env), forwarding Gemini's `--approval-mode` (`default` / `auto_edit` / `yolo` / `plan`). Opt-in: when unset, behaviour is unchanged. Use `yolo` / `auto_edit` with `sandbox` to let Gemini run or edit; `plan` runs Gemini as an autonomous read-only planner.
 - **Native multi-turn sessions** — `sessionId` and `resume` arguments forward Gemini's `--session-id` / `--resume`; the active session id is surfaced in the response so a follow-up call can continue the conversation. Builds on #50; uses the CLI's own sessions rather than local transcript storage.
 - **Pluggable backends** — the executor is now backend-agnostic. The Gemini CLI stays the default; set `GEMINI_MCP_BACKEND=agy` to use the **experimental** Antigravity CLI (`agy`) backend, ahead of Gemini CLI's 2026-06-18 retirement for free/Pro/Ultra tiers. (agy print-mode is Flash-only, and its reply is recovered from agy's transcript files to work around the upstream `agy -p` empty-stdout bug.)
-- **Per-command timeout** — a hung CLI call is now terminated (SIGTERM → SIGKILL). Configurable via `GEMINI_MCP_TIMEOUT_MS` (default 30 minutes; `0` disables).
+- **Per-command timeout (opt-in)** — set `GEMINI_MCP_TIMEOUT_MS` to a positive number of milliseconds to terminate a hung CLI call (SIGTERM → SIGKILL). **Disabled by default** to match 1.1.6, which waited indefinitely; unset or `0` keeps that behaviour.
 - **Windows executable resolution** — honours `GEMINI_CLI_PATH`, otherwise resolves the real `gemini` shim via `where` (preferring `.cmd`), fixing "command not found" when the MCP server doesn't inherit your shell's PATH.
 - **Configurable default model** — `GEMINI_MODEL` sets the model used when a call doesn't pass one, so the assistant can't silently fall back to an older model (#49); `GEMINI_FLASH_MODEL` overrides the quota-fallback target. Precedence: per-call `model` arg → `GEMINI_MODEL` → Gemini CLI default.
-- **Setup doctor** — `npm run doctor` / the `gemini-mcp-doctor` bin reports the active backend, detected `gemini`/`agy` installs (path + version), and the effective model/approval/timeout/env configuration, with actionable hints.
 - **Test suite** — `node:test` coverage for the `@file` security guard, Windows quoting/resolution, approval-mode and session argument building, backend selection, and timeout parsing (`npm test`).
 
 ### Changed
@@ -22,6 +21,10 @@ First feature release after the 1.1.6 security patch. Hardens cross-platform exe
 - The `Help` tool now invokes `gemini --help` instead of `-help`, which yargs mis-parsed as `-h -e -l -p`.
 - Clearer, platform-aware guidance when the executable is not found (ENOENT), including the `GEMINI_CLI_PATH` hint.
 - Windows robustness: complex prompts (`changeMode` / `@file`) are sent to the Gemini CLI on **stdin** instead of the `-p` flag, sidestepping cmd.exe argument parsing and the OS command-line length limit; added `windowsHide` to suppress the popup console window. (#27, #77)
+
+### Internal
+- **Per-call timeout default flipped to off** — `GEMINI_MCP_TIMEOUT_MS` now defaults to disabled (waits forever, exactly like 1.1.6) instead of 30 minutes; the timeout is strictly opt-in. `resolveTimeoutMs` returns `0` when unset/blank.
+- **Setup doctor kept as an unpublished dev tool** — `scripts/doctor.mjs` (run via `npm run doctor`) prints the live system state relevant to the MCP server — active backend, detected `gemini`/`agy` installs (path + version), effective model/approval/timeout config, and every related env var — for debugging and at-a-glance awareness. Intentionally removed from the npm `bin` and published `files`, so it ships with the repo but **not** the package; may be released publicly later.
 
 ## [1.1.6] - 2026-05-30
 _Emergency security patch — the CVE-2026-0755 fix only, ahead of this 1.2.0 release._

@@ -1,19 +1,23 @@
 import { ENV } from "../constants.js";
 
-// Default per-command timeout. Large-codebase analyses can legitimately run for
-// many minutes (see STATUS_MESSAGES), so this is deliberately generous — it
-// exists to release a genuinely hung child process, not to cap normal work.
-// Override with GEMINI_MCP_TIMEOUT_MS (milliseconds); set it to 0 to disable.
-export const DEFAULT_COMMAND_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+// Suggested value if you choose to enable the safety timeout. This is NOT applied
+// automatically — see resolveTimeoutMs below. 30 minutes is deliberately generous:
+// large-codebase analyses can legitimately run for many minutes, so it exists to
+// release a genuinely hung child, not to cap normal work.
+export const RECOMMENDED_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
- * Resolve the per-command timeout in milliseconds from the environment, falling
- * back to {@link DEFAULT_COMMAND_TIMEOUT_MS}. A value of 0 — or any negative /
- * non-numeric value — disables the timeout and returns 0.
+ * Resolve the per-command timeout in milliseconds from the environment.
+ *
+ * Parity with 1.1.6: there is NO timeout by default. The MCP server historically
+ * waited indefinitely for the child CLI, so when GEMINI_MCP_TIMEOUT_MS is unset or
+ * blank we return 0 (disabled) to preserve that behaviour exactly. The timeout is
+ * strictly opt-in: a positive value enables it; 0, negative, or non-numeric values
+ * also disable it (return 0).
  */
 export function resolveTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
   const raw = env[ENV.TIMEOUT_MS];
-  if (raw === undefined || raw.trim() === "") return DEFAULT_COMMAND_TIMEOUT_MS;
+  if (raw === undefined || raw.trim() === "") return 0; // disabled (1.1.6 parity)
   const parsed = Number(raw);
   if (!Number.isFinite(parsed) || parsed <= 0) return 0; // disabled / invalid
   return parsed;
