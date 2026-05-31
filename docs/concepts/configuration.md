@@ -38,6 +38,24 @@ claude mcp add gemini-cli -e GEMINI_MCP_APPROVAL_MODE=plan -- npx -y gemini-mcp-
 
 ---
 
+## `.env` file <Badge text="1.2.0" type="tip" />
+
+Instead of (or in addition to) per-client config, the server reads a `.env` file at startup as a **global default** for the install. On launch it looks for a `.env` next to the package, then in the working directory, and loads the recognised keys below.
+
+```bash
+# .env
+GEMINI_MODEL=gemini-2.5-pro
+GEMINI_MCP_TIMEOUT_MS=1800000
+```
+
+- Only the documented `GEMINI_*` keys are read — an unrelated `.env` can't inject other variables.
+- A value already set in the shell, or in a client's own `env` block, **overrides** the `.env` (the `.env` only fills the gaps).
+- No `.env` means no change in behaviour.
+
+**Precedence:** shell / client `env` → `.env` file → built-in default.
+
+---
+
 ## Default Model <Badge text="1.2.0" type="tip" />
 
 By default the model is chosen per request (natural language or the `model` argument); if none is given, the Gemini CLI uses its own default. Set `GEMINI_MODEL` to pin a default so the assistant can't fall back to an older model ([issue #49](https://github.com/jamubc/gemini-mcp-tool/issues/49)):

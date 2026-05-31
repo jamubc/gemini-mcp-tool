@@ -18,15 +18,21 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { readFileSync } from "node:fs";
 import { Logger } from "./utils/logger.js";
+import { loadEnvFile } from "./utils/envFile.js";
 import { PROTOCOL, ToolArguments } from "./constants.js";
 
-import { 
-  getToolDefinitions, 
-  getPromptDefinitions, 
-  executeTool, 
-  toolExists, 
-  getPromptMessage 
+import {
+  getToolDefinitions,
+  getPromptDefinitions,
+  executeTool,
+  toolExists,
+  getPromptMessage
 } from "./tools/index.js";
+
+// Load the optional .env (global per-install config from `npm run doctor setup`)
+// before anything reads process.env. No-op when no .env is present; never
+// overrides env already set by the shell or the MCP client.
+loadEnvFile();
 
 // Read the version from package.json at runtime so it never drifts from the
 // published version (it previously hardcoded an out-of-date "1.1.4").

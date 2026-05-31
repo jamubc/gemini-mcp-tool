@@ -10,6 +10,7 @@ First feature release after the 1.1.6 security patch. Hardens cross-platform exe
 - **Per-command timeout (opt-in)** — set `GEMINI_MCP_TIMEOUT_MS` to a positive number of milliseconds to terminate a hung CLI call (SIGTERM → SIGKILL). **Disabled by default** to match 1.1.6, which waited indefinitely; unset or `0` keeps that behaviour.
 - **Windows executable resolution** — honours `GEMINI_CLI_PATH`, otherwise resolves the real `gemini` shim via `where` (preferring `.cmd`), fixing "command not found" when the MCP server doesn't inherit your shell's PATH.
 - **Configurable default model** — `GEMINI_MODEL` sets the model used when a call doesn't pass one, so the assistant can't silently fall back to an older model (#49); `GEMINI_FLASH_MODEL` overrides the quota-fallback target. Precedence: per-call `model` arg → `GEMINI_MODEL` → Gemini CLI default.
+- **`.env` support** — the server loads recognised `GEMINI_*` keys from a `.env` file (package root, then cwd) at startup as global per-install defaults. Opt-in: only known keys are read, an already-set shell export or MCP-client env always wins, and no `.env` means no change (1.1.6 parity).
 - **Test suite** — `node:test` coverage for the `@file` security guard, Windows quoting/resolution, approval-mode and session argument building, backend selection, and timeout parsing (`npm test`).
 
 ### Changed
@@ -25,6 +26,8 @@ First feature release after the 1.1.6 security patch. Hardens cross-platform exe
 ### Internal
 - **Per-call timeout default flipped to off** — `GEMINI_MCP_TIMEOUT_MS` now defaults to disabled (waits forever, exactly like 1.1.6) instead of 30 minutes; the timeout is strictly opt-in. `resolveTimeoutMs` returns `0` when unset/blank.
 - **Setup doctor kept as an unpublished dev tool** — `scripts/doctor.mjs` (run via `npm run doctor`) prints the live system state relevant to the MCP server — active backend, detected `gemini`/`agy` installs (path + version), effective model/approval/timeout config, and every related env var — for debugging and at-a-glance awareness. Intentionally removed from the npm `bin` and published `files`, so it ships with the repo but **not** the package; may be released publicly later.
+  - Reports the source of each setting: a **global** value (this shell's env or the loaded `.env`, shown in gold as `(set globally)`) affects every client, vs a **per-client** value read from each Claude Code MCP server's `env` block in `~/.claude.json`.
+  - Adds `npm run doctor setup` — an interactive wizard that walks each option (showing the current value + recommended default; skip / set / pick-from-list, with a curated model list per backend and model selection skipped for `agy`) and applies the result to the `.env` file and/or a chosen Claude Code server (backing up `~/.claude.json` first).
 
 ## [1.1.6] - 2026-05-30
 _Emergency security patch — the CVE-2026-0755 fix only, ahead of this 1.2.0 release._
