@@ -23,23 +23,35 @@ You can also append with '-m' or ask specifically with
 ```
 
 ### In Configuration
+
+Set `GEMINI_MODEL` to choose a default model for **every** call. This is the fix for the assistant occasionally falling back to an older model ([issue #49](https://github.com/jamubc/gemini-mcp-tool/issues/49)) — pin it once in your MCP config:
+
 ```json
 {
   "mcpServers": {
     "gemini-cli": {
-      "command": "gemini-mcp",
-      "env": {
-        "GEMINI_MODEL": "gemini-1.5-flash"
-      }
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "env": { "GEMINI_MODEL": "gemini-3-pro-preview" }
     }
   }
 }
 ```
 
-### Per Request (Coming Soon)
+**Precedence:** a per-request `model` argument overrides `GEMINI_MODEL`, which overrides the Gemini CLI's own default. So you can pin a default here and still say "use flash" for a one-off.
+
+### Per Request
 ```
-/gemini-cli:analyze --model=flash @file.js quick review
+ask gemini using flash to review this file
 ```
+or explicitly:
+```
+ask-gemini with model: "gemini-2.5-flash" — review @index.ts
+```
+
+::: warning Antigravity CLI (agy) backend
+When using `GEMINI_MCP_BACKEND=agy`, model selection is ignored — print mode is hardcoded to **Gemini 3.5 Flash**.
+:::
 
 ## Model Comparison
 

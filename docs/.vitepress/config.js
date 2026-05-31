@@ -39,6 +39,7 @@ export default withMermaid(
         collapsed: false,
         items: [
           { text: 'How It Works', link: '/concepts/how-it-works' },
+          { text: 'Configuration', link: '/concepts/configuration' },
           { text: 'File Analysis (@)', link: '/concepts/file-analysis' },
           { text: 'Model Selection', link: '/concepts/models' },
           { text: 'Sandbox Mode', link: '/concepts/sandbox' }

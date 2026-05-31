@@ -105,6 +105,43 @@ If you installed globally, use this configuration instead:
 
 After updating the configuration, restart your terminal session.
 
+### Environment Variables (1.2.0)
+
+All optional — set them in your MCP client's `env` block. See the [Configuration docs](docs/concepts/configuration.md) for full detail.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GEMINI_MODEL` | *(CLI default)* | Default model when a call doesn't specify one (e.g. `gemini-3-pro-preview`) |
+| `GEMINI_MCP_APPROVAL_MODE` | *(unset)* | `default` / `auto_edit` / `yolo` / `plan` → forwarded to `gemini --approval-mode` |
+| `GEMINI_MCP_BACKEND` | `gemini` | CLI backend: `gemini` or `agy` (experimental) |
+| `GEMINI_MCP_TIMEOUT_MS` | `1800000` | Per-call timeout in ms; `0` disables |
+| `GEMINI_CLI_PATH` | *(auto)* | Full path to the `gemini` executable (Windows PATH issues) |
+| `GEMINI_FLASH_MODEL` | `gemini-2.5-flash` | Model used for the automatic quota fallback |
+
+Example — pin a default model so the assistant can't fall back to an older one ([#49](https://github.com/jamubc/gemini-mcp-tool/issues/49)):
+
+```json
+{
+  "mcpServers": {
+    "gemini-cli": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "env": { "GEMINI_MODEL": "gemini-3-pro-preview" }
+    }
+  }
+}
+```
+
+### Setup Doctor
+
+Not sure what's installed or how it's configured? Run the doctor to see the active backend, the detected `gemini` / `agy` versions and paths, and your effective model / approval / timeout settings:
+
+```bash
+npx -p gemini-mcp-tool gemini-mcp-doctor
+# or, from a clone of this repo:
+npm run doctor
+```
+
 ## Example Workflow
 
 - **Natural language**: "use gemini to explain index.html", "understand the massive project using gemini", "ask gemini to search for latest news"

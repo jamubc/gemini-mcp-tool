@@ -6,7 +6,7 @@
 A bridge between Claude Desktop and Google's Gemini AI, enabling you to use Gemini's powerful capabilities directly within Claude.
 
 ### Does it support windows?
-Windows testing is underway, some users have reported success and other failures.
+Yes. v1.2.0 adds robust Windows executable resolution (`GEMINI_CLI_PATH`, `.cmd` shim detection), hardened `cmd.exe` argument quoting, and `windowsHide` to suppress console popups.
 
 ### Why use this instead of Gemini directly?
 - Integrated into your existing AI workflow
@@ -32,7 +32,7 @@ Then, run "gemini" and complete auth.
 Yes! It works with both Claude Desktop and Claude Code.
 
 ### What Node.js version do I need?
-Node.js v16.0.0 or higher.
+Node.js v18.0.0 or higher.
 
 ## Usage
 
@@ -87,7 +87,16 @@ Check your organization's policies and Google's Gemini API terms of service.
 ## Advanced
 
 ### Can I use this in CI/CD?
-Not recommended - designed for interactive development.
+Yes — set `GEMINI_MCP_APPROVAL_MODE=yolo` (or `plan` for read-only) to avoid interactive approval prompts. Combine with `GEMINI_MCP_TIMEOUT_MS` for a hard time limit.
+
+### What is approval mode?
+Approval mode controls how much autonomy Gemini has. By default, no mode is forced (plain Q&A). Set `approvalMode: "plan"` for a read-only planner, `"yolo"` to auto-approve everything, or `"auto_edit"` to auto-approve edits only. See [Configuration](/concepts/configuration).
+
+### What is the agy backend?
+Antigravity CLI (`agy`) is Google's successor to Gemini CLI. Set `GEMINI_MCP_BACKEND=agy` to try it. It's experimental — print mode is Flash-only and stdout is recovered from transcript files. See [Configuration](/concepts/configuration#backends).
+
+### Can I have multi-turn conversations?
+Yes — pass `sessionId` to start a named session, then `resume` with the same id (or `"latest"`) in a follow-up call. This uses Gemini's native `--session-id` / `--resume` flags.
 
 <div style="text-align: center;">
 

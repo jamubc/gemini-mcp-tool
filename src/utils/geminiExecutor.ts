@@ -1,12 +1,7 @@
 import * as path from 'path';
-import { executeCommand } from './commandExecutor.js';
 import { Logger } from './logger.js';
-import { 
-  ERROR_MESSAGES, 
-  STATUS_MESSAGES, 
-  MODELS, 
-  CLI
-} from '../constants.js';
+import type { ApprovalMode } from '../constants.js';
+import { getBackend } from '../backends/index.js';
 
 import { parseChangeModeOutput, validateChangeModeEdits } from './changeModeParser.js';
 import { formatChangeModeResponse, summarizeChangeModeEdits } from './changeModeTranslator.js';
@@ -43,13 +38,21 @@ export function assertSafeFileReferences(prompt: string, root: string = process.
   }
 }
 
+export interface ExecuteGeminiOptions {
+  model?: string;
+  sandbox?: boolean;
+  changeMode?: boolean;
+  approvalMode?: ApprovalMode;
+  sessionId?: string;
+  resume?: string;
+  onProgress?: (newOutput: string) => void;
+}
+
 export async function executeGeminiCLI(
   prompt: string,
-  model?: string,
-  sandbox?: boolean,
-  changeMode?: boolean,
-  onProgress?: (newOutput: string) => void
+  options: ExecuteGeminiOptions = {},
 ): Promise<string> {
+  const { model, sandbox, changeMode, approvalMode, sessionId, resume, onProgress } = options;
   let prompt_processed = prompt;
   
   if (changeMode) {
@@ -118,48 +121,25 @@ ${prompt_processed}
     prompt_processed = changeModeInstructions;
   }
 
-  // Block @file references that escape the project root before the prompt
-  // reaches the Gemini CLI's file-inlining parser (CVE-2026-0755).
+  // Security: block @file refs that escape the project root before the prompt
+  // reaches any CLI that inlines file contents (CVE-2026-0755).
   assertSafeFileReferences(prompt_processed);
 
-  const args = [];
-  if (model) { args.push(CLI.FLAGS.MODEL, model); }
-  if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
+  // changeMode and @file prompts go on stdin (gemini backend) to keep large
+  // prompts under the OS command-line length limit and away from cmd.exe
+  // parsing on Windows; simple prompts use -p. The selected backend
+  // (gemini by default, agy when GEMINI_MCP_BACKEND=agy) handles the rest.
+  const useStdin = !!changeMode || prompt_processed.includes('@');
 
-  // spawn runs with shell: false (and cmd.exe-safe quoting on Windows is
-  // handled in commandExecutor), so the prompt is passed verbatim as a single
-  // argv entry. No manual quoting here — wrapping in `"` only injects literal
-  // quote characters and corrupts @file references (#66, CVE-2026-0755).
-  args.push(CLI.FLAGS.PROMPT, prompt_processed);
-
-  try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
-      Logger.warn(`${ERROR_MESSAGES.QUOTA_EXCEEDED}. Falling back to ${MODELS.FLASH}.`);
-      await sendStatusMessage(STATUS_MESSAGES.FLASH_RETRY);
-      const fallbackArgs = [];
-      fallbackArgs.push(CLI.FLAGS.MODEL, MODELS.FLASH);
-      if (sandbox) {
-        fallbackArgs.push(CLI.FLAGS.SANDBOX);
-      }
-      
-      // Pass the prompt verbatim here too (see note in the primary path).
-      fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed);
-      try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
-        Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
-        await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
-        return result;
-      } catch (fallbackError) {
-        const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-        throw new Error(`${MODELS.PRO} quota exceeded, ${MODELS.FLASH} fallback also failed: ${fallbackErrorMessage}`);
-      }
-    } else {
-      throw error;
-    }
-  }
+  return getBackend().run(prompt_processed, {
+    model,
+    sandbox,
+    approvalMode,
+    sessionId,
+    resume,
+    useStdin,
+    onProgress,
+  });
 }
 
 export async function processChangeModeOutput(
@@ -229,9 +209,4 @@ export async function processChangeModeOutput(
   
   Logger.debug(`ChangeMode: Parsed ${edits.length} edits, ${chunks.length} chunks, returning chunk ${returnChunkIndex}`);
   return result;
-}
-
-// Placeholder
-async function sendStatusMessage(message: string): Promise<void> {
-  Logger.debug(`Status: ${message}`);
 }

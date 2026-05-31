@@ -1,7 +1,30 @@
 # Changelog
 
+## [1.2.0] - 2026-05-30
+First feature release after the 1.1.6 security patch. Hardens cross-platform execution, adds an opt-in safety control and native multi-turn sessions, makes the CLI backend pluggable (ahead of Gemini CLI's retirement), and adds a real test suite.
+
+### Added
+- **Approval mode** — optional `approvalMode` argument on `ask-gemini`/`brainstorm` (and `GEMINI_MCP_APPROVAL_MODE` env), forwarding Gemini's `--approval-mode` (`default` / `auto_edit` / `yolo` / `plan`). Opt-in: when unset, behaviour is unchanged. Use `yolo` / `auto_edit` with `sandbox` to let Gemini run or edit; `plan` runs Gemini as an autonomous read-only planner.
+- **Native multi-turn sessions** — `sessionId` and `resume` arguments forward Gemini's `--session-id` / `--resume`; the active session id is surfaced in the response so a follow-up call can continue the conversation. Builds on #50; uses the CLI's own sessions rather than local transcript storage.
+- **Pluggable backends** — the executor is now backend-agnostic. The Gemini CLI stays the default; set `GEMINI_MCP_BACKEND=agy` to use the **experimental** Antigravity CLI (`agy`) backend, ahead of Gemini CLI's 2026-06-18 retirement for free/Pro/Ultra tiers. (agy print-mode is Flash-only, and its reply is recovered from agy's transcript files to work around the upstream `agy -p` empty-stdout bug.)
+- **Per-command timeout** — a hung CLI call is now terminated (SIGTERM → SIGKILL). Configurable via `GEMINI_MCP_TIMEOUT_MS` (default 30 minutes; `0` disables).
+- **Windows executable resolution** — honours `GEMINI_CLI_PATH`, otherwise resolves the real `gemini` shim via `where` (preferring `.cmd`), fixing "command not found" when the MCP server doesn't inherit your shell's PATH.
+- **Configurable default model** — `GEMINI_MODEL` sets the model used when a call doesn't pass one, so the assistant can't silently fall back to an older model (#49); `GEMINI_FLASH_MODEL` overrides the quota-fallback target. Precedence: per-call `model` arg → `GEMINI_MODEL` → Gemini CLI default.
+- **Setup doctor** — `npm run doctor` / the `gemini-mcp-doctor` bin reports the active backend, detected `gemini`/`agy` installs (path + version), and the effective model/approval/timeout/env configuration, with actionable hints.
+- **Test suite** — `node:test` coverage for the `@file` security guard, Windows quoting/resolution, approval-mode and session argument building, backend selection, and timeout parsing (`npm test`).
+
+### Changed
+- `engines.node` raised to `>=18`.
+- The server version and the documentation navbar badge are now read from `package.json` dynamically, instead of hardcoded strings that had drifted to `1.1.4`.
+- Installing from a Git checkout now builds automatically via a `prepare` script.
+
+### Fixed
+- The `Help` tool now invokes `gemini --help` instead of `-help`, which yargs mis-parsed as `-h -e -l -p`.
+- Clearer, platform-aware guidance when the executable is not found (ENOENT), including the `GEMINI_CLI_PATH` hint.
+- Windows robustness: complex prompts (`changeMode` / `@file`) are sent to the Gemini CLI on **stdin** instead of the `-p` flag, sidestepping cmd.exe argument parsing and the OS command-line length limit; added `windowsHide` to suppress the popup console window. (#27, #77)
+
 ## [1.1.6] - 2026-05-30
-_Emergency security patch — the CVE-2026-0755 fix only, ahead of the larger 1.2.0 release._
+_Emergency security patch — the CVE-2026-0755 fix only, ahead of this 1.2.0 release._
 - Security fix: OS command-injection / `@file` exfiltration via prompt quoting in `geminiExecutor.ts` (CVE-2026-0755, CWE-78). Fixes #73 (and the literal-quote corruption in #66).
   - Removed the broken double-quote wrapping from both the primary and fallback paths. With `spawn` running `shell: false`, those quotes were passed as literal characters — they provided no protection and corrupted `@file` references. Windows `.cmd` argument quoting is hardened separately (see below).
   - Added `assertSafeFileReferences()`, which rejects any `@file` reference that resolves outside the project working directory (absolute paths, `~` home references, and `../` traversal), closing the arbitrary-file-read exfiltration vector while preserving legitimate in-project `@file` usage.

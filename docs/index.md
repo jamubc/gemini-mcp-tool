@@ -34,7 +34,10 @@ features:
     details: Gemini-mcp-tool does not require any extra keys.
   - icon: 🚦
     title: Model Selection
-    details: Choose from Gemini-2.5-Pro and Gemini-2.5-Flash, using natural language.
+    details: Choose from Gemini-2.5-Pro, Gemini-2.5-Flash, or let the agy backend use Gemini 3.5 Flash.
+  - icon: 🔧
+    title: Pluggable Backends
+    details: Gemini CLI by default, experimental Antigravity CLI (agy) opt-in — future-proof for June 2026.
 ---
 
 <div class="explore-hint" style="text-align: center; margin: 32px 0 48px; position: relative;">

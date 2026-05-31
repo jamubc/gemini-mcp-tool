@@ -6,7 +6,7 @@
     </template>
     <template #nav-bar-content-before>
       <div class="nav-warning">
-        🏷️ <span>1.1.4</span>
+        🏷️ <span>{{ version }}</span>
       </div>
     </template>
     <template #sidebar-nav-after>
@@ -35,6 +35,9 @@ import SupportSection from './components/SupportSection.vue'
 import FundingHero from './components/FundingHero.vue'
 import FundingEffects from './components/FundingEffects.vue'
 import FundingLayout from './FundingLayout.vue'
+
+// Import version dynamically from package.json
+import { version } from '../../../package.json'
 
 const { Layout } = DefaultTheme
 const route = useRoute()

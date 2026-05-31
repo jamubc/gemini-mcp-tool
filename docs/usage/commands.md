@@ -1,51 +1,66 @@
 # Commands Reference
 
-Complete list of available commands and their usage.
+Complete list of available tools and their arguments.
 
-## Slash Commands
+## Tools
 
-### `/gemini-cli:analyze`
-Analyze files or ask questions about code.
+### `ask-gemini`
 
-```
-/gemini-cli:analyze @file.js explain this code
-/gemini-cli:analyze @src/*.ts find security issues
-/gemini-cli:analyze how do I implement authentication?
-```
+The primary tool — send a prompt to Gemini and get a response.
 
-### `/gemini-cli:sandbox`
-Execute code in a safe environment.
-
-```
-/gemini-cli:sandbox create a Python fibonacci generator
-/gemini-cli:sandbox test this function: [code]
-```
-
-### `/gemini-cli:help`
-Show help information and available tools.
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `prompt` | string | *(required)* | Your analysis request. Use `@` to include files |
+| `model` | string | `gemini-2.5-pro` | Model to use (e.g. `gemini-2.5-flash`) |
+| `sandbox` | boolean | `false` | Run in isolated sandbox (`-s` flag) |
+| `changeMode` | boolean | `false` | Structured edit mode for Claude to apply |
+| `approvalMode` | string | *(unset)* | `default` / `auto_edit` / `yolo` / `plan` |
+| `sessionId` | string | — | Start/tag a conversation session |
+| `resume` | string | — | Resume a prior session by id, or `"latest"` |
+| `chunkIndex` | number | — | Which chunk to return (1-based, for changeMode) |
+| `chunkCacheKey` | string | — | Cache key for continuation (changeMode) |
 
 ```
-/gemini-cli:help
-/gemini-cli:help analyze
+/gemini-cli:ask-gemini @file.js explain this code
+/gemini-cli:ask-gemini @src/*.ts find security issues
 ```
 
-### `/gemini-cli:ping`
-Test connectivity with Gemini.
+### `brainstorm`
+
+Structured ideation with selectable methodology frameworks.
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `prompt` | string | *(required)* | Brainstorming challenge or question |
+| `model` | string | `gemini-2.5-pro` | Model to use |
+| `approvalMode` | string | *(unset)* | Gemini approval mode |
+| `methodology` | string | `auto` | `divergent` / `convergent` / `scamper` / `design-thinking` / `lateral` / `auto` |
+| `domain` | string | — | Domain context (e.g. `software`, `business`) |
+| `constraints` | string | — | Known limitations or boundaries |
+| `existingContext` | string | — | Background info to build upon |
+| `ideaCount` | number | `12` | Target number of ideas |
+| `includeAnalysis` | boolean | `true` | Include feasibility/impact scoring |
+
+```
+/gemini-cli:brainstorm how can we improve our onboarding flow?
+```
+
+### `Help`
+
+Show Gemini CLI help information.
+
+```
+/gemini-cli:Help
+```
+
+### `ping`
+
+Test connectivity with an echo.
 
 ```
 /gemini-cli:ping
 /gemini-cli:ping "Custom message"
 ```
-
-## Command Structure
-
-```
-/gemini-cli:<tool> [options] <arguments>
-```
-
-- **tool**: The action to perform (analyze, sandbox, help, ping)
-- **options**: Optional flags (coming soon)
-- **arguments**: Input text, files, or questions
 
 ## Natural Language Alternative
 
@@ -54,6 +69,7 @@ Instead of slash commands, you can use natural language:
 - "Use gemini to analyze index.js"
 - "Ask gemini to create a test file"
 - "Have gemini explain this error"
+- "Brainstorm ideas for the new feature using gemini"
 
 ## File Patterns
 
@@ -61,7 +77,6 @@ Instead of slash commands, you can use natural language:
 ```
 @README.md
 @src/index.js
-@test/unit.test.ts
 ```
 
 ### Multiple Files
@@ -82,21 +97,34 @@ Instead of slash commands, you can use natural language:
 @test/unit/       # All files in test/unit
 ```
 
+::: danger Security
+`@file` references are restricted to the project directory. Paths like `@../secret.txt`, `@~/.ssh/id_rsa`, or `@/etc/passwd` are rejected (CVE-2026-0755).
+:::
+
 ## Advanced Usage
 
-### Combining Files and Questions
+### Approval Mode
+
+Control Gemini's autonomy per-call:
 ```
-/gemini-cli:analyze @package.json @src/index.js is the entry point configured correctly?
+ask gemini with approvalMode "plan" to review the architecture
+ask gemini with approvalMode "yolo" and sandbox to run this test suite
 ```
 
-### Complex Queries
+### Multi-turn Sessions
+
+Continue a conversation across multiple calls:
 ```
-/gemini-cli:analyze @src/**/*.js @test/**/*.test.js what's the test coverage?
+ask gemini with sessionId "review-1" to review the auth module
+ask gemini with resume "review-1" to now suggest improvements
+ask gemini with resume "latest" to continue where we left off
 ```
 
-### Code Generation
+### Change Mode
+
+Get structured edit suggestions that Claude can apply directly:
 ```
-/gemini-cli:analyze @models/user.js generate TypeScript types for this model
+ask gemini in changeMode to refactor @src/utils.js for readability
 ```
 
 ## Tips
