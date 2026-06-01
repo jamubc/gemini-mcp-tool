@@ -131,10 +131,10 @@ ${prompt_processed}
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
 
-  // spawn runs with shell: false (and cmd.exe-safe quoting on Windows is
-  // handled in commandExecutor), so the prompt is passed verbatim as a single
-  // argv entry. No manual quoting here — wrapping in `"` only injects literal
-  // quote characters and corrupts @file references (#66, CVE-2026-0755).
+  // cmd.exe-safe quoting on Windows is handled in commandExecutor, so the prompt
+  // is passed verbatim as one logical CLI argument. No manual quoting here —
+  // wrapping in `"` only injects literal quote characters and corrupts @file
+  // references (#66, CVE-2026-0755).
   if (!useStdin) { args.push(CLI.FLAGS.PROMPT, prompt_processed); }
 
   try {

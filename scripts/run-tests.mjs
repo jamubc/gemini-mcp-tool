@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Category-aware test runner. Discovers *.test.ts under the selected category
-// folders (test/unit, test/integration, test/e2e) and runs them with the
+// folders (test/unit, test/integration, test/e2e, test/judge) and runs them with the
 // built-in node:test runner via the tsx loader, so the TypeScript sources run
 // directly.
 //
@@ -8,12 +8,14 @@
 //   node scripts/run-tests.mjs                  # default: unit + integration (hermetic)
 //   node scripts/run-tests.mjs unit             # one category
 //   node scripts/run-tests.mjs integration e2e  # several
-//   node scripts/run-tests.mjs all              # unit + integration + e2e
+//   node scripts/run-tests.mjs judge            # semantic LLM judge tests
+//   node scripts/run-tests.mjs all              # unit + integration + e2e + judge
 //
 // Categories:
 //   unit         pure, single-module tests. No subprocess, no network, no real CLI.
 //   integration  several real modules wired together. Still hermetic — never the real gemini CLI.
 //   e2e          the real gemini CLI driven through the real MCP server over stdio. Opt-in (live).
+//   judge        live Gemini CLI output evaluated by a second LLM judge. Opt-in (live).
 import { spawnSync } from "node:child_process";
 import { readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";

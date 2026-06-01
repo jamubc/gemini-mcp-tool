@@ -90,8 +90,8 @@ Runs E2E tool calls against a live Gemini CLI and then uses a second **LLM Judge
 ## Notes
 - `npm run doctor test` (internal dev tool) builds the server and runs the e2e suite — a
   one-command "diagnose + test" front-end that replaces manual mcpjam clicking.
-- The suite uses `node:test`, which requires **Node ≥ 18**. (Only running the tests needs
-  ≥ 18; the published package keeps its own `engines` floor.)
+- The suite uses `node:test` with `--import tsx`, which requires **Node ≥ 18.19**.
+  (Only running the tests needs ≥ 18.19; the published package keeps its own `engines` floor.)
 - `npm test` sets `NODE_ENV=test`, which mutes routine `[GMCPT]` logging (errors still
   print) so the reporter output stays readable. The e2e run keeps full server logs.
 - `npm run lint` type-checks `src/` **and** `test/` via `tsconfig.test.json`.

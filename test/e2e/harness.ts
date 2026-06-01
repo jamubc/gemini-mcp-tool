@@ -7,12 +7,14 @@
 // it directly.
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import type { TestContext } from "node:test";
 import { inspect } from "node:util";
 import { fileURLToPath } from "node:url";
+import { CLI } from "../../src/constants.js";
+import { resolveCommandForExecution } from "../../src/utils/commandExecutor.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = path.resolve(here, "..", "..");
@@ -20,12 +22,15 @@ const SERVER_ENTRY = path.join(REPO_ROOT, "dist", "index.js");
 
 /** True when the real gemini CLI is installed and resolvable on PATH. */
 export function hasGemini(): boolean {
-  try {
-    execSync("gemini --version", { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
+  const isWindows = process.platform === "win32";
+  const command = resolveCommandForExecution(CLI.COMMANDS.GEMINI);
+  const executable = isWindows && /\s/.test(command) ? `"${command.replace(/"/g, '""')}"` : command;
+  const result = spawnSync(executable, ["--version"], {
+    stdio: "ignore",
+    shell: isWindows,
+    windowsHide: true,
+  });
+  return result.status === 0;
 }
 
 /** Skip reason for gemini-dependent tests, or false when gemini is available. */

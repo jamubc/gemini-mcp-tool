@@ -11,11 +11,16 @@ export function quoteForCmd(arg: string): string {
   return `"${body}"`;
 }
 
+export function selectWindowsGeminiCandidate(candidates: string[], command: string = CLI.COMMANDS.GEMINI): string {
+  const byExt = (ext: string) => candidates.find((c) => c.toLowerCase().endsWith(ext));
+  return byExt(".cmd") || byExt(".exe") || byExt(".bat") || `${command}.cmd`;
+}
+
 // Windows-only: find the real executable for the gemini command. The MCP server
 // often runs without the user's interactive PATH, so we (1) honour an explicit
-// GEMINI_CLI_PATH override, then (2) ask `where` and prefer the `.cmd` shim that
-// Node can actually launch (over .ps1/.bat/.exe). Falls back to "gemini.cmd".
-// Resolution is cached per command for the life of the process.
+// GEMINI_CLI_PATH override, then (2) ask `where` and prefer shims that cmd.exe
+// can actually launch. PowerShell shims and extensionless shell scripts are not
+// selected as fallbacks. Resolution is cached per command for the life of the process.
 const resolveCache = new Map<string, string>();
 export function resolveCommandForExecution(command: string): string {
   if (process.platform !== "win32" || command !== CLI.COMMANDS.GEMINI) return command;
@@ -34,13 +39,7 @@ export function resolveCommandForExecution(command: string): string {
         stdio: ["ignore", "pipe", "ignore"],
       });
       const candidates = out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-      const byExt = (ext: string) => candidates.find((c) => c.toLowerCase().endsWith(ext));
-      // Prefer extensions cmd.exe can launch directly (.cmd/.exe/.bat). A `.ps1`
-      // shim is NOT runnable via shell:true, so it is never preferred — only the
-      // raw first candidate is used as a last resort.
-      resolved =
-        byExt(".cmd") || byExt(".exe") || byExt(".bat") ||
-        candidates[0] || `${command}.cmd`;
+      resolved = selectWindowsGeminiCandidate(candidates, command);
     } catch {
       resolved = `${command}.cmd`;
     }

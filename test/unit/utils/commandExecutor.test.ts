@@ -4,6 +4,7 @@ import {
   quoteForCmd,
   resolveCommandForExecution,
   buildEnoentErrorMessage,
+  selectWindowsGeminiCandidate,
 } from "../../../src/utils/commandExecutor.js";
 
 describe("Node Utilities: Command Executor & Quoting", () => {
@@ -27,6 +28,24 @@ describe("Node Utilities: Command Executor & Quoting", () => {
     }
   });
 
+  test("selectWindowsGeminiCandidate ignores unsupported PowerShell and extensionless shims", () => {
+    assert.equal(
+      selectWindowsGeminiCandidate([
+        "C:\\Users\\jam\\AppData\\Roaming\\npm\\gemini",
+        "C:\\Users\\jam\\AppData\\Roaming\\npm\\gemini.ps1",
+      ]),
+      "gemini.cmd",
+    );
+    assert.equal(
+      selectWindowsGeminiCandidate([
+        "C:\\Users\\jam\\AppData\\Roaming\\npm\\gemini",
+        "C:\\Users\\jam\\AppData\\Roaming\\npm\\gemini.cmd",
+        "C:\\Users\\jam\\AppData\\Roaming\\npm\\gemini.ps1",
+      ]),
+      "C:\\Users\\jam\\AppData\\Roaming\\npm\\gemini.cmd",
+    );
+  });
+
   test("buildEnoentErrorMessage gives gemini-specific, platform-aware guidance", () => {
     const msg = buildEnoentErrorMessage("gemini");
     assert.match(msg, /Could not find the "gemini"/);
@@ -41,4 +60,3 @@ describe("Node Utilities: Command Executor & Quoting", () => {
     assert.doesNotMatch(msg, /@google\/gemini-cli/);
   });
 });
-
