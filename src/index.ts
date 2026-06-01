@@ -41,6 +41,14 @@ const server = new Server(
   },
 );
 
+// Progress notifications are ON by default. Some Claude Code versions disconnect a
+// stdio MCP server after a successful tools/call response when the server emits
+// progress notifications (anthropics/claude-code#53617). As an opt-out workaround,
+// set GEMINI_MCP_DISABLE_PROGRESS=1 (or =true) to suppress progress notifications.
+const PROGRESS_DISABLED =
+  process.env.GEMINI_MCP_DISABLE_PROGRESS === "1" ||
+  process.env.GEMINI_MCP_DISABLE_PROGRESS === "true";
+
 let isProcessing = false; let currentOperationName = ""; let latestOutput = "";
 
 async function sendNotification(method: string, params: any) {
@@ -170,8 +178,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
   const toolName: string = request.params.name;
 
   if (toolExists(toolName)) {
-    // Check if client requested progress updates
-    const progressToken = (request.params as any)._meta?.progressToken;
+    // Check if client requested progress updates (unless opted out via env var)
+    const progressToken = PROGRESS_DISABLED
+      ? undefined
+      : (request.params as any)._meta?.progressToken;
     
     // Start progress updates if client requested them
     const progressData = startProgressUpdates(toolName, progressToken);
