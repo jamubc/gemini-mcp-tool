@@ -10,7 +10,8 @@
  */
 
 import { z } from 'zod';
-import { UnifiedTool } from './registry.js';
+import { UnifiedTool } from '../../src/tools/registry.js';
+import { ToolArguments } from '../../src/constants.js';
 
 const testToolArgsSchema = z.object({
   message: z.string().describe("Test message to echo"), // Required field (no .optional())
@@ -29,7 +30,7 @@ export const testTool: UnifiedTool = {
     }]
   },
   category: 'utility',
-  execute: async (args) => {
+  execute: async (args: ToolArguments) => {
     return `Test tool received: ${args.message}`;
   }
 };
