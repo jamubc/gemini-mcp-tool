@@ -17,7 +17,7 @@ describe("MCP Protocol E2E: Server Lifecycle & System Tools", () => {
   test("lists every registered tool with a valid input schema", async (t) => {
     const { tools } = await listTools(t, server);
     const names = tools.map((t) => t.name);
-    for (const expected of ["ask-gemini", "brainstorm", "fetch-chunk", "ping", "Help", "timeout-test"]) {
+    for (const expected of ["ask-gemini", "brainstorm", "fetch-chunk", "ping", "Help"]) {
       assert.ok(names.includes(expected), `tools/list is missing "${expected}" (got: ${names.join(", ")})`);
     }
     const ask = tools.find((t) => t.name === "ask-gemini");
@@ -34,12 +34,6 @@ describe("MCP Protocol E2E: Server Lifecycle & System Tools", () => {
     const res = await callTool(t, server, { name: "ping", arguments: { prompt: "hello-e2e" } });
     assert.equal(res.isError ?? false, false);
     assert.match(textOf(res), /hello-e2e/);
-  });
-
-  test("timeout-test runs and reports completion", async (t) => {
-    const res = await callTool(t, server, { name: "timeout-test", arguments: { duration: 50 } });
-    assert.equal(res.isError ?? false, false);
-    assert.match(textOf(res), /Timeout test completed successfully/);
   });
 
   test("fetch-chunk returns a clean cache-miss message for an unknown key", async (t) => {

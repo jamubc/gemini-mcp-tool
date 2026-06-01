@@ -11,7 +11,7 @@ import {
 describe("MCP Registry: Tools & Prompts Schema", () => {
   test("every registered tool exposes a valid JSON-schema definition", () => {
     const defs = getToolDefinitions();
-    assert.ok(defs.length >= 6); // ask-gemini, ping, Help, brainstorm, fetch-chunk, timeout-test
+    assert.ok(defs.length >= 5); // ask-gemini, ping, Help, brainstorm, fetch-chunk
     for (const def of defs) {
       assert.equal(typeof def.name, "string");
       assert.equal(typeof def.description, "string");
