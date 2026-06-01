@@ -39,16 +39,15 @@ describe("MCP Subsystem Integration: Tool Input Validation Contracts", () => {
     assert.match(out, /Invalid chunkCacheKey format/);
   });
 
-  test("ask-gemini changeMode continuation with a missing cache reports no edits (no spawn)", async () => {
+  test("ask-gemini changeMode continuation with a missing cache reports a cache miss (no spawn)", async () => {
     // Well-formed key, but nothing cached -> the continuation path returns the
-    // "no edits found" message rather than shelling out to Gemini.
+    // cache-miss message rather than shelling out to Gemini.
     const out = await executeTool("ask-gemini", {
       prompt: "x",
       changeMode: true,
       chunkIndex: 1,
       chunkCacheKey: "deadbeef",
     });
-    assert.match(out, /No edits found/);
+    assert.match(out, /Cache miss/);
   });
 });
-

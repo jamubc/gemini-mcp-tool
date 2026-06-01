@@ -192,6 +192,27 @@ export async function processChangeModeOutput(
 
       return result;
     }
+
+    if (!rawResult.trim()) {
+      if (cachedChunks) {
+        return `❌ Invalid chunk index: ${chunkIndex}
+
+Available chunks: 1 to ${cachedChunks.length}
+You requested: ${chunkIndex}
+
+Please use a valid chunk index.`;
+      }
+
+      return `❌ Cache miss: No chunks found for cache key "${chunkCacheKey}".
+
+Possible reasons:
+1. The cache key is incorrect, or the original changeMode request did not create chunks
+2. The cache has expired (10 minute TTL)
+3. The MCP server was restarted and the file-based cache was cleared
+
+Please re-run the original changeMode request to regenerate the chunks.`;
+    }
+
     Logger.debug(`Cache miss or invalid chunk index, processing new result`);
   }
 

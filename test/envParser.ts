@@ -9,6 +9,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface TestConfig {
   deepseekApiKey?: string;
@@ -20,17 +21,15 @@ export interface TestConfig {
 
 export type JudgeConfig = TestConfig;
 
-import { fileURLToPath } from "node:url";
-
 /**
- * Loads the environment variables needed for the test suite from the `.env` file at the test directory IF set,
- * otherwise system environment variables take precedence.
+ * Loads test configuration from process.env, then fills missing values from the
+ * test directory `.env` file if it exists. System environment variables take precedence.
  * @param envPath Optional path to the .env file.
  * @returns An object containing the loaded environment variables.
  */
 export function loadConfig(envPath: string = path.join(path.dirname(fileURLToPath(import.meta.url)), ".env")): TestConfig {
   const config: TestConfig = {
-    judgeGeminiModel: process.env.JUDGE_GEMINI_MODEL || "gemini-2.5-flash"
+    judgeGeminiModel: process.env.JUDGE_GEMINI_MODEL || "gemini-2.5-flash",
     // Note, the model picked here may change the outcomes of tests.
   };
 

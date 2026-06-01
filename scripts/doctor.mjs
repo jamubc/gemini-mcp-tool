@@ -46,7 +46,8 @@ function heading(title) {
 
 function runCmd(cmd, args) {
   try {
-    const r = spawnSync(cmd, args, { encoding: "utf8", timeout: 20000, shell: isWindows, windowsHide: true });
+    const executable = isWindows && /\s/.test(cmd) ? `"${cmd.replace(/"/g, '""')}"` : cmd;
+    const r = spawnSync(executable, args, { encoding: "utf8", timeout: 20000, shell: isWindows, windowsHide: true });
     if (r.error) return { ok: false, err: r.error.message };
     return { ok: r.status === 0, status: r.status, out: (r.stdout || "").trim(), err: (r.stderr || "").trim() };
   } catch (e) {
@@ -63,8 +64,8 @@ function locate(cmd) {
 // Mirror commandExecutor's resolution: honour GEMINI_CLI_PATH, else PATH.
 function detectGemini() {
   const override = (process.env[ENV.GEMINI_CLI_PATH] || "").trim();
-  let candidates = locate("gemini");
-  if (override) candidates = [override, ...candidates.filter((p) => p !== override)];
+  const pathCandidates = locate("gemini");
+  const candidates = override ? [override, ...pathCandidates.filter((p) => p !== override)] : pathCandidates;
   let primary = override || null;
   if (!primary && candidates.length > 0) {
     if (isWindows) {
@@ -74,10 +75,10 @@ function detectGemini() {
       primary = candidates[0];
     }
   }
-  const found = candidates.length > 0 || (override && existsSync(override));
+  const found = override ? existsSync(override) : candidates.length > 0;
   let version = null;
-  if (found) {
-    const v = runCmd(primary || "gemini", ["--version"]);
+  if (found && primary) {
+    const v = runCmd(primary, ["--version"]);
     if (v.ok && v.out) version = v.out.split(/\r?\n/)[0].trim();
   }
   return { found: !!found, primary, candidates, override: override || null, version };
@@ -99,8 +100,12 @@ function runReport() {
     console.log(`     version  ${gemini.version ? c.cyan(gemini.version) : c.yellow("(could not read --version)")}`);
     if (gemini.candidates.length > 1) console.log(c.dim(`     also on PATH: ${gemini.candidates.slice(1).join(", ")}`));
   } else {
-    console.log(`  ${BAD} not found on PATH`);
-    problems.push(`Gemini CLI not found. Install it (npm i -g @google/gemini-cli) or set ${ENV.GEMINI_CLI_PATH} to its full path.`);
+    console.log(`  ${BAD} ${gemini.override ? ENV.GEMINI_CLI_PATH + " path not found" : "not found on PATH"}`);
+    problems.push(
+      gemini.override
+        ? `${ENV.GEMINI_CLI_PATH} is set to ${gemini.override}, but that path does not exist.`
+        : `Gemini CLI not found. Install it (npm i -g @google/gemini-cli) or set ${ENV.GEMINI_CLI_PATH} to its full path.`
+    );
   }
 
   heading("Summary");
