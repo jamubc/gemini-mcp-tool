@@ -3,7 +3,7 @@ import { UnifiedTool } from './registry.js';
 import { Logger } from '../utils/logger.js';
 import { executeGeminiCLI } from '../utils/geminiExecutor.js';
 
-function buildBrainstormPrompt(config: {
+export function buildBrainstormPrompt(config: {
   prompt: string;
   methodology: string;
   domain?: string;
@@ -13,10 +13,10 @@ function buildBrainstormPrompt(config: {
   includeAnalysis: boolean;
 }): string {
   const { prompt, methodology, domain, constraints, existingContext, ideaCount, includeAnalysis } = config;
-  
+
   // Select methodology framework
   let frameworkInstructions = getMethodologyInstructions(methodology, domain);
-  
+
   let enhancedPrompt = `# BRAINSTORMING SESSION
 
 ## Core Challenge
@@ -66,7 +66,7 @@ Begin brainstorming session:`;
 /**
  * Returns methodology-specific instructions for structured brainstorming
  */
-function getMethodologyInstructions(methodology: string, domain?: string): string {
+export function getMethodologyInstructions(methodology: string, domain?: string): string {
   const methodologies: Record<string, string> = {
     'divergent': `**Divergent Thinking Approach:**
 - Generate maximum quantity of ideas without self-censoring
@@ -161,10 +161,10 @@ export const brainstormTool: UnifiedTool = {
     });
 
     Logger.debug(`Brainstorm: Using methodology '${methodology}' for domain '${domain || 'general'}'`);
-    
+
     // Report progress to user
     onProgress?.(`Generating ${ideaCount} ideas via ${methodology} methodology...`);
-    
+
     // Execute with Gemini
     return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false, onProgress);
   }

@@ -1,10 +1,10 @@
 import * as path from 'path';
 import { executeCommand } from './commandExecutor.js';
 import { Logger } from './logger.js';
-import { 
-  ERROR_MESSAGES, 
-  STATUS_MESSAGES, 
-  MODELS, 
+import {
+  ERROR_MESSAGES,
+  STATUS_MESSAGES,
+  MODELS,
   CLI
 } from '../constants.js';
 
@@ -51,10 +51,10 @@ export async function executeGeminiCLI(
   onProgress?: (newOutput: string) => void
 ): Promise<string> {
   let prompt_processed = prompt;
-  
+
   if (changeMode) {
     prompt_processed = prompt.replace(/file:(\S+)/g, '@$1');
-    
+
     const changeModeInstructions = `
 [CHANGEMODE INSTRUCTIONS]
 You are generating code modifications that will be processed by an automated system. The output format is critical because it enables programmatic application of changes without human intervention.
@@ -122,6 +122,11 @@ ${prompt_processed}
   // reaches the Gemini CLI's file-inlining parser (CVE-2026-0755).
   assertSafeFileReferences(prompt_processed);
 
+  // changeMode and @file prompts go on stdin instead of the -p flag: this dodges
+  // cmd.exe argument parsing on Windows and the OS command-line length limit that
+  // large @file/changeMode prompts can exceed. Simple prompts still use -p. (#27, #77)
+  const useStdin = !!changeMode || prompt_processed.includes('@');
+
   const args = [];
   if (model) { args.push(CLI.FLAGS.MODEL, model); }
   if (sandbox) { args.push(CLI.FLAGS.SANDBOX); }
@@ -130,10 +135,10 @@ ${prompt_processed}
   // handled in commandExecutor), so the prompt is passed verbatim as a single
   // argv entry. No manual quoting here — wrapping in `"` only injects literal
   // quote characters and corrupts @file references (#66, CVE-2026-0755).
-  args.push(CLI.FLAGS.PROMPT, prompt_processed);
+  if (!useStdin) { args.push(CLI.FLAGS.PROMPT, prompt_processed); }
 
   try {
-    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress);
+    return await executeCommand(CLI.COMMANDS.GEMINI, args, onProgress, useStdin ? prompt_processed : undefined);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes(ERROR_MESSAGES.QUOTA_EXCEEDED) && model !== MODELS.FLASH) {
@@ -144,11 +149,11 @@ ${prompt_processed}
       if (sandbox) {
         fallbackArgs.push(CLI.FLAGS.SANDBOX);
       }
-      
+
       // Pass the prompt verbatim here too (see note in the primary path).
-      fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed);
+      if (!useStdin) { fallbackArgs.push(CLI.FLAGS.PROMPT, prompt_processed); }
       try {
-        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress);
+        const result = await executeCommand(CLI.COMMANDS.GEMINI, fallbackArgs, onProgress, useStdin ? prompt_processed : undefined);
         Logger.warn(`Successfully executed with ${MODELS.FLASH} fallback.`);
         await sendStatusMessage(STATUS_MESSAGES.FLASH_SUCCESS);
         return result;
@@ -178,23 +183,23 @@ export async function processChangeModeOutput(
         chunk.edits,
         { current: chunkIndex, total: cachedChunks.length, cacheKey: chunkCacheKey }
       );
-      
+
       // Add summary for first chunk only
       if (chunkIndex === 1 && chunk.edits.length > 5) {
         const allEdits = cachedChunks.flatMap(c => c.edits);
         result = summarizeChangeModeEdits(allEdits) + '\n\n' + result;
       }
-      
+
       return result;
     }
     Logger.debug(`Cache miss or invalid chunk index, processing new result`);
   }
-  
+
   // Parse OLD/NEW format
   const edits = parseChangeModeOutput(rawResult);
-  
+
   if (edits.length === 0) {
-    return `No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format. \n\n+ ${rawResult}`;
+    return `No edits found in Gemini's response. Please ensure Gemini uses the OLD/NEW format. \n\n${rawResult}`;
   }
 
   // Validate edits
@@ -202,31 +207,31 @@ export async function processChangeModeOutput(
   if (!validation.valid) {
     return `Edit validation failed:\n${validation.errors.join('\n')}`;
   }
-  
+
   const chunks = chunkChangeModeEdits(edits);
-  
+
   // Cache if multiple chunks and we have the original prompt
   let cacheKey: string | undefined;
   if (chunks.length > 1 && prompt) {
     cacheKey = cacheChunks(prompt, chunks);
     Logger.debug(`Cached ${chunks.length} chunks with key: ${cacheKey}`);
   }
-  
+
   // Return requested chunk or first chunk
   const returnChunkIndex = (chunkIndex && chunkIndex > 0 && chunkIndex <= chunks.length) ? chunkIndex : 1;
   const returnChunk = chunks[returnChunkIndex - 1];
-  
+
   // Format the response
   let result = formatChangeModeResponse(
     returnChunk.edits,
     chunks.length > 1 ? { current: returnChunkIndex, total: chunks.length, cacheKey } : undefined
   );
-  
+
   // Add summary if helpful (only for first chunk)
   if (returnChunkIndex === 1 && edits.length > 5) {
     result = summarizeChangeModeEdits(edits, chunks.length > 1) + '\n\n' + result;
   }
-  
+
   Logger.debug(`ChangeMode: Parsed ${edits.length} edits, ${chunks.length} chunks, returning chunk ${returnChunkIndex}`);
   return result;
 }

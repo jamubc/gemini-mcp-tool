@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { UnifiedTool } from './registry.js';
 import { executeGeminiCLI, processChangeModeOutput } from '../utils/geminiExecutor.js';
-import { 
-  ERROR_MESSAGES, 
+import {
+  ERROR_MESSAGES,
   STATUS_MESSAGES
 } from '../constants.js';
 
@@ -25,7 +25,7 @@ export const askGeminiTool: UnifiedTool = {
   category: 'gemini',
   execute: async (args, onProgress) => {
     const { prompt, model, sandbox, changeMode, chunkIndex, chunkCacheKey } = args; if (!prompt?.trim()) { throw new Error(ERROR_MESSAGES.NO_PROMPT_PROVIDED); }
-  
+
     if (changeMode && chunkIndex && chunkCacheKey) {
       // Security: validate cacheKey format before any cache access
       if (typeof chunkCacheKey !== 'string' || !/^[a-f0-9]{8}$/.test(chunkCacheKey)) {
@@ -38,7 +38,7 @@ export const askGeminiTool: UnifiedTool = {
         prompt as string
       );
     }
-    
+
     const result = await executeGeminiCLI(
       prompt as string,
       model as string | undefined,
@@ -46,7 +46,7 @@ export const askGeminiTool: UnifiedTool = {
       !!changeMode,
       onProgress
     );
-    
+
     if (changeMode) {
       return processChangeModeOutput(
         result,

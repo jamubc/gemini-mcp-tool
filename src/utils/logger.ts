@@ -6,11 +6,20 @@ export class Logger {
     return `${LOG_PREFIX} ${message}` + "\n";
   }
 
+  // Routine logging is muted when NODE_ENV=test so the test reporter output
+  // stays readable; errors are never muted. Production never sets NODE_ENV=test,
+  // so default (1.1.6-parity) behaviour is unchanged.
+  private static get muted(): boolean {
+    return process.env.NODE_ENV === "test";
+  }
+
   static log(message: string, ...args: any[]): void {
+    if (this.muted) return;
     console.warn(this.formatMessage(message), ...args);
   }
 
   static warn(message: string, ...args: any[]): void {
+    if (this.muted) return;
     console.warn(this.formatMessage(message), ...args);
   }
 
@@ -19,6 +28,7 @@ export class Logger {
   }
 
   static debug(message: string, ...args: any[]): void {
+    if (this.muted) return;
     console.warn(this.formatMessage(message), ...args);
   }
 

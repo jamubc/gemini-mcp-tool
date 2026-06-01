@@ -1,7 +1,20 @@
 # Changelog
 
+## [1.1.7] - 2026-05-31
+Reliability patch plus the project's first automated test suite. Hardens cross-platform execution (the Windows fixes and a few robustness guards) and adds a categorized `node:test` suite that gates CI. **No runtime or default-config changes vs 1.1.6** — the only new knob is the opt-in `GEMINI_CLI_PATH`.
+
+- **Windows: stdin prompt passing** — `changeMode` and `@file` prompts are sent to the Gemini CLI on **stdin** instead of the `-p` flag, sidestepping cmd.exe argument parsing and the OS command-line length limit; this also avoids the deprecated-`-p` positional-prompt conflict for those prompts (#48). Adds `windowsHide` to suppress the popup console window. (harvested from #27 via #77)
+- **Windows: executable resolution** — honours `GEMINI_CLI_PATH`, otherwise resolves the real `gemini` shim via `where` (preferring `.cmd`), fixing "command not found" when the MCP server doesn't inherit your shell's PATH.
+- **Clearer ENOENT guidance** when the executable isn't found, including the `GEMINI_CLI_PATH` hint.
+- **stdin EPIPE / spawn-error hardening** — a child that closes stdin early no longer throws an uncaught error that could drop the long-lived server connection (candidate fix for the disconnects in #64).
+- **`Help` tool** now invokes `gemini --help` instead of `-help`, which the Gemini CLI's yargs parser split into `-h -e -l -p`.
+- **Test suite** — categorized `node:test` coverage under `test/`: **unit** (command quoting / Windows resolution / ENOENT, the `@file` guard, the changeMode parser/chunker/translator, the chunk cache, the tool registry, brainstorm prompt building), **integration** (the changeMode → `fetch-chunk` pipeline and the registry → tool contract, both hermetic), and **e2e** (the real gemini driven through the built MCP server; auto-skips without gemini). `npm test` runs unit+integration and now **gates CI** (Node 18/20/22); `npm run test:e2e` runs the live suite. Includes a regression test for the changeMode cache-miss path (#67).
+- **Internal `doctor`** (work in progress) — `npm run doctor` reports node + the detected `gemini` install; `npm run doctor test` builds the server and runs the e2e suite (the automated replacement for manual MCP inspector or costly token burning tests and checks). Excluded from the npm package (`files`/`bin`).
+- **LLM judge semantic test suite** (`test/judge/`) — Use DeepSeek or OpenRouter to evaluate tool outputs against validation rubrics. This is a work in progress.
+- **Diagnostics logging** — E2E harness now logs the spawned server's working directory (`📂 SPAWNED CWD`) for easier local debugging.
+
 ## [1.1.6] - 2026-05-30
-_Emergency security patch — the CVE-2026-0755 fix only, ahead of the larger 1.2.0 release._
+_Emergency security patch — CVE-2026-0755 fix only._
 - Security fix: OS command-injection / `@file` exfiltration via prompt quoting in `geminiExecutor.ts` (CVE-2026-0755, CWE-78). Fixes #73 (and the literal-quote corruption in #66).
   - Removed the broken double-quote wrapping from both the primary and fallback paths. With `spawn` running `shell: false`, those quotes were passed as literal characters — they provided no protection and corrupted `@file` references. Windows `.cmd` argument quoting is hardened separately (see below).
   - Added `assertSafeFileReferences()`, which rejects any `@file` reference that resolves outside the project working directory (absolute paths, `~` home references, and `../` traversal), closing the arbitrary-file-read exfiltration vector while preserving legitimate in-project `@file` usage.

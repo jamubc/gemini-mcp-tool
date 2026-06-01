@@ -69,7 +69,7 @@ export const CLI = {
     MODEL: "-m",
     SANDBOX: "-s",
     PROMPT: "-p",
-    HELP: "-help",
+    HELP: "--help", // the external gemini CLI (yargs) splits "-help" into -h -e -l -p; only showed help because -h short-circuits
   },
   // Default values
   DEFAULTS: {
@@ -77,6 +77,12 @@ export const CLI = {
     BOOLEAN_TRUE: "true",
     BOOLEAN_FALSE: "false",
   },
+} as const;
+
+
+// Environment variables that configure the server.
+export const ENV = {
+  GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
 } as const;
 
 
