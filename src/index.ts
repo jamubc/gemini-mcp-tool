@@ -92,26 +92,33 @@ function startProgressUpdates(operationName: string, progressToken?: string | nu
       return;
     }
 
+    // The only server-side lever on a client's in-flight request timeout is a
+    // notifications/progress carrying the client's progressToken: the MCP SDK
+    // resets the per-request timer in _onprogress for that token (when the client
+    // set resetTimeoutOnProgress). Logging notifications do not touch the timer,
+    // so without a token there is nothing useful to send here. This is precisely
+    // why a slow (e.g. 15-minute) changeMode survives only when the client opted
+    // into progress — see PROTOCOL.KEEPALIVE_INTERVAL and the docs on long ops.
+    if (!progressToken) return;
+
     const baseMessage = progressMessages[ctx.messageIndex % progressMessages.length];
     const outputPreview = ctx.latestOutput.slice(-150).trim();
     const message = outputPreview ? `${baseMessage}\n📝 Output: ...${outputPreview}` : baseMessage;
-
-    // Always send a log notification — keeps the stdio pipe alive even without a progressToken.
-    // Claude Code silently drops the connection after ~30s of stdio inactivity; this prevents that.
-    try {
-      await server.notification({ method: "notifications/message", params: { level: "debug", data: message } });
-    } catch {
-      clearInterval(progressInterval);
-      ctx.isProcessing = false;
-      return;
-    }
-
-    if (progressToken) {
-      ctx.progress += 1;
-      await sendProgressNotification(progressToken, ctx.progress, undefined, message);
-    }
-
     ctx.messageIndex++;
+    ctx.progress += 1;
+
+    try {
+      await server.notification({
+        method: PROTOCOL.NOTIFICATIONS.PROGRESS,
+        params: { progressToken, progress: ctx.progress, message },
+      });
+    } catch (error) {
+      // Transport gone (e.g. EPIPE after the client went away): stop ticking so
+      // we neither leak this timer nor keep throwing on a dead pipe.
+      Logger.error("Keepalive progress notification failed; stopping updates:", error);
+      ctx.isProcessing = false;
+      clearInterval(progressInterval);
+    }
   }, PROTOCOL.KEEPALIVE_INTERVAL);
 
   return { interval: progressInterval, progressToken, ctx };
@@ -219,9 +226,20 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
   };
 });
 
+// A long-lived stdio bridge must not die from a stray async/stream error.
+// Without these guards a single unhandled rejection — or an EPIPE writing to
+// stdout after the client went away mid-call — terminates the process, which
+// Claude Code surfaces as the MCP server "disconnecting" after a handful of
+// calls (issue #64). Log to stderr and stay up; startup failures still exit.
+process.stdout.on("error", (err) => Logger.error("stdout stream error (ignored):", err));
+process.stderr.on("error", () => { /* nowhere safe left to log */ });
+process.on("unhandledRejection", (reason) => Logger.error("Unhandled rejection (server kept alive):", reason));
+process.on("uncaughtException", (error) => Logger.error("Uncaught exception (server kept alive):", error));
+
 // Start the server
 async function main() {
   Logger.debug("init gemini-mcp-tool");
   const transport = new StdioServerTransport(); await server.connect(transport);
   Logger.debug("gemini-mcp-tool listening on stdio");
-} main().catch((error) => {Logger.error("Fatal error:", error); process.exit(1); }); 
+}
+main().catch((error) => { Logger.error("Fatal error during startup:", error); process.exit(1); });
