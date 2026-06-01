@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.8] - 2026-06-01
+
+### Security
+- Remove unused `inquirer` production dependency — closes CVE-2026-44705 (path traversal in `tmp` via `external-editor`, HIGH/CWE-22)
+- Remove unused `ai` production dependency — closes CVE-2026-8769 (uncontrolled resource consumption in `@ai-sdk/provider-utils`, LOW/CWE-400)
+- Upgrade `mermaid` dev dependency to `^11.15.0` — closes CVE-2026-41159, CVE-2026-41149, CVE-2026-41148 (CSS/HTML injection, MED) and auto-bumps `uuid` to ≥11.1.1 (CVE-2026-41907)
+- Add `overrides` for `postcss ^8.5.10` (CVE-2026-41305) and `dompurify ^3.4.0` (CVE-2026-41238/41239/41240)
+
 ## [1.1.7] - 2026-05-31
 Reliability patch plus the project's first automated test suite. Hardens cross-platform execution (the Windows fixes and a few robustness guards) and adds a categorized `node:test` suite that gates CI. **No runtime or default-config changes vs 1.1.6** — the only new knob is the opt-in `GEMINI_CLI_PATH`.
 
