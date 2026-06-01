@@ -40,56 +40,40 @@ const server = new Server(
   },
 );
 
-let isProcessing = false; let currentOperationName = ""; let latestOutput = "";
-
-async function sendNotification(method: string, params: any) {
-  try {
-    await server.notification({ method, params });
-  } catch (error) {
-    Logger.error("notification failed: ", error);
-  }
+interface ProgressContext {
+  isProcessing: boolean;
+  operationName: string;
+  latestOutput: string;
+  messageIndex: number;
+  progress: number;
 }
 
-/**
- * @param progressToken The progress token provided by the client
- * @param progress The current progress value
- * @param total Optional total value
- * @param message Optional status message
- */
 async function sendProgressNotification(
   progressToken: string | number | undefined,
   progress: number,
   total?: number,
   message?: string
 ) {
-  if (!progressToken) return; // Only send if client requested progress
-  
+  if (!progressToken) return;
   try {
-    const params: any = {
-      progressToken,
-      progress
-    };
-    
-    if (total !== undefined) params.total = total; // future cache progress
+    const params: any = { progressToken, progress };
+    if (total !== undefined) params.total = total;
     if (message) params.message = message;
-    
-    await server.notification({
-      method: PROTOCOL.NOTIFICATIONS.PROGRESS,
-      params
-    });
+    await server.notification({ method: PROTOCOL.NOTIFICATIONS.PROGRESS, params });
   } catch (error) {
     Logger.error("Failed to send progress notification:", error);
   }
 }
 
-function startProgressUpdates(
-  operationName: string,
-  progressToken?: string | number
-) {
-  isProcessing = true;
-  currentOperationName = operationName;
-  latestOutput = ""; // Reset latest output
-  
+function startProgressUpdates(operationName: string, progressToken?: string | number) {
+  const ctx: ProgressContext = {
+    isProcessing: true,
+    operationName,
+    latestOutput: "",
+    messageIndex: 0,
+    progress: 0,
+  };
+
   const progressMessages = [
     `🧠 ${operationName} - Gemini is analyzing your request...`,
     `📊 ${operationName} - Processing files and generating insights...`,
@@ -97,63 +81,53 @@ function startProgressUpdates(
     `⏱️ ${operationName} - Large analysis in progress (this is normal for big requests)...`,
     `🔍 ${operationName} - Still working... Gemini takes time for quality results...`,
   ];
-  
-  let messageIndex = 0;
-  let progress = 0;
-  
-  // Send immediate acknowledgment if progress requested
+
   if (progressToken) {
-    sendProgressNotification(
-      progressToken,
-      0,
-      undefined, // No total - indeterminate progress
-      `🔍 Starting ${operationName}`
-    );
+    sendProgressNotification(progressToken, 0, undefined, `🔍 Starting ${operationName}`);
   }
-  
-  // Keep client alive with periodic updates
+
   const progressInterval = setInterval(async () => {
-    if (isProcessing && progressToken) {
-      // Simply increment progress value
-      progress += 1;
-      
-      // Include latest output if available
-      const baseMessage = progressMessages[messageIndex % progressMessages.length];
-      const outputPreview = latestOutput.slice(-150).trim(); // Last 150 chars
-      const message = outputPreview 
-        ? `${baseMessage}\n📝 Output: ...${outputPreview}`
-        : baseMessage;
-      
-      await sendProgressNotification(
-        progressToken,
-        progress,
-        undefined, // No total - indeterminate progress
-        message
-      );
-      messageIndex++;
-    } else if (!isProcessing) {
+    if (!ctx.isProcessing) {
       clearInterval(progressInterval);
+      return;
     }
-  }, PROTOCOL.KEEPALIVE_INTERVAL); // Every 25 seconds
-  
-  return { interval: progressInterval, progressToken };
+
+    const baseMessage = progressMessages[ctx.messageIndex % progressMessages.length];
+    const outputPreview = ctx.latestOutput.slice(-150).trim();
+    const message = outputPreview ? `${baseMessage}\n📝 Output: ...${outputPreview}` : baseMessage;
+
+    // Always send a log notification — keeps the stdio pipe alive even without a progressToken.
+    // Claude Code silently drops the connection after ~30s of stdio inactivity; this prevents that.
+    try {
+      await server.notification({ method: "notifications/message", params: { level: "debug", data: message } });
+    } catch {
+      clearInterval(progressInterval);
+      ctx.isProcessing = false;
+      return;
+    }
+
+    if (progressToken) {
+      ctx.progress += 1;
+      await sendProgressNotification(progressToken, ctx.progress, undefined, message);
+    }
+
+    ctx.messageIndex++;
+  }, PROTOCOL.KEEPALIVE_INTERVAL);
+
+  return { interval: progressInterval, progressToken, ctx };
 }
 
-function stopProgressUpdates(
-  progressData: { interval: NodeJS.Timeout; progressToken?: string | number },
+async function stopProgressUpdates(
+  progressData: { interval: NodeJS.Timeout; progressToken?: string | number; ctx: ProgressContext },
   success: boolean = true
 ) {
-  const operationName = currentOperationName; // Store before clearing
-  isProcessing = false;
-  currentOperationName = "";
+  const operationName = progressData.ctx.operationName;
+  progressData.ctx.isProcessing = false;
   clearInterval(progressData.interval);
-  
-  // Send final progress notification if client requested progress
+
   if (progressData.progressToken) {
-    sendProgressNotification(
-      progressData.progressToken,
-      100,
-      100,
+    await sendProgressNotification(
+      progressData.progressToken, 100, 100,
       success ? `✅ ${operationName} completed successfully` : `❌ ${operationName} failed`
     );
   }
@@ -176,18 +150,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
     const progressData = startProgressUpdates(toolName, progressToken);
     
     try {
-      // Get prompt and other parameters from arguments with proper typing
       const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
 
       Logger.toolInvocation(toolName, request.params.arguments);
 
-      // Execute the tool using the unified registry with progress callback
       const result = await executeTool(toolName, args, (newOutput) => {
-        latestOutput = newOutput;
+        progressData.ctx.latestOutput = newOutput;
       });
 
-      // Stop progress updates
-      stopProgressUpdates(progressData, true);
+      await stopProgressUpdates(progressData, true);
 
       return {
         content: [
@@ -199,8 +170,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         isError: false,
       };
     } catch (error) {
-      // Stop progress updates on error
-      stopProgressUpdates(progressData, false);
+      await stopProgressUpdates(progressData, false);
       
       Logger.error(`Error in tool '${toolName}':`, error);
 

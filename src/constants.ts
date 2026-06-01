@@ -53,7 +53,7 @@ export const PROTOCOL = {
     PROGRESS: "notifications/progress",
   },
   // Timeout prevention
-  KEEPALIVE_INTERVAL: 25000, // 25 seconds
+  KEEPALIVE_INTERVAL: 15000, // 15 seconds — two beats before any ~30s stdio silence timeout
 } as const;
 
 
