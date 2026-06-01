@@ -162,6 +162,7 @@ const skip = GEMINI_SKIP || (!hasJudgeKey ? "No DeepSeek/OpenRouter API key conf
 const options = { skip, timeout: 240_000 } as const;
 
 let server: ServerHandle;
+const TEST_ENV = { GEMINI_MCP_TEST_TOOLS: "1" };
 
 function buildExecutionReport(
   prompt: string,
@@ -196,7 +197,7 @@ function buildExecutionReport(
 
 before(async () => {
   if (!skip) {
-    server = await startServer();
+    server = await startServer(TEST_ENV);
   }
 });
 
@@ -320,7 +321,9 @@ describe("MCP Tool Semantic Evaluations (LLM-as-a-Judge)", () => {
   });
 
   test("ask-gemini handles client-side timeout gracefully", options, async (t) => {
-    // We call timeout-test with 5000ms duration (5s) but timeout the promise in 1000ms (1s)
+    // Race a 5-second timeout-test call against a 1-second client-side timeout.
+    // Expects the client-side timeout to fire first, then confirms the server
+    // is still responsive afterwards.
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("Client-side timeout hit")), 1000)
     );
@@ -338,7 +341,6 @@ describe("MCP Tool Semantic Evaluations (LLM-as-a-Judge)", () => {
       t.diagnostic("Client-side timeout hit as expected. Verifying server is still responsive...");
     }
 
-    // Verify the server is still responsive and has not crashed by calling ping
     const pingRes = await callTool(t, server, { name: "ping", arguments: { prompt: "alive" } });
     assert.equal(pingRes.isError ?? false, false);
     assert.match(textOf(pingRes), /alive/);
