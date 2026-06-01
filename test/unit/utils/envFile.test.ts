@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseEnv } from "./envFile.js";
+import { parseEnv } from "../../../src/utils/envFile.js";
 
 test("parseEnv: basic KEY=VALUE pairs", () => {
   const r = parseEnv("GEMINI_MODEL=gemini-2.5-pro\nGEMINI_MCP_TIMEOUT_MS=1800000");

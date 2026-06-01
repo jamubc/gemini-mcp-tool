@@ -4,7 +4,7 @@ import {
   quoteForCmd,
   resolveCommandForExecution,
   buildEnoentErrorMessage,
-} from "./commandExecutor.js";
+} from "../../../src/utils/commandExecutor.js";
 
 test("quoteForCmd wraps in double quotes and doubles embedded quotes", () => {
   assert.equal(quoteForCmd("hello"), '"hello"');

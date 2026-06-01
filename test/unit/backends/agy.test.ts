@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildAgyArgs } from "./agy.js";
+import { buildAgyArgs } from "../../../src/backends/agy.js";
 
 test("buildAgyArgs maps prompt, sessions, sandbox, and yolo", () => {
   assert.deepEqual(buildAgyArgs("hi", {}), ["-p", "hi"]);

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertSafeFileReferences } from "./geminiExecutor.js";
+import { assertSafeFileReferences } from "../../../src/utils/geminiExecutor.js";
 
 const root = process.cwd();
 

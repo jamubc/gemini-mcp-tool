@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveApprovalMode, buildGeminiArgs, resolveModel } from "./gemini.js";
+import { resolveApprovalMode, buildGeminiArgs, resolveModel } from "../../../src/backends/gemini.js";
 
 const ENV_KEY = "GEMINI_MCP_APPROVAL_MODE";
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { getBackend } from "./index.js";
+import { getBackend } from "../../../src/backends/index.js";
 
 test("getBackend defaults to gemini", () => {
   assert.equal(getBackend({}).name, "gemini");

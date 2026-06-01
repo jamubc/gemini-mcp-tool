@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveTimeoutMs, RECOMMENDED_TIMEOUT_MS } from "./timeoutManager.js";
+import { resolveTimeoutMs, RECOMMENDED_TIMEOUT_MS } from "../../../src/utils/timeoutManager.js";
 
 test("resolveTimeoutMs: disabled by default when unset or blank (1.1.6 parity)", () => {
   assert.equal(resolveTimeoutMs({}), 0);

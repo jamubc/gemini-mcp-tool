@@ -4,7 +4,7 @@ import { Logger } from '../utils/logger.js';
 import { executeGeminiCLI } from '../utils/geminiExecutor.js';
 import { type ApprovalMode } from '../constants.js';
 
-function buildBrainstormPrompt(config: {
+export function buildBrainstormPrompt(config: {
   prompt: string;
   methodology: string;
   domain?: string;
@@ -67,7 +67,7 @@ Begin brainstorming session:`;
 /**
  * Returns methodology-specific instructions for structured brainstorming
  */
-function getMethodologyInstructions(methodology: string, domain?: string): string {
+export function getMethodologyInstructions(methodology: string, domain?: string): string {
   const methodologies: Record<string, string> = {
     'divergent': `**Divergent Thinking Approach:**
 - Generate maximum quantity of ideas without self-censoring
