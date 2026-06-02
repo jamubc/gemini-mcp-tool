@@ -40,12 +40,21 @@ const server = new Server(
   },
 );
 
+// Progress notifications are ON by default. Some Claude Code versions disconnect a
+// stdio MCP server after a successful tools/call response when the server emits
+// progress notifications (anthropics/claude-code#53617). As an opt-out workaround,
+// set GEMINI_MCP_DISABLE_PROGRESS=1 (or =true) to suppress progress notifications.
+const PROGRESS_DISABLED =
+  process.env.GEMINI_MCP_DISABLE_PROGRESS === "1" ||
+  process.env.GEMINI_MCP_DISABLE_PROGRESS === "true";
+
 interface ProgressContext {
   isProcessing: boolean;
   operationName: string;
   latestOutput: string;
   messageIndex: number;
   progress: number;
+  emittedProgress: boolean;
 }
 
 async function sendProgressNotification(
@@ -72,6 +81,7 @@ function startProgressUpdates(operationName: string, progressToken?: string | nu
     latestOutput: "",
     messageIndex: 0,
     progress: 0,
+    emittedProgress: false,
   };
 
   const progressMessages = [
@@ -82,10 +92,11 @@ function startProgressUpdates(operationName: string, progressToken?: string | nu
     `🔍 ${operationName} - Still working... Gemini takes time for quality results...`,
   ];
 
-  if (progressToken) {
-    sendProgressNotification(progressToken, 0, undefined, `🔍 Starting ${operationName}`);
-  }
-
+  // Lazy progress: we deliberately do NOT send an immediate progress:0 ack. A fast
+  // tool (e.g. ping) finishes before the first interval tick and so emits no progress
+  // notifications at all — which is what avoids the #53617 client disconnect on quick
+  // calls. Progress only starts once a call actually runs past KEEPALIVE_INTERVAL,
+  // i.e. exactly the long operations that need the keepalive.
   const progressInterval = setInterval(async () => {
     if (!ctx.isProcessing) {
       clearInterval(progressInterval);
@@ -112,6 +123,7 @@ function startProgressUpdates(operationName: string, progressToken?: string | nu
         method: PROTOCOL.NOTIFICATIONS.PROGRESS,
         params: { progressToken, progress: ctx.progress, message },
       });
+      ctx.emittedProgress = true;
     } catch (error) {
       // Transport gone (e.g. EPIPE after the client went away): stop ticking so
       // we neither leak this timer nor keep throwing on a dead pipe.
@@ -132,7 +144,10 @@ async function stopProgressUpdates(
   progressData.ctx.isProcessing = false;
   clearInterval(progressData.interval);
 
-  if (progressData.progressToken) {
+  // Only send a final progress notification if this call actually emitted progress
+  // (i.e. ran long enough to tick). Fast calls emit nothing, so no lone progress
+  // notification ever brackets their successful response — this is the #53617 guard.
+  if (progressData.progressToken && progressData.ctx.emittedProgress) {
     await sendProgressNotification(
       progressData.progressToken, 100, 100,
       success ? `✅ ${operationName} completed successfully` : `❌ ${operationName} failed`
@@ -150,9 +165,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
   const toolName: string = request.params.name;
 
   if (toolExists(toolName)) {
-    // Check if client requested progress updates
-    const progressToken = (request.params as any)._meta?.progressToken;
-    
+    // Check if client requested progress updates (unless opted out via env var)
+    const progressToken = PROGRESS_DISABLED
+      ? undefined
+      : (request.params as any)._meta?.progressToken;
+
     // Start progress updates if client requested them
     const progressData = startProgressUpdates(toolName, progressToken);
     
