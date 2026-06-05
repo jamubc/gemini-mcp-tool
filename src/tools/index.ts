@@ -5,13 +5,15 @@ import { pingTool, helpTool } from './simple-tools.js';
 import { brainstormTool } from './brainstorm.tool.js';
 import { fetchChunkTool } from './fetch-chunk.tool.js';
 import { timeoutTestTool } from './timeout-test.tool.js';
+import { applyEditsTool } from './apply-edits.tool.js';
 
 toolRegistry.push(
   askGeminiTool,
   pingTool,
   helpTool,
   brainstormTool,
-  fetchChunkTool
+  fetchChunkTool,
+  applyEditsTool
 );
 
 // Only register test-only tools when explicitly enabled (e.g. judge/e2e test suite)
