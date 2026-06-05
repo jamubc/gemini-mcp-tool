@@ -62,6 +62,13 @@ export default withMermaid(
           { text: 'Troubleshooting', link: '/resources/troubleshooting' },
           { text: 'FAQ', link: '/resources/faq' },
         ]
+      },
+      {
+        text: 'Research',
+        collapsed: true,
+        items: [
+          { text: 'Landscape & Trends (2026)', link: '/research/landscape-2026' },
+        ]
       }
     ],
 
