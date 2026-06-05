@@ -9,6 +9,7 @@ export const ERROR_MESSAGES = {
   QUOTA_EXCEEDED_SHORT: "⚠️ Gemini 2.5 Pro daily quota exceeded. Please retry with model: 'gemini-2.5-flash'",
   TOOL_NOT_FOUND: "not found in registry",
   NO_PROMPT_PROVIDED: "Please provide a prompt for analysis. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions",
+  MAP_REDUCE_TOO_MANY_SHARDS: "Too many shards generated. Increase shardBytes to reduce the number of shards, or narrow the target paths.",
 } as const;
 
 // Status messages
@@ -22,6 +23,10 @@ export const STATUS_MESSAGES = {
   PROCESSING_START: "🔍 Starting analysis (may take 5-15 minutes for large codebases)",
   PROCESSING_CONTINUE: "⏳ Still processing... Gemini is working on your request",
   PROCESSING_COMPLETE: "✅ Analysis completed successfully",
+  // Map-reduce messages
+  MAP_REDUCE_SHARDING: "Sharding workspace",
+  MAP_REDUCE_MAPPING: "Analyzing shard",
+  MAP_REDUCE_REDUCING: "Synthesizing results across shards",
 } as const;
 
 // Models
@@ -83,6 +88,7 @@ export const CLI = {
 // Environment variables that configure the server.
 export const ENV = {
   GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
+  GEMINI_MCP_MAP_CONCURRENCY: "GEMINI_MCP_MAP_CONCURRENCY", // max parallel Gemini calls in map-reduce (default 4)
 } as const;
 
 
