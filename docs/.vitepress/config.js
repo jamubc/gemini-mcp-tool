@@ -65,7 +65,7 @@ export default withMermaid(
       },
       {
         text: 'Research',
-        collapsed: true,
+        collapsed: false,
         items: [
           { text: 'Landscape & Trends (2026)', link: '/research/landscape-2026' },
         ]
