@@ -11,6 +11,13 @@ export const ERROR_MESSAGES = {
   NO_PROMPT_PROVIDED: "Please provide a prompt for analysis. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions",
 } as const;
 
+// Second-opinion tool messages
+export const SECOND_OPINION_MESSAGES = {
+  SOLVE_START: 'Requesting independent solution (anti-anchoring mode)...',
+  COMPARE_START: 'Comparing answers for points of divergence...',
+  NO_PROBLEM_PROVIDED: 'A non-empty problem description is required for the second-opinion tool.',
+} as const;
+
 // Status messages
 export const STATUS_MESSAGES = {
   QUOTA_SWITCHING: "🚫 Gemini 2.5 Pro quota exceeded, switching to Flash model...",
