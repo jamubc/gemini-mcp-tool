@@ -22,7 +22,8 @@ export default withMermaid(
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Open Guide', link: '/getting-started' },
-      { text: 'API', link: '/api' }
+      { text: 'API', link: '/api' },
+      { text: 'Migration', link: '/migration/antigravity-cli' }
     ],
 
     sidebar: [
@@ -52,6 +53,13 @@ export default withMermaid(
           { text: 'Natural Language', link: '/usage/natural-language' },
           { text: 'Examples', link: '/usage/examples' },
           { text: 'Best Practices', link: '/usage/best-practices' }
+        ]
+      },
+      {
+        text: 'Migration',
+        collapsed: false,
+        items: [
+          { text: 'Gemini CLI → Antigravity (agy)', link: '/migration/antigravity-cli' },
         ]
       },
       {

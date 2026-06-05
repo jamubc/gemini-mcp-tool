@@ -115,7 +115,7 @@ is pluggable so you can move at your own pace:
 | `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to use the Antigravity CLI |
 | `AGY_CLI_PATH` | Full path to the `agy` binary if it isn't on the server's PATH |
 
-The `agy` backend is **experimental**: print-mode is Gemini 3.5 Flash–only, replies are
+The `agy` backend is **experimental**: print-mode is Gemini 3.5 Flash-only, replies are
 recovered from `agy`'s transcript files, and tool execution isn't sandboxed in `-p`. The
 tool emits a notice whenever a requested `model` or `sandbox` can't be honored. See
 [docs/migration/antigravity-cli.md](docs/migration/antigravity-cli.md) for the full

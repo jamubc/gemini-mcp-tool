@@ -34,7 +34,7 @@ matter for a *non-interactive, programmatic* caller like an MCP server:
 | Concern | Gemini CLI (today) | Antigravity CLI (`agy`) | Impact on us |
 | --- | --- | --- | --- |
 | Command | `gemini` | `agy` | Low — one constant |
-| One-shot prompt | `-p/--prompt` (also positional), prints to stdout | `-p/--print` exists but **writes nothing to stdout in 1.0.x** | **High** — our entire contract is "read stdout" |
+| One-shot prompt | `-p/--prompt` (also positional), prints to stdout | `-p/--print` exists but **frequently writes nothing to stdout in 1.0.x** (reported in non-TTY/headless and Windows contexts) | **High** — our entire contract is "read stdout" |
 | Model select | `-m gemini-2.5-pro` etc. | `--model` exists, but `-p` is **hardcoded to Gemini 3.5 Flash**; switching model in `-p` hangs | **High** — breaks our Pro/Flash strategy + quota fallback |
 | `@file` inlining | CLI inlines `@path` file contents into the prompt | Not confirmed to exist; agent reads files via its own tools | **High** — `@file` is our headline feature |
 | Sandbox | `-s/--sandbox` | `--sandbox` exists but tool execution is effectively unsandboxed in `-p` | **High** — security posture changes |
@@ -56,12 +56,13 @@ recovering that contract on top of an agent-first tool that wasn't designed for 
 
 Everything in `executeCommand()` (`src/utils/commandExecutor.ts`) is built around the
 child process writing the answer to stdout, which we accumulate and `resolve()` on a clean
-exit. In `agy` 1.0.x, `agy -p` authenticates, talks to the model, gets the answer back…
+exit. In `agy` 1.0.x — at least in the non-TTY/headless contexts an MCP server runs in, and
+reported on Windows — `agy -p` authenticates, talks to the model, gets the answer back…
 and then **exits 0 without printing it**. A zero exit with empty stdout currently looks
 like "success, empty answer" to us.
 
-The community workaround (and what PR #78's experimental backend already does) is to stop
-trusting stdout and instead read `agy`'s own transcript:
+Our workaround is to stop trusting stdout and read `agy`'s own transcript directly from its
+observable on-disk format (the path PR #78's experimental backend also takes):
 
 1. Map the current working directory to a conversation id via
    `~/.gemini/antigravity-cli/cache/last_conversations.json`.
@@ -70,10 +71,15 @@ trusting stdout and instead read `agy`'s own transcript:
 3. Take the entries after the last `USER_INPUT` where
    `source = MODEL, type = PLANNER_RESPONSE, status = DONE` and join their `content`.
 
+(Our implementation prefers a conversation id we set explicitly via `--conversation`, then
+the cwd→id map above, then the newest recently-written conversation — see Phase 2.)
+
 This works, but it's a reverse-engineered private contract:
 
-- **Format risk.** `agy` 1.0.5 already dual-writes a `.db` (SQLite) alongside JSONL. When
-  JSONL generation stops, the transcript reader breaks and we need a SQLite path.
+- **Format risk.** `agy` 1.0.5 already dual-writes a `.db` (SQLite) — reported both
+  alongside the JSONL and under a separate `~/.gemini/antigravity-cli/conversations/<id>.db`,
+  so the reader must probe both. When JSONL generation stops, the transcript reader breaks
+  and we need the SQLite path.
 - **Discovery risk.** `last_conversations.json` is keyed by workspace path. If the schema,
   key normalization, or directory layout changes, discovery silently fails.
 - **Concurrency risk.** Each run rewrites `last_conversations.json`, so two concurrent
@@ -83,7 +89,14 @@ This works, but it's a reverse-engineered private contract:
 **Proposed solutions**
 - **S1 (short term):** Keep the transcript-recovery path, but treat it as a *fallback*:
   prefer stdout when non-empty (a future `agy` may fix `-p`), and only fall back to the
-  transcript when stdout is empty. (PR #78 already does this — keep it.)
+  transcript when stdout is empty.
+- **S1b (the fix we'd rather own — no private formats):** The empty-stdout behaviour looks
+  like `agy`'s non-TTY output path. Drive `agy -p` under an allocated **pseudo-terminal** so
+  it believes it's interactive and streams to a pipe we capture — recovering the real stdout
+  contract without reading any of `agy`'s internal files at all. This is the approach to own
+  long-term; the transcript reader is the dependency-free interim while we evaluate the PTY
+  cost. *We solve this ourselves by observing `agy`'s actual behaviour — not by importing
+  anyone else's wrapper.*
 - **S2:** Harden the reader: detect JSONL vs SQLite by what exists on disk and add a
   SQLite reader behind the same interface so a future `agy` update doesn't break us.
 - **S3:** Capture the process start time and only accept transcript entries newer than it,
@@ -106,8 +119,8 @@ the call to **hang** past 60s (verified on `agy` 1.0.5). So:
 
 - The `model` arg becomes a no-op (or a hazard) on the `agy` backend.
 - The Pro→Flash quota fallback is meaningless when Flash is the only option.
-- Cost/latency change: reports indicate Flash 3.5 consumes notably more tokens per task
-  than the old Flash, so "Flash is the cheap fast one" no longer holds the same way.
+- Cost/latency change: reports indicate Gemini 3.5 Flash consumes notably more tokens per
+  task than the old Flash, so "Flash is the cheap fast one" no longer holds the same way.
 
 **Proposed solutions**
 - **S5:** Make model support a backend capability, not a global assumption. PR #78 already
@@ -155,8 +168,8 @@ to read files using its own tools during a multi-step run. That's a different co
 
 ### 4. Security posture: sandbox and approval flags are weaker than they look
 
-Today we forward `-s/--sandbox` and (in PR #78) `--approval-mode {default,auto_edit,yolo,
-plan}`. On `agy`:
+Today we forward `-s/--sandbox` and (in PR #78) `--approval-mode {default,auto_edit,yolo,plan}`.
+On `agy`:
 
 - `--sandbox` exists, but in `-p` the agent **auto-runs filesystem and network operations
   with the user's privileges** regardless. Tool execution is effectively unsandboxed.
@@ -215,9 +228,9 @@ We forward `--session-id`/`--resume` (gemini) which PR #78 maps to
   an `AGY_CLI_PATH`-style override, mirroring `GEMINI_CLI_PATH`).
 - **S18:** Make `buildEnoentErrorMessage` backend-aware so an `agy` user gets `agy`-correct
   install/login guidance (including `agy -i`), not a gemini npm command.
-- **S19:** Extend the existing **setup doctor** (`scripts/doctor.mjs`, added in PR #78) to
-  detect both CLIs, report versions, and warn when the active backend's binary is missing
-  or unauthenticated. The doctor is the right place to make all of this legible to users.
+- **S19:** Extend the existing **setup doctor** (`scripts/doctor.mjs`) to detect both CLIs,
+  report versions, and warn when the active backend's binary is missing or unauthenticated.
+  The doctor is the right place to make all of this legible to users.
 
 ---
 
@@ -269,7 +282,7 @@ API-key users who retain access.
 | `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to select the CLI backend |
 | `AGY_CLI_PATH` | Full path to the `agy` binary when it isn't on the server's PATH |
 
-`agy` is **experimental**: print-mode is Gemini 3.5 Flash–only, output is recovered from
+`agy` is **experimental**: print-mode is Gemini 3.5 Flash-only, output is recovered from
 `agy`'s transcript files, and tool execution is not sandboxed in `-p`. The tool surfaces a
 notice whenever a requested `model` or `sandbox` can't be honored.
 
@@ -289,8 +302,6 @@ notice whenever a requested `model` or `sandbox` can't be honored.
 - [Google Developers Blog — Transitioning Gemini CLI to Antigravity CLI](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/)
 - [google-gemini/gemini-cli Discussion #27274 — official transition announcement](https://github.com/google-gemini/gemini-cli/discussions/27274)
 - [google-antigravity/antigravity-cli Issue #7 — conversation ids for headless callers](https://github.com/google-antigravity/antigravity-cli/issues/7)
-- [Community MCP bridge documenting the `agy -p` empty-stdout bug and transcript recovery](https://github.com/SinanTufekci/Claude-Code-Antigravity-CLI-MCP-Server)
 - [Antigravity CLI usage docs](https://antigravity.google/docs/cli-using)
 - This repo: [PR #78 (v1.2.0)](https://github.com/jamubc/gemini-mcp-tool/pull/78) ·
   [Discussion #90](https://github.com/jamubc/gemini-mcp-tool/discussions/90)
-</content>

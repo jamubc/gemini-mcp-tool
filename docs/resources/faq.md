@@ -28,6 +28,13 @@ npm install -g @google/gemini-cli
 ```
 Then, run "gemini" and complete auth.
 
+### What happens after June 18, 2026?
+Google retires the Gemini CLI on **2026-06-18** for free, Pro, and Ultra tiers (Standard/
+Enterprise and paid Cloud API keys keep working). Its successor is the **Antigravity CLI
+(`agy`)**. This tool ships an experimental `agy` backend — set `GEMINI_MCP_BACKEND=agy` to
+try it — and the default will switch ahead of the cutoff. See the
+[Antigravity migration guide](/migration/antigravity-cli).
+
 ### Can I use this with Claude Code?
 Yes! It works with both Claude Desktop and Claude Code.
 

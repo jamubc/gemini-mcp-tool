@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, realpathSync } from 'fs';
 import { executeCommand } from './commandExecutor.js';
 import { Logger } from './logger.js';
 import {
@@ -124,10 +124,29 @@ export function inlineFileReferences(prompt: string, root: string = process.cwd(
   // traversal references before we read anything from disk.
   assertSafeFileReferences(prompt, root);
   const normalizedRoot = path.resolve(root);
+  const escapesRoot = (p: string) =>
+    p !== normalizedRoot && !p.startsWith(normalizedRoot + path.sep);
   return prompt.replace(FILE_REF_PATTERN, (whole, ref: string) => {
     const resolved = path.resolve(normalizedRoot, ref);
+    // Symlink-aware guard: assertSafeFileReferences is lexical (path.resolve),
+    // so an in-root symlink could still point outside the root. Resolve the real
+    // target and re-check before reading. realpathSync throws on a missing path —
+    // that is handled below as "not found" (no contents leaked).
+    let real: string;
     try {
-      const content = readFileSync(resolved, 'utf8');
+      real = realpathSync(resolved);
+    } catch (e) {
+      Logger.warn(`inlineFileReferences: could not resolve @${ref}: ${(e as Error).message}`);
+      return `\n----- FILE NOT FOUND: ${ref} -----\n`;
+    }
+    if (escapesRoot(real)) {
+      throw new Error(
+        `Refusing @file reference resolving outside the project directory: "@${ref}". ` +
+        `Only files within ${normalizedRoot} may be referenced.`
+      );
+    }
+    try {
+      const content = readFileSync(real, 'utf8');
       return `\n----- BEGIN FILE: ${ref} -----\n${content}\n----- END FILE: ${ref} -----\n`;
     } catch (e) {
       Logger.warn(`inlineFileReferences: could not read @${ref}: ${(e as Error).message}`);
