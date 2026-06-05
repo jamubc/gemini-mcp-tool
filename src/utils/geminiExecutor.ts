@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { readFileSync } from 'fs';
 import { executeCommand } from './commandExecutor.js';
 import { Logger } from './logger.js';
 import {
@@ -43,19 +44,13 @@ export function assertSafeFileReferences(prompt: string, root: string = process.
   }
 }
 
-export async function executeGeminiCLI(
-  prompt: string,
-  model?: string,
-  sandbox?: boolean,
-  changeMode?: boolean,
-  onProgress?: (newOutput: string) => void
-): Promise<string> {
-  let prompt_processed = prompt;
-
-  if (changeMode) {
-    prompt_processed = prompt.replace(/file:(\S+)/g, '@$1');
-
-    const changeModeInstructions = `
+/**
+ * Wraps a user request in the changeMode instruction template that makes the
+ * model emit machine-applicable OLD/NEW edit blocks. The format is model- and
+ * CLI-agnostic, so both the gemini and agy backends share this builder.
+ */
+export function buildChangeModePrompt(userRequest: string): string {
+  return `
 [CHANGEMODE INSTRUCTIONS]
 You are generating code modifications that will be processed by an automated system. The output format is critical because it enables programmatic application of changes without human intervention.
 
@@ -113,9 +108,48 @@ NEW:
 IMPORTANT: The OLD section must be an EXACT copy from the file that can be found with Ctrl+F!
 
 USER REQUEST:
-${prompt_processed}
+${userRequest}
 `;
-    prompt_processed = changeModeInstructions;
+}
+
+/**
+ * Replaces every in-project `@path` reference with the file's contents inlined
+ * in a delimited block. The Gemini CLI does this inlining itself; the agy
+ * backend does NOT reliably inline `@file` (it is agent-first and decides to
+ * read files via its own tools), so for agy we inline ourselves to keep both
+ * determinism and the CVE-2026-0755 project-root guard in the data path.
+ */
+export function inlineFileReferences(prompt: string, root: string = process.cwd()): string {
+  // Reuse the same guard the gemini path relies on; rejects ~, absolute and
+  // traversal references before we read anything from disk.
+  assertSafeFileReferences(prompt, root);
+  const normalizedRoot = path.resolve(root);
+  return prompt.replace(FILE_REF_PATTERN, (whole, ref: string) => {
+    const resolved = path.resolve(normalizedRoot, ref);
+    try {
+      const content = readFileSync(resolved, 'utf8');
+      return `\n----- BEGIN FILE: ${ref} -----\n${content}\n----- END FILE: ${ref} -----\n`;
+    } catch (e) {
+      Logger.warn(`inlineFileReferences: could not read @${ref}: ${(e as Error).message}`);
+      // Leave a visible marker rather than the raw token so the model isn't
+      // misled into thinking a file was provided.
+      return `\n----- FILE NOT FOUND: ${ref} -----\n`;
+    }
+  });
+}
+
+export async function executeGeminiCLI(
+  prompt: string,
+  model?: string,
+  sandbox?: boolean,
+  changeMode?: boolean,
+  onProgress?: (newOutput: string) => void
+): Promise<string> {
+  let prompt_processed = prompt;
+
+  if (changeMode) {
+    // file:foo -> @foo so the inlining/guard path treats them as file refs.
+    prompt_processed = buildChangeModePrompt(prompt.replace(/file:(\S+)/g, '@$1'));
   }
 
   // Block @file references that escape the project root before the prompt

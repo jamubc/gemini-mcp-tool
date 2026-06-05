@@ -28,7 +28,21 @@ export const STATUS_MESSAGES = {
 export const MODELS = {
   PRO: "gemini-2.5-pro",
   FLASH: "gemini-2.5-flash",
+  // Antigravity CLI print-mode is hardcoded to Gemini 3.5 Flash (High). This is
+  // informational only — `agy -p` ignores `--model` (and hangs if forced).
+  AGY_PRINT_DEFAULT: "gemini-3.5-flash",
 } as const;
+
+// Approval modes. The Gemini CLI exposes a graded set via --approval-mode; the
+// Antigravity CLI only has "skip everything" (--dangerously-skip-permissions),
+// and even that is a no-op in print mode. Backends map these in their own terms.
+export const APPROVAL_MODES = {
+  DEFAULT: "default",
+  AUTO_EDIT: "auto_edit",
+  YOLO: "yolo",
+  PLAN: "plan",
+} as const;
+export type ApprovalMode = (typeof APPROVAL_MODES)[keyof typeof APPROVAL_MODES];
 
 // MCP Protocol Constants
 export const PROTOCOL = {
@@ -62,6 +76,7 @@ export const CLI = {
   // Command names
   COMMANDS: {
     GEMINI: "gemini",
+    AGY: "agy", // Antigravity CLI — gemini-cli's successor (retirement: 2026-06-18)
     ECHO: "echo",
   },
   // Command flags
@@ -83,6 +98,8 @@ export const CLI = {
 // Environment variables that configure the server.
 export const ENV = {
   GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
+  AGY_CLI_PATH: "AGY_CLI_PATH", // explicit path to the agy (Antigravity CLI) executable
+  BACKEND: "GEMINI_MCP_BACKEND", // active CLI backend: "gemini" (default) | "agy"/"antigravity"
 } as const;
 
 

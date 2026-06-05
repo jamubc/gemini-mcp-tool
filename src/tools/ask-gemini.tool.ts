@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { UnifiedTool } from './registry.js';
-import { executeGeminiCLI, processChangeModeOutput } from '../utils/geminiExecutor.js';
+import { processChangeModeOutput } from '../utils/geminiExecutor.js';
+import { runWithBackend, withNotices } from '../backends/index.js';
 import {
   ERROR_MESSAGES,
   STATUS_MESSAGES
@@ -39,22 +40,22 @@ export const askGeminiTool: UnifiedTool = {
       );
     }
 
-    const result = await executeGeminiCLI(
-      prompt as string,
-      model as string | undefined,
-      !!sandbox,
-      !!changeMode,
-      onProgress
-    );
+    const { text: result, notices } = await runWithBackend(prompt as string, {
+      model: model as string | undefined,
+      sandbox: !!sandbox,
+      changeMode: !!changeMode,
+      onProgress,
+    });
 
     if (changeMode) {
-      return processChangeModeOutput(
+      const processed = await processChangeModeOutput(
         result,
         args.chunkIndex as number | undefined,
         undefined,
         prompt as string
       );
+      return withNotices(notices, processed);
     }
-    return `${STATUS_MESSAGES.GEMINI_RESPONSE}\n${result}`; // changeMode false
+    return withNotices(notices, `${STATUS_MESSAGES.GEMINI_RESPONSE}\n${result}`); // changeMode false
   }
 };

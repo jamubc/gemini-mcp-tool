@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { UnifiedTool } from './registry.js';
 import { Logger } from '../utils/logger.js';
-import { executeGeminiCLI } from '../utils/geminiExecutor.js';
+import { runWithBackend, withNotices } from '../backends/index.js';
 
 export function buildBrainstormPrompt(config: {
   prompt: string;
@@ -165,7 +165,11 @@ export const brainstormTool: UnifiedTool = {
     // Report progress to user
     onProgress?.(`Generating ${ideaCount} ideas via ${methodology} methodology...`);
 
-    // Execute with Gemini
-    return await executeGeminiCLI(enhancedPrompt, model as string | undefined, false, false, onProgress);
+    // Execute via the active backend (gemini by default, agy when selected).
+    const { text, notices } = await runWithBackend(enhancedPrompt, {
+      model: model as string | undefined,
+      onProgress,
+    });
+    return withNotices(notices, text);
   }
 };

@@ -221,30 +221,57 @@ We forward `--session-id`/`--resume` (gemini) which PR #78 maps to
 
 ---
 
-## Proposed migration phases
+## Migration phases
 
-**Phase 0 — Backend seam (done in PR #78).** Pluggable backends, `GEMINI_MCP_BACKEND`,
-capability flags, and an experimental `agy` backend with transcript recovery. This RFC is
-the analysis behind it.
+Status legend: ✅ implemented in this PR · 🔜 follow-up · ⏳ blocked on upstream.
 
-**Phase 1 — Make `agy` honest (this migration's first code).**
-- Capability-gate model selection and quota fallback (S5/S6).
-- Backend-aware `@file` handling with the project-root guard preserved (S8/S9).
-- Truthful sandbox/approval notices on `agy` (S11/S12).
-- Backend-aware detection, errors, and doctor coverage (S17–S19).
+**Phase 0 — Backend seam. ✅**
+Pluggable backends under `src/backends/` (`Backend` interface + `getBackend()` +
+`runWithBackend()`), selected with `GEMINI_MCP_BACKEND`. Capability flags
+(`supportsModelSelection`, `sandboxIsolatesToolExecution`) describe each CLI honestly.
+`ask-gemini` and `brainstorm` now run through the seam; the default stays `gemini`.
+(Naming mirrors the experimental backend in #78 so the two reconcile mechanically.)
 
-**Phase 2 — Harden the recovery path.**
-- JSONL **and** SQLite transcript readers behind one interface (S2).
-- Start-time-bounded reads (S3) and explicit-id sessions where possible (S14/S15).
+**Phase 1 — Make `agy` honest. ✅**
+- Model selection is capability-gated: on `agy` the `model` arg is dropped, the Pro→Flash
+  quota fallback is skipped, and a notice explains why (S5/S6). We never pass `--model` to
+  `agy -p` (it hangs).
+- `@file` is handled per backend: `inlineFileReferences()` reads referenced files
+  ourselves for `agy`, keeping determinism **and** the CVE-2026-0755 project-root guard in
+  the data path (S8/S9).
+- Sandbox is truthful: requesting `sandbox` on `agy` returns a notice that print-mode does
+  not isolate tool execution, instead of implying isolation (S11/S12).
+- Detection is backend-aware: `AGY_CLI_PATH` override + known-install-dir/`where`
+  resolution, and `agy`-correct ENOENT guidance (install + `agy -i`), not the gemini npm
+  hint (S17/S18).
 
-**Phase 3 — Track upstream and graduate.**
-- Adopt caller-supplied conversation ids and any `-p` stdout / `--output-format json` fix
-  (S4) the moment they land, then drop the transcript-scraping fallback.
-- Promote `agy` from experimental to a first-class (eventually default) backend once `-p`
-  prints reliably and model selection works in print mode.
+**Phase 2 — Harden the recovery path. ✅**
+- `agyTranscript.ts` reads JSONL **and** detects/reads the dual-written SQLite `.db` behind
+  one `readTranscriptResponse()` interface (S2).
+- Discovery is start-time-bounded (`newestConversationSince`) so we never return a stale
+  reply, and explicit `--conversation` ids are read back deterministically (S3/S14).
 
-**Phase 4 — Flip the default.** Before 2026-06-18, default new installs to `agy` while
-keeping `gemini` selectable for Standard/Enterprise/API-key users who retain access.
+**Phase 3 — Track upstream and graduate. 🔜/⏳**
+- We already prefer stdout when non-empty, so the day `agy -p` prints reliably the
+  transcript fallback simply stops being used (S4).
+- Adopt caller-supplied conversation ids and `--output-format json` once they land
+  upstream, then delete the scraping path and flip `supportsModelSelection` on.
+
+**Phase 4 — Flip the default. 🔜**
+`DEFAULT_BACKEND` in `src/backends/index.ts` is a one-line switch. Before 2026-06-18,
+default new installs to `agy` while keeping `gemini` selectable for Standard/Enterprise/
+API-key users who retain access.
+
+## Configuration (added in this PR)
+
+| Variable | Purpose |
+| --- | --- |
+| `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to select the CLI backend |
+| `AGY_CLI_PATH` | Full path to the `agy` binary when it isn't on the server's PATH |
+
+`agy` is **experimental**: print-mode is Gemini 3.5 Flash–only, output is recovered from
+`agy`'s transcript files, and tool execution is not sandboxed in `-p`. The tool surfaces a
+notice whenever a requested `model` or `sandbox` can't be honored.
 
 ## Open questions
 
