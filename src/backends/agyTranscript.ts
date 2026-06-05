@@ -28,6 +28,9 @@ const logsDir = (id: string) =>
   path.join(AGY_BASE, "brain", id, ".system_generated", "logs");
 const jsonlPath = (id: string) => path.join(logsDir(id), "transcript.jsonl");
 const brainDir = path.join(AGY_BASE, "brain");
+// agy 1.0.x dual-writes a SQLite `.db`; observed locations vary by build — either
+// alongside the JSONL in the logs dir, or under a separate conversations/ dir.
+const conversationDbPath = (id: string) => path.join(AGY_BASE, "conversations", `${id}.db`);
 
 export interface TranscriptEntry {
   source?: string;
@@ -109,14 +112,18 @@ function readJsonlResponse(id: string): string {
   return extractReplies(entries);
 }
 
-/** The first `.db` file in a conversation's logs dir, if any. */
+/** Locate the SQLite transcript for a conversation across known agy layouts. */
 function findSqlite(id: string): string | undefined {
+  // (a) alongside the JSONL in the logs dir...
   try {
     const file = readdirSync(logsDir(id)).find((f) => f.endsWith(".db"));
-    return file ? path.join(logsDir(id), file) : undefined;
+    if (file) return path.join(logsDir(id), file);
   } catch {
-    return undefined;
+    /* logs dir may not exist */
   }
+  // (b) ...or the separate conversations/<id>.db some builds use.
+  const conv = conversationDbPath(id);
+  return existsSync(conv) ? conv : undefined;
 }
 
 /**
@@ -188,8 +195,13 @@ function readSqliteResponse(dbPath: string): string {
  */
 export function readTranscriptResponse(id: string): string {
   if (existsSync(jsonlPath(id))) {
-    const text = readJsonlResponse(id);
-    if (text) return text;
+    try {
+      const text = readJsonlResponse(id);
+      if (text) return text;
+    } catch (e) {
+      // TOCTOU/permissions: fall through to the SQLite reader rather than throw.
+      Logger.warn(`agy: JSONL read failed for ${id}, trying SQLite: ${(e as Error).message}`);
+    }
   }
   const db = findSqlite(id);
   if (db) return readSqliteResponse(db);

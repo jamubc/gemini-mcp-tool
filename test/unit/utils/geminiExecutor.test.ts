@@ -1,5 +1,8 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, writeFileSync, symlinkSync, rmSync, realpathSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   assertSafeFileReferences,
   buildChangeModePrompt,
@@ -42,5 +45,29 @@ describe("Node Utilities: Gemini CLI Executor", () => {
     const out = inlineFileReferences("@does-not-exist.txt", root);
     assert.match(out, /FILE NOT FOUND: does-not-exist\.txt/);
   });
+
+  test(
+    "inlineFileReferences blocks an in-root symlink whose target escapes the root",
+    { skip: process.platform === "win32" }, // symlink creation needs privileges on Windows
+    () => {
+      // realpath the temp roots so the guard's lexical normalizedRoot matches
+      // the symlink target's canonical path (macOS /var -> /private/var).
+      const dir = realpathSync(mkdtempSync(path.join(os.tmpdir(), "agy-root-")));
+      const outside = realpathSync(mkdtempSync(path.join(os.tmpdir(), "agy-secret-")));
+      try {
+        const secret = path.join(outside, "secret.txt");
+        writeFileSync(secret, "TOPSECRET");
+        symlinkSync(secret, path.join(dir, "link.txt"));
+        // Lexically in-root, but resolves outside — must be refused, not inlined.
+        assert.throws(
+          () => inlineFileReferences("read @link.txt", dir),
+          /outside the project directory/,
+        );
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+        rmSync(outside, { recursive: true, force: true });
+      }
+    },
+  );
 });
 
