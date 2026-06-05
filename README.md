@@ -105,6 +105,22 @@ If you installed globally, use this configuration instead:
 
 After updating the configuration, restart your terminal session.
 
+### Backend selection (Gemini CLI → Antigravity `agy`)
+
+Google retires the Gemini CLI on **2026-06-18** for free/Pro/Ultra tiers. The CLI backend
+is pluggable so you can move at your own pace:
+
+| Variable | Purpose |
+| --- | --- |
+| `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to use the Antigravity CLI |
+| `AGY_CLI_PATH` | Full path to the `agy` binary if it isn't on the server's PATH |
+
+The `agy` backend is **experimental**: print-mode is Gemini 3.5 Flash–only, replies are
+recovered from `agy`'s transcript files, and tool execution isn't sandboxed in `-p`. The
+tool emits a notice whenever a requested `model` or `sandbox` can't be honored. See
+[docs/migration/antigravity-cli.md](docs/migration/antigravity-cli.md) for the full
+analysis and migration plan.
+
 ## Example Workflow
 
 - **Natural language**: "use gemini to explain index.html", "understand the massive project using gemini", "ask gemini to search for latest news"

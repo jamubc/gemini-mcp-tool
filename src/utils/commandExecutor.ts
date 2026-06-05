@@ -1,4 +1,7 @@
 import { spawn, execSync } from "child_process";
+import { existsSync } from "fs";
+import os from "os";
+import path from "path";
 import { Logger } from "./logger.js";
 import { CLI, ENV } from "../constants.js";
 
@@ -20,31 +23,60 @@ export function selectWindowsGeminiCandidate(candidates: string[], command: stri
 // often runs without the user's interactive PATH, so we (1) honour an explicit
 // GEMINI_CLI_PATH override, then (2) ask `where` and prefer shims that cmd.exe
 // can actually launch. PowerShell shims and extensionless shell scripts are not
-// selected as fallbacks. Resolution is cached per command for the life of the process.
-const resolveCache = new Map<string, string>();
-export function resolveCommandForExecution(command: string): string {
-  if (process.platform !== "win32" || command !== CLI.COMMANDS.GEMINI) return command;
-
-  const cached = resolveCache.get(command);
-  if (cached) return cached;
-
-  let resolved: string = command;
+// selected as fallbacks.
+function resolveGemini(command: string): string {
+  if (process.platform !== "win32") return command; // off-Windows: rely on PATH
   const override = process.env[ENV.GEMINI_CLI_PATH]?.trim();
-  if (override) {
-    resolved = override;
-  } else {
+  if (override) return override;
+  try {
+    const out = execSync(`where ${command}`, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const candidates = out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    return selectWindowsGeminiCandidate(candidates, command);
+  } catch {
+    return `${command}.cmd`;
+  }
+}
+
+// Resolve the agy (Antigravity CLI) executable. Unlike gemini's npm shim, agy is
+// a Go binary the installer drops into ~/.local/bin (POSIX) or %LOCALAPPDATA%
+// (Windows) — directories the MCP server's PATH often doesn't include. So we
+// (1) honour AGY_CLI_PATH, then (2) probe known locations / `where`.
+function resolveAgy(command: string): string {
+  const override = process.env[ENV.AGY_CLI_PATH]?.trim();
+  if (override) return override;
+  if (process.platform === "win32") {
     try {
       const out = execSync(`where ${command}`, {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
       });
       const candidates = out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-      resolved = selectWindowsGeminiCandidate(candidates, command);
+      const byExt = (ext: string) =>
+        candidates.find((c) => c.toLowerCase().endsWith(ext));
+      return byExt(".exe") || byExt(".cmd") || byExt(".bat") || candidates[0] || `${command}.exe`;
     } catch {
-      resolved = `${command}.cmd`;
+      return `${command}.exe`;
     }
   }
+  const localBin = path.join(os.homedir(), ".local", "bin", command);
+  if (existsSync(localBin)) return localBin;
+  return command;
+}
 
+// The MCP server often runs without the user's interactive PATH; resolve the
+// real executable per command and cache it for the life of the process.
+const resolveCache = new Map<string, string>();
+export function resolveCommandForExecution(command: string): string {
+  if (command !== CLI.COMMANDS.GEMINI && command !== CLI.COMMANDS.AGY) return command;
+
+  const cached = resolveCache.get(command);
+  if (cached) return cached;
+
+  const resolved =
+    command === CLI.COMMANDS.AGY ? resolveAgy(command) : resolveGemini(command);
   resolveCache.set(command, resolved);
   return resolved;
 }
@@ -64,6 +96,13 @@ export function buildEnoentErrorMessage(command: string): string {
       isWindows
         ? `• Or set ${ENV.GEMINI_CLI_PATH} to the full path of the gemini shim (e.g. C:\\path\\to\\gemini.cmd).`
         : `• Or set ${ENV.GEMINI_CLI_PATH} to the full path of the gemini executable.`,
+    );
+  } else if (command === CLI.COMMANDS.AGY) {
+    lines.push(
+      `• agy ships with Google Antigravity; install it from https://antigravity.google and authenticate once with \`agy -i\`.`,
+      isWindows
+        ? `• It installs to %LOCALAPPDATA%\\Antigravity\\; add that to PATH or set ${ENV.AGY_CLI_PATH} to the full path of agy.exe.`
+        : `• It installs to ~/.local/bin; add that to PATH or set ${ENV.AGY_CLI_PATH} to the full path of the agy binary.`,
     );
   }
   return lines.join("\n");
