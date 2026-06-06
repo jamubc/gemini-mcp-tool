@@ -10,6 +10,8 @@ import {
   newestConversationSince,
   readTranscriptResponse,
 } from "./agyTranscript.js";
+import { probeAgyCapabilities } from "./agyCapabilities.js";
+import { parseAgyJsonResponse, ptyEnabled, runAgyUnderPty } from "./agyOutput.js";
 import type { Backend, BackendRunOptions } from "./types.js";
 
 /**
@@ -18,9 +20,12 @@ import type { Backend, BackendRunOptions } from "./types.js";
  * agy is gemini-cli's successor (Gemini CLI retires 2026-06-18 for free/Pro/Ultra
  * tiers). The migration analysis behind this lives in
  * docs/migration/antigravity-cli.md. The behaviours that shape this code:
- *  1. `agy -p` is broken in 1.0.x — exit 0, empty stdout. We recover the reply
- *     from agy's transcript on disk (agyTranscript.ts), preferring stdout when a
- *     future agy fixes it (Phase 3).
+ *  1. `agy -p` is broken in 1.0.x — exit 0, empty stdout. Phase 3 makes output
+ *     recovery a self-retiring ladder (best → last-resort): clean JSON stdout
+ *     when the build advertises `--output-format json`; else plain stdout; else
+ *     an opt-in pseudo-terminal run (AGY_MCP_PTY=1) that coaxes a TTY-only build
+ *     into printing; else the on-disk transcript (agyTranscript.ts). As agy
+ *     improves, capability probing shifts us up the ladder with no code change.
  *  2. Print-mode is hardcoded to Gemini 3.5 Flash; `--model` is ignored and
  *     hangs if forced. supportsModelSelection is false; we never pass --model.
  *  3. `@file` is not inlined by agy (it's agent-first). We inline files ourselves
@@ -81,13 +86,31 @@ export const agyBackend: Backend = {
 
       const cwd = process.cwd();
       const startMs = Date.now();
+      const caps = await probeAgyCapabilities();
       const finalPrompt = buildAgyPrompt(prompt, opts);
-      const args = [...buildAgyArgs(opts), "-p", finalPrompt];
+      const baseArgs = buildAgyArgs(opts);
+      // When the build supports it, ask for JSON so we read a clean answer off
+      // stdout instead of scraping the transcript.
+      if (caps.outputFormatJson) baseArgs.push("--output-format", "json");
+      const args = [...baseArgs, "-p", finalPrompt];
 
+      // 1) Direct stdout — the clean path (JSON when available, else plain text).
       const stdout = await executeCommand(CLI.COMMANDS.AGY, args, opts.onProgress);
-      if (stdout && stdout.trim()) return stdout.trim(); // Phase 3: future agy may fix -p
+      const direct = caps.outputFormatJson
+        ? parseAgyJsonResponse(stdout)
+        : stdout.trim() || undefined;
+      if (direct) return direct;
 
-      // Recover from the transcript: prefer an id we set, else discover it.
+      // 2) Opt-in PTY recovery: a TTY-only build prints under a pseudo-terminal.
+      if (ptyEnabled()) {
+        const ptyOut = await runAgyUnderPty(args, opts.onProgress);
+        const fromPty = caps.outputFormatJson
+          ? parseAgyJsonResponse(ptyOut)
+          : ptyOut.trim() || undefined;
+        if (fromPty) return fromPty;
+      }
+
+      // 3) Transcript recovery: prefer an id we set, else discover it.
       const id =
         explicitConversationId(opts) ??
         conversationIdForCwd(cwd) ??

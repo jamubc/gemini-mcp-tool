@@ -1,4 +1,4 @@
-import { ENV, MODELS } from "../constants.js";
+import { ENV, MODELS, RETIREMENT } from "../constants.js";
 import { Logger } from "../utils/logger.js";
 import type { Backend, BackendRunOptions } from "./types.js";
 import { geminiBackend } from "./gemini.js";
@@ -8,29 +8,80 @@ export type { Backend, BackendRunOptions } from "./types.js";
 export { geminiBackend } from "./gemini.js";
 export { agyBackend } from "./agy.js";
 
-/**
- * The default backend name. Stays "gemini" until the 2026-06-18 retirement —
- * flipping the migration's final switch (Phase 4) is a one-line change here.
- */
+/** Pre-retirement default backend name. */
 export const DEFAULT_BACKEND = "gemini";
 
+const RETIREMENT_MS = Date.parse(`${RETIREMENT.GEMINI_CLI_ISO}T00:00:00Z`);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
- * Select the active backend from GEMINI_MCP_BACKEND. Defaults to the Gemini CLI;
- * "agy"/"antigravity" selects the experimental Antigravity CLI backend.
+ * The default backend, resolved against the calendar (Phase 4 cutover): the
+ * Gemini CLI until it is retired on 2026-06-18, then `agy` automatically — because
+ * once gemini is gone, agy is the only live option. An explicit GEMINI_MCP_BACKEND
+ * always overrides this. `now` is injectable for tests.
  */
-export function getBackend(env: NodeJS.ProcessEnv = process.env): Backend {
-  const name = (env[ENV.BACKEND] || DEFAULT_BACKEND).trim().toLowerCase();
+export function resolveDefaultBackend(now: Date = new Date()): "gemini" | "agy" {
+  return now.getTime() >= RETIREMENT_MS ? "agy" : "gemini";
+}
+
+/**
+ * Select the active backend. GEMINI_MCP_BACKEND wins ("agy"/"antigravity" →
+ * Antigravity CLI, "gemini" → Gemini CLI); otherwise the date-aware default.
+ */
+export function getBackend(
+  env: NodeJS.ProcessEnv = process.env,
+  now: Date = new Date(),
+): Backend {
+  const explicit = (env[ENV.BACKEND] || "").trim().toLowerCase();
+  const name = explicit || resolveDefaultBackend(now);
   switch (name) {
     case "agy":
     case "antigravity":
       return agyBackend;
     case "gemini":
-    case "":
       return geminiBackend;
     default:
-      Logger.warn(`Unknown ${ENV.BACKEND}="${name}", falling back to ${DEFAULT_BACKEND}.`);
+      Logger.warn(`Unknown ${ENV.BACKEND}="${name}", falling back to gemini.`);
       return geminiBackend;
   }
+}
+
+// The approaching-retirement nudge is shown once per process, not on every call.
+let retirementNudged = false;
+
+/**
+ * Resolve the backend and any migration notices to surface to the caller:
+ *  - post-retirement, when the default has auto-flipped to agy;
+ *  - in the final countdown, a one-time nudge to test agy early.
+ * Both are suppressed when GEMINI_MCP_BACKEND is set explicitly.
+ */
+export function backendSelection(
+  env: NodeJS.ProcessEnv = process.env,
+  now: Date = new Date(),
+): { backend: Backend; notices: string[] } {
+  const backend = getBackend(env, now);
+  const notices: string[] = [];
+  const explicit = (env[ENV.BACKEND] || "").trim();
+
+  if (!explicit) {
+    const daysLeft = Math.ceil((RETIREMENT_MS - now.getTime()) / DAY_MS);
+    if (backend.name === "agy") {
+      notices.push(
+        `Gemini CLI was retired on ${RETIREMENT.GEMINI_CLI_ISO}; defaulting to the Antigravity CLI (agy) backend. Set ${ENV.BACKEND}=gemini to override.`,
+      );
+    } else if (daysLeft <= RETIREMENT.WARN_WITHIN_DAYS && !retirementNudged) {
+      retirementNudged = true;
+      notices.push(
+        `Gemini CLI retires on ${RETIREMENT.GEMINI_CLI_ISO} (~${daysLeft} day(s) left); test the successor now with ${ENV.BACKEND}=agy.`,
+      );
+    }
+  }
+  return { backend, notices };
+}
+
+/** Test seam: reset the once-per-process retirement nudge. */
+export function __resetRetirementNudgeForTest(): void {
+  retirementNudged = false;
 }
 
 /**
@@ -46,8 +97,7 @@ export async function runWithBackend(
   prompt: string,
   opts: BackendRunOptions,
 ): Promise<{ text: string; notices: string[]; backend: string }> {
-  const backend = getBackend();
-  const notices: string[] = [];
+  const { backend, notices } = backendSelection();
   const effective: BackendRunOptions = { ...opts, onNotice: (m) => notices.push(m) };
 
   if (effective.model && !backend.supportsModelSelection) {
