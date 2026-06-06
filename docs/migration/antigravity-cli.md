@@ -264,27 +264,44 @@ Pluggable backends under `src/backends/` (`Backend` interface + `getBackend()` +
 - Discovery is start-time-bounded (`newestConversationSince`) so we never return a stale
   reply, and explicit `--conversation` ids are read back deterministically (S3/S14).
 
-**Phase 3 — Track upstream and graduate. 🔜/⏳**
-- We already prefer stdout when non-empty, so the day `agy -p` prints reliably the
-  transcript fallback simply stops being used (S4).
-- Adopt caller-supplied conversation ids and `--output-format json` once they land
-  upstream, then delete the scraping path and flip `supportsModelSelection` on.
+**Phase 3 — Converge on stdout; self-retire the scrape. ✅**
+Output recovery is now a capability-aware ladder (`agyCapabilities.ts`, `agyOutput.ts`),
+ordered best → last-resort, in `agyBackend.run`:
+1. **Clean JSON stdout** — `probeAgyCapabilities()` reads `agy --help` once per process; if
+   the build advertises `--output-format json`, we pass it and parse the reply off stdout
+   (`parseAgyJsonResponse`). No transcript touched (S4).
+2. **Plain stdout** — used whenever non-empty, so the day `agy -p` prints reliably the
+   fallback simply stops running.
+3. **PTY recovery (opt-in, `AGY_MCP_PTY=1`, POSIX)** — runs `agy` under a pseudo-terminal via
+   `script(1)` so a TTY-only build still streams real stdout, with **no** private files read
+   (S1b). Best-effort: absent `script`/output, it falls through. Args are POSIX-quoted, so the
+   non-PTY path's injection safety is preserved.
+4. **Transcript scrape** — the Phase 2 last resort.
 
-**Phase 4 — Flip the default. 🔜**
-`DEFAULT_BACKEND` in `src/backends/index.ts` is a one-line switch. Before 2026-06-18,
-default new installs to `agy` while keeping `gemini` selectable for Standard/Enterprise/
-API-key users who retain access.
+Because step 1 is driven by `agy --help`, the backend climbs the ladder on its own as
+upstream fixes print-mode — no code change needed. Caller-supplied conversation ids
+(antigravity-cli#7) slot into the same probe when they land.
+
+**Phase 4 — Date-aware cutover. ✅**
+`resolveDefaultBackend()` in `src/backends/index.ts` returns `gemini` until **2026-06-18** and
+`agy` from then on — because once gemini is retired, `agy` is the only live option, so the
+default flips automatically (no release required on the day). `GEMINI_MCP_BACKEND` always
+overrides. `backendSelection()` surfaces a notice on the post-retirement auto-switch and a
+one-time nudge to test `agy` in the final `RETIREMENT.WARN_WITHIN_DAYS` countdown. Standard/
+Enterprise/API-key users who retain `gemini` access just set `GEMINI_MCP_BACKEND=gemini`.
 
 ## Configuration (added in this PR)
 
 | Variable | Purpose |
 | --- | --- |
-| `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to select the CLI backend |
+| `GEMINI_MCP_BACKEND` | `gemini` or `agy`/`antigravity`; unset uses the date-aware default (Phase 4) |
 | `AGY_CLI_PATH` | Full path to the `agy` binary when it isn't on the server's PATH |
+| `AGY_MCP_PTY` | `1` to enable opt-in PTY stdout recovery for `agy -p` (POSIX only, Phase 3) |
 
-`agy` is **experimental**: print-mode is Gemini 3.5 Flash-only, output is recovered from
-`agy`'s transcript files, and tool execution is not sandboxed in `-p`. The tool surfaces a
-notice whenever a requested `model` or `sandbox` can't be honored.
+`agy` is **experimental**: print-mode is Gemini 3.5 Flash-only, output is recovered via the
+Phase 3 ladder (clean JSON stdout → plain stdout → opt-in PTY → transcript), and tool
+execution is not sandboxed in `-p`. The tool surfaces a notice whenever a requested `model`
+or `sandbox` can't be honored.
 
 ## Open questions
 

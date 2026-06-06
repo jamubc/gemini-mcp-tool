@@ -100,6 +100,16 @@ export const ENV = {
   GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
   AGY_CLI_PATH: "AGY_CLI_PATH", // explicit path to the agy (Antigravity CLI) executable
   BACKEND: "GEMINI_MCP_BACKEND", // active CLI backend: "gemini" (default) | "agy"/"antigravity"
+  AGY_PTY: "AGY_MCP_PTY", // opt-in: recover agy -p stdout via a pseudo-terminal (POSIX only)
+} as const;
+
+// Migration milestones. Gemini CLI is retired for free/Pro/Ultra tiers on this
+// date; from then on `agy` (Antigravity CLI) is the only live option, so the
+// default backend flips to it automatically (Phase 4). Overridable via ENV.BACKEND.
+export const RETIREMENT = {
+  GEMINI_CLI_ISO: "2026-06-18",
+  // Days before retirement at which we start nudging callers to test agy.
+  WARN_WITHIN_DAYS: 14,
 } as const;
 
 
