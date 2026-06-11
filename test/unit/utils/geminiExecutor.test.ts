@@ -7,6 +7,7 @@ import {
   assertSafeFileReferences,
   buildChangeModePrompt,
   inlineFileReferences,
+  prepareChangeModePrompt,
 } from "../../../src/utils/geminiExecutor.js";
 
 const root = process.cwd();
@@ -29,6 +30,39 @@ describe("Node Utilities: Gemini CLI Executor", () => {
     assert.match(out, /\[CHANGEMODE INSTRUCTIONS\]/);
     assert.match(out, /USER REQUEST:\ndo the thing/);
   });
+
+  test("prepareChangeModePrompt rewrites file: refs to @ refs before wrapping", () => {
+    const out = prepareChangeModePrompt("update file:src/index.ts please");
+    assert.match(out, /\[CHANGEMODE INSTRUCTIONS\]/);
+    assert.match(out, /@src\/index\.ts/);
+    assert.doesNotMatch(out, /file:src\/index\.ts/);
+  });
+
+  test(
+    "assertSafeFileReferences blocks an in-root symlink whose target escapes the root",
+    { skip: process.platform === "win32" }, // symlink creation needs privileges on Windows
+    () => {
+      const dir = realpathSync(mkdtempSync(path.join(os.tmpdir(), "gem-root-")));
+      const outside = realpathSync(mkdtempSync(path.join(os.tmpdir(), "gem-secret-")));
+      try {
+        const secret = path.join(outside, "secret.txt");
+        writeFileSync(secret, "TOPSECRET");
+        symlinkSync(secret, path.join(dir, "link.txt"));
+        // Lexically in-root, but resolves outside — the gemini CLI would inline
+        // it, so the guard itself must refuse (CVE-2026-0755).
+        assert.throws(
+          () => assertSafeFileReferences("read @link.txt", dir),
+          /outside the project directory/,
+        );
+        // A regular in-root file is still fine.
+        writeFileSync(path.join(dir, "ok.txt"), "fine");
+        assert.doesNotThrow(() => assertSafeFileReferences("read @ok.txt", dir));
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+        rmSync(outside, { recursive: true, force: true });
+      }
+    },
+  );
 
   test("inlineFileReferences replaces in-project refs with file contents", () => {
     const out = inlineFileReferences("see @package.json", root);
