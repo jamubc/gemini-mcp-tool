@@ -48,6 +48,13 @@ function resolveAgy(command: string): string {
   const override = process.env[ENV.AGY_CLI_PATH]?.trim();
   if (override) return override;
   if (process.platform === "win32") {
+    // The documented install dir (%LOCALAPPDATA%\Antigravity) is rarely on the
+    // MCP server's PATH, so probe it whenever `where` comes up empty.
+    const probeInstallDir = (): string | undefined => {
+      const base = process.env.LOCALAPPDATA;
+      const installed = base && path.join(base, "Antigravity", `${command}.exe`);
+      return installed && existsSync(installed) ? installed : undefined;
+    };
     try {
       const out = execSync(`where ${command}`, {
         encoding: "utf8",
@@ -56,9 +63,10 @@ function resolveAgy(command: string): string {
       const candidates = out.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
       const byExt = (ext: string) =>
         candidates.find((c) => c.toLowerCase().endsWith(ext));
-      return byExt(".exe") || byExt(".cmd") || byExt(".bat") || candidates[0] || `${command}.exe`;
+      return byExt(".exe") || byExt(".cmd") || byExt(".bat") || candidates[0] ||
+        probeInstallDir() || `${command}.exe`;
     } catch {
-      return `${command}.exe`;
+      return probeInstallDir() || `${command}.exe`;
     }
   }
   const localBin = path.join(os.homedir(), ".local", "bin", command);
@@ -108,11 +116,18 @@ export function buildEnoentErrorMessage(command: string): string {
   return lines.join("\n");
 }
 
+// A hung CLI must never wedge the long-lived MCP server: agy's print mode is
+// known to hang in some configurations, and the agy backend serializes calls
+// behind a queue, so one stuck child would block every later request. Large
+// analyses are documented to take up to ~15 minutes; default to a generous 20.
+export const COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
+
 export async function executeCommand(
   command: string,
   args: string[],
   onProgress?: (newOutput: string) => void,
   stdinData?: string,
+  timeoutMs: number = COMMAND_TIMEOUT_MS,
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -197,9 +212,26 @@ export async function executeCommand(
         Logger.error(`Gemini Quota Error: ${JSON.stringify(errorJson, null, 2)}`);
       }
     });
+    // Bound the run so a child that never exits cannot leak a pending promise
+    // for the life of the server. unref() keeps the timer from holding the
+    // event loop open; SIGKILL because a hung CLI may ignore SIGTERM.
+    const timer = setTimeout(() => {
+      if (isResolved) return;
+      isResolved = true;
+      Logger.error(`${command} timed out after ${Math.round(timeoutMs / 1000)}s; killing it.`);
+      try {
+        childProcess.kill("SIGKILL");
+      } catch {
+        /* already gone */
+      }
+      reject(new Error(`${command} timed out after ${Math.round(timeoutMs / 1000)}s`));
+    }, timeoutMs);
+    timer.unref?.();
+
     childProcess.on("error", (error) => {
       if (isResolved) return;
       isResolved = true;
+      clearTimeout(timer);
       Logger.error(`Process error:`, error);
       const code = (error as NodeJS.ErrnoException).code;
       if (code === "ENOENT") {
@@ -211,6 +243,7 @@ export async function executeCommand(
     childProcess.on("close", (code) => {
       if (isResolved) return;
       isResolved = true;
+      clearTimeout(timer);
       if (code === 0) {
         Logger.commandComplete(startTime, code, stdout.length);
         resolve(stdout.trim());

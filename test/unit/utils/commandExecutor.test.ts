@@ -5,6 +5,7 @@ import {
   resolveCommandForExecution,
   buildEnoentErrorMessage,
   selectWindowsGeminiCandidate,
+  executeCommand,
 } from "../../../src/utils/commandExecutor.js";
 
 describe("Node Utilities: Command Executor & Quoting", () => {
@@ -58,5 +59,25 @@ describe("Node Utilities: Command Executor & Quoting", () => {
     const msg = buildEnoentErrorMessage("agy");
     assert.match(msg, /Could not find the "agy"/);
     assert.doesNotMatch(msg, /@google\/gemini-cli/);
+  });
+
+  test("executeCommand kills and rejects a child that outlives the timeout", async () => {
+    // A child that would run for 30s, bounded to 200ms. Without the timeout a
+    // hung CLI would leave this promise (and the agy queue) pending forever.
+    await assert.rejects(
+      executeCommand(
+        process.execPath,
+        ["-e", "setTimeout(() => {}, 30000)"],
+        undefined,
+        undefined,
+        200,
+      ),
+      /timed out after/,
+    );
+  });
+
+  test("executeCommand resolves trimmed stdout well within the default timeout", async () => {
+    const out = await executeCommand(process.execPath, ["-e", "console.log('  ok  ')"]);
+    assert.equal(out, "ok");
   });
 });

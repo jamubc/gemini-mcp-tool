@@ -282,6 +282,17 @@ Because step 1 is driven by `agy --help`, the backend climbs the ladder on its o
 upstream fixes print-mode — no code change needed. Caller-supplied conversation ids
 (antigravity-cli#7) slot into the same probe when they land.
 
+Hardening (post-review):
+- **stdin routing** — changeMode/`@file` prompts carry whole inlined files, so they ride on
+  stdin exactly like the gemini path (#27/#77) instead of blowing the OS argv limit via `-p`.
+- **Error-tolerant ladder** — a non-zero exit from `agy -p` (another known 1.0.x failure
+  mode) descends the ladder instead of aborting the run; only ENOENT aborts immediately.
+- **Bounded runs** — `executeCommand` now has a 20-minute default timeout, so a hung CLI can
+  never wedge the serialized agy queue (or the server) permanently.
+- **Symlink guard everywhere** — `assertSafeFileReferences` itself now realpath-checks
+  in-root symlinks, closing the CVE-2026-0755 hole on the gemini path too (previously only
+  agy's self-inlining had the re-check).
+
 **Phase 4 — Date-aware cutover. ✅**
 `resolveDefaultBackend()` in `src/backends/index.ts` returns `gemini` until **2026-06-18** and
 `agy` from then on — because once gemini is retired, `agy` is the only live option, so the

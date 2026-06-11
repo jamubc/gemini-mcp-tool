@@ -2,8 +2,8 @@ import { Logger } from "../utils/logger.js";
 import { CLI, APPROVAL_MODES } from "../constants.js";
 import { executeCommand } from "../utils/commandExecutor.js";
 import {
-  buildChangeModePrompt,
   inlineFileReferences,
+  prepareChangeModePrompt,
 } from "../utils/geminiExecutor.js";
 import {
   conversationIdForCwd,
@@ -20,26 +20,28 @@ import type { Backend, BackendRunOptions } from "./types.js";
  * agy is gemini-cli's successor (Gemini CLI retires 2026-06-18 for free/Pro/Ultra
  * tiers). The migration analysis behind this lives in
  * docs/migration/antigravity-cli.md. The behaviours that shape this code:
- *  1. `agy -p` is broken in 1.0.x — exit 0, empty stdout. Phase 3 makes output
- *     recovery a self-retiring ladder (best → last-resort): clean JSON stdout
- *     when the build advertises `--output-format json`; else plain stdout; else
- *     an opt-in pseudo-terminal run (AGY_MCP_PTY=1) that coaxes a TTY-only build
- *     into printing; else the on-disk transcript (agyTranscript.ts). As agy
- *     improves, capability probing shifts us up the ladder with no code change.
+ *  1. `agy -p` is broken in 1.0.x — exit 0, empty stdout (and sometimes a
+ *     non-zero exit). Phase 3 makes output recovery a self-retiring ladder
+ *     (best → last-resort): clean JSON stdout when the build advertises
+ *     `--output-format json`; else plain stdout; else an opt-in pseudo-terminal
+ *     run (AGY_MCP_PTY=1) that coaxes a TTY-only build into printing; else the
+ *     on-disk transcript (agyTranscript.ts). A failed print run descends the
+ *     ladder rather than aborting. As agy improves, capability probing shifts
+ *     us up the ladder with no code change.
  *  2. Print-mode is hardcoded to Gemini 3.5 Flash; `--model` is ignored and
  *     hangs if forced. supportsModelSelection is false; we never pass --model.
  *  3. `@file` is not inlined by agy (it's agent-first). We inline files ourselves
- *     so the project-root guard and determinism survive.
+ *     so the project-root guard and determinism survive — and because inlined
+ *     prompts carry whole files, they ride on stdin to dodge OS argv limits.
  *  4. `--sandbox`/`--dangerously-skip-permissions` do NOT isolate tool execution
  *     in -p. We surface that truthfully instead of implying isolation.
  */
 
 /** Build the prompt agy actually receives: changeMode wrap + self-inlined files. */
 export function buildAgyPrompt(prompt: string, opts: BackendRunOptions): string {
-  let processed = prompt;
-  if (opts.changeMode) {
-    processed = buildChangeModePrompt(processed.replace(/file:(\S+)/g, "@$1"));
-  }
+  // Shared changeMode preprocessing with the gemini backend, so the two
+  // backends produce the same prompt body for the same request.
+  const processed = opts.changeMode ? prepareChangeModePrompt(prompt) : prompt;
   // agy doesn't inline @file; do it ourselves (keeps the CVE-2026-0755 guard).
   return inlineFileReferences(processed);
 }
@@ -70,6 +72,11 @@ function explicitConversationId(opts: BackendRunOptions): string | undefined {
   return undefined;
 }
 
+/** One raw output channel → the reply, honouring JSON mode; undefined if empty. */
+function replyFrom(raw: string, jsonMode: boolean): string | undefined {
+  return jsonMode ? parseAgyJsonResponse(raw) : raw.trim() || undefined;
+}
+
 // Serialize agy calls: each run rewrites last_conversations.json, so concurrent
 // runs would read each other's conversation ids back.
 let agyQueue: Promise<unknown> = Promise.resolve();
@@ -92,21 +99,40 @@ export const agyBackend: Backend = {
       // When the build supports it, ask for JSON so we read a clean answer off
       // stdout instead of scraping the transcript.
       if (caps.outputFormatJson) baseArgs.push("--output-format", "json");
-      const args = [...baseArgs, "-p", finalPrompt];
+
+      // changeMode/@file prompts carry whole inlined files, easily exceeding
+      // the OS argv limits — route them via stdin, exactly as the gemini path
+      // does (#27, #77). Decide on the ORIGINAL prompt: inlining has already
+      // replaced the @ tokens in finalPrompt.
+      const useStdin = !!opts.changeMode || prompt.includes("@");
+      const argsWithPrompt = [...baseArgs, "-p", finalPrompt];
 
       // 1) Direct stdout — the clean path (JSON when available, else plain text).
-      const stdout = await executeCommand(CLI.COMMANDS.AGY, args, opts.onProgress);
-      const direct = caps.outputFormatJson
-        ? parseAgyJsonResponse(stdout)
-        : stdout.trim() || undefined;
+      // A non-zero exit is one of 1.0.x's known print-mode failure modes; the
+      // answer may still have landed in the transcript, so a failure here
+      // descends the ladder instead of aborting the run.
+      let stdout = "";
+      let printError: Error | undefined;
+      try {
+        stdout = useStdin
+          ? await executeCommand(CLI.COMMANDS.AGY, baseArgs, opts.onProgress, finalPrompt)
+          : await executeCommand(CLI.COMMANDS.AGY, argsWithPrompt, opts.onProgress);
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        // Not installed: nothing further down the ladder can succeed.
+        if (err.message.includes("Could not find")) throw err;
+        Logger.warn(`agy: print-mode failed (${err.message}); trying recovery.`);
+        printError = err;
+      }
+      const direct = replyFrom(stdout, caps.outputFormatJson);
       if (direct) return direct;
 
       // 2) Opt-in PTY recovery: a TTY-only build prints under a pseudo-terminal.
+      // script(1) cannot feed stdin, so the prompt rides in argv here; an
+      // over-long argv just fails the spawn and falls through to rung 3.
       if (ptyEnabled()) {
-        const ptyOut = await runAgyUnderPty(args, opts.onProgress);
-        const fromPty = caps.outputFormatJson
-          ? parseAgyJsonResponse(ptyOut)
-          : ptyOut.trim() || undefined;
+        const ptyOut = await runAgyUnderPty(argsWithPrompt, opts.onProgress);
+        const fromPty = replyFrom(ptyOut, caps.outputFormatJson);
         if (fromPty) return fromPty;
       }
 
@@ -116,6 +142,8 @@ export const agyBackend: Backend = {
         conversationIdForCwd(cwd) ??
         newestConversationSince(startMs);
       if (!id) {
+        // Nothing recoverable: surface the print failure if there was one.
+        if (printError) throw printError;
         throw new Error(
           `agy: produced no stdout and no conversation id was found for ${cwd}. ` +
             "Run `agy -i` once to authenticate, then retry.",
