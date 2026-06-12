@@ -18,3 +18,6 @@ docs/.vitepress/dist/
 *.dxt
 extension-build/
 CLAUDE.md
+
+# State store persistence directory
+.gemini-mcp/

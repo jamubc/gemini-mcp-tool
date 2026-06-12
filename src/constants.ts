@@ -82,7 +82,10 @@ export const CLI = {
 
 // Environment variables that configure the server.
 export const ENV = {
-  GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
+  GEMINI_CLI_PATH: "GEMINI_CLI_PATH",       // explicit path to the gemini executable (Windows shim resolution)
+  GEMINI_API_KEY: "GEMINI_API_KEY",          // API key for the direct-API backend (api provider)
+  GEMINI_MCP_PROVIDER: "GEMINI_MCP_PROVIDER", // active provider id: 'cli' (default) | 'api' | 'antigravity'
+  GEMINI_MCP_STATE_DIR: "GEMINI_MCP_STATE_DIR", // directory for JsonFileStore persistence (default: .gemini-mcp/)
 } as const;
 
 
