@@ -9,6 +9,9 @@ export const ERROR_MESSAGES = {
   QUOTA_EXCEEDED_SHORT: "⚠️ Gemini 2.5 Pro daily quota exceeded. Please retry with model: 'gemini-2.5-flash'",
   TOOL_NOT_FOUND: "not found in registry",
   NO_PROMPT_PROVIDED: "Please provide a prompt for analysis. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions",
+  MEMORY_KEY_REQUIRED: "A `key` is required for this action.",
+  MEMORY_CONTENT_REQUIRED: "Both `key` and `content` are required for the store action.",
+  MEMORY_RECALL_MISS: (key: string) => `❌ No memory entry found for key: \`${key}\`.`,
 } as const;
 
 // Status messages
@@ -83,6 +86,7 @@ export const CLI = {
 // Environment variables that configure the server.
 export const ENV = {
   GEMINI_CLI_PATH: "GEMINI_CLI_PATH", // explicit path to the gemini executable (Windows shim resolution)
+  GEMINI_MCP_MEMORY_DIR: "GEMINI_MCP_MEMORY_DIR", // override directory for the durable memory store (default: .gemini-mcp/memory)
 } as const;
 
 
@@ -103,6 +107,9 @@ export interface ToolArguments {
   existingContext?: string; // Background information to build upon
   ideaCount?: number; // Target number of ideas to generate
   includeAnalysis?: boolean; // Include feasibility and impact analysis
-  
-  [key: string]: string | boolean | number | undefined; // Allow additional properties
+
+  // memory tool
+  tags?: string[]; // Optional tags for a stored memory entry
+
+  [key: string]: string | boolean | number | string[] | undefined; // Allow additional properties
 }
