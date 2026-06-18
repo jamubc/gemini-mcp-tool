@@ -81,6 +81,35 @@ For Claude Desktop users, add this to your configuration file:
 ::: warning
 You must restart Claude Desktop ***completely*** for changes to take effect.
 :::
+
+## Authentication: Google login (OAuth) instead of an API key
+
+This server runs the installed Gemini CLI, which owns authentication. The Gemini CLI picks an auth method from its environment in this order:
+
+1. `GOOGLE_GENAI_USE_GCA=true` → `oauth-personal` (Google login)
+2. `GOOGLE_GENAI_USE_VERTEXAI=true` → Vertex AI
+3. `GEMINI_API_KEY` → Gemini API key
+
+Setting `GOOGLE_GENAI_USE_GCA=true` therefore makes the Gemini CLI select `oauth-personal` (Google login) ahead of `GEMINI_API_KEY`. For Claude MCP registrations that should use Google/OAuth rather than an API key, set `HOME`, `GEMINI_CLI_HOME`, and `GOOGLE_GENAI_USE_GCA=true` in the MCP server `env` block so the CLI finds your existing OAuth credentials (`~/.gemini`):
+
+```json
+{
+  "mcpServers": {
+    "gemini-cli": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "env": {
+        "HOME": "/Users/you",
+        "GEMINI_CLI_HOME": "/Users/you",
+        "GOOGLE_GENAI_USE_GCA": "true"
+      }
+    }
+  }
+}
+```
+
+Replace `/Users/you` with the home directory where you ran `gemini` and completed the Google login.
+
 ## Other MCP Clients
 
 Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration patterns:

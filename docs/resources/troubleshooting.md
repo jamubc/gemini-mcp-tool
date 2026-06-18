@@ -197,6 +197,28 @@ claude mcp list
 /gemini-cli:analyze @specific-function.js explain this function
 ```
 
+## Known Issues
+
+### Claude Code disconnect after a successful call (progress notifications)
+
+On some Claude Code versions, a stdio MCP server can be disconnected after a successful `tools/call` response when the server emits progress notifications. This is tracked upstream in [anthropics/claude-code#53617](https://github.com/anthropics/claude-code/issues/53617).
+
+Progress notifications remain **on by default** (they keep long analyses from timing out). If you hit this disconnect on an affected Claude Code version, you can opt out of progress notifications by setting `GEMINI_MCP_DISABLE_PROGRESS=1` in the MCP server `env` block:
+
+```json
+{
+  "mcpServers": {
+    "gemini-cli": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "env": {
+        "GEMINI_MCP_DISABLE_PROGRESS": "1"
+      }
+    }
+  }
+}
+```
+
 ## File Analysis Issues
 
 ### "File not found"
