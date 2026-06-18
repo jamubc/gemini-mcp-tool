@@ -112,6 +112,9 @@ export const RETIREMENT = {
   GEMINI_CLI_ISO: "2026-06-18",
   // Days before retirement at which we start nudging callers to test agy.
   WARN_WITHIN_DAYS: 14,
+  // Real migration pointers Google surfaces in the gemini CLI itself.
+  AGY_INSTALL_CMD: "curl -fsSL https://antigravity.google/cli/install.sh | bash",
+  MIGRATION_URL: "https://goo.gle/gemini-cli-migration",
 } as const;
 
 

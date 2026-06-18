@@ -10,6 +10,7 @@
 
 ### Changed
 - On `agy`, `model` is not forwarded (print mode is Gemini 3.5 Flash-only) and the Pro to Flash fallback is skipped, with a notice. `@file` references are inlined by us so the CVE-2026-0755 project-root guard stays in the data path. A `sandbox` request returns a notice that print-mode `agy` does not isolate tool execution.
+- Missing-CLI guidance is retirement-aware: it names the 2026-06-18 cutover, gives the real `agy` install command, and tells Enterprise/API-key users to set `GEMINI_MCP_BACKEND=gemini` to stay on `gemini`.
 
 ### Fixed
 - agy: never recover a stale reply from a previous conversation when a print run fails fast (e.g. dropped auth); a transcript is trusted only when written during the run.

@@ -27,22 +27,31 @@ This is a simple Model Context Protocol (MCP) server that allows AI assistants t
 ## Prerequisites
 
 <details>
-<summary>🚀 <strong>Important: `gemini` to `agy` Migration Notice</strong></summary>
+<summary>🚀 <strong>Important: Gemini CLI is retired. This tool now defaults to Antigravity CLI (`agy`)</strong></summary>
 
-Google is ending support for the Gemini CLI on **2026-06-18** for free, Pro, and Ultra users. **There is no grace period.** To prevent disruptions to your workflow, you must migrate to the new Antigravity CLI (`agy`) before this date:
+On **2026-06-18**, Google retired the Gemini CLI for **free, Google AI Pro, and Google AI Ultra** users (and individual Gemini Code Assist / GitHub-org users). Its successor is the **Antigravity CLI** (`agy`). See [Google's announcement](https://goo.gle/gemini-cli-migration).
 
+**From 2026-06-18 this tool selects the `agy` backend automatically.** If you are on an affected tier, just install `agy`:
 
-| Variable             | Purpose                                                              |
-| -------------------- | -------------------------------------------------------------------- |
-| `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to use the Antigravity CLI |
-| `AGY_CLI_PATH`       | Full path to the`agy` binary if it isn't on the server's PATH        |
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash   # macOS / Linux
+```
 
-The `agy` backend is **experimental**: print-mode is Gemini 3.5 Flash-only, replies are
-read from `agy`'s stdout (with transcript recovery only when stdout is empty), and tool
-execution isn't sandboxed in `-p`. The
-tool emits a notice whenever a requested `model` or `sandbox` can't be honored. See
-[docs/migration/antigravity-cli.md](docs/migration/antigravity-cli.md) for the full
-analysis and migration plan.
+Then run `agy` once to sign in. Nothing else to change.
+
+**Enterprise / Standard-license or paid-API-key user?** Your Gemini CLI access is **unaffected** by the retirement. To keep using it, set one env var on the MCP server:
+
+```bash
+GEMINI_MCP_BACKEND=gemini
+```
+
+| Variable | Purpose |
+| --- | --- |
+| `GEMINI_MCP_BACKEND` | `gemini` or `agy`/`antigravity`. Unset uses the date-aware default (`agy` from 2026-06-18). |
+| `AGY_CLI_PATH` | Full path to the `agy` binary if it isn't on the server's PATH. |
+| `GEMINI_MCP_TIMEOUT` | Overall CLI run timeout in minutes (default 45). |
+
+The `agy` backend is **experimental**: print mode is Gemini 3.5 Flash-only, replies come from `agy`'s stdout (transcript recovery only as a fallback), and tool execution isn't sandboxed in `-p`. The tool emits a notice when a requested `model`/`sandbox` can't be honored, and surfaces `agy`'s own errors (quota, auth) verbatim. Full analysis: [docs/migration/antigravity-cli.md](docs/migration/antigravity-cli.md).
 
 </details>
 

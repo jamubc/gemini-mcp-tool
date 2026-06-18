@@ -47,17 +47,21 @@ describe("Node Utilities: Command Executor & Quoting", () => {
     );
   });
 
-  test("buildEnoentErrorMessage gives gemini-specific, platform-aware guidance", () => {
+  test("buildEnoentErrorMessage gives gemini retirement + migration guidance", () => {
     const msg = buildEnoentErrorMessage("gemini");
     assert.match(msg, /Could not find the "gemini"/);
-    assert.match(msg, /GEMINI_CLI_PATH/);
-    assert.match(msg, /@google\/gemini-cli/);
+    assert.match(msg, /2026-06-18/); // retirement date
+    assert.match(msg, /Antigravity|agy/i); // points at the successor
+    assert.match(msg, /GEMINI_CLI_PATH/); // override still offered for unaffected tiers
+    assert.doesNotMatch(msg, /npm install -g @google\/gemini-cli/); // dead advice removed
     assert.match(msg, process.platform === "win32" ? /where gemini/ : /which gemini/);
   });
 
-  test("buildEnoentErrorMessage omits the gemini install hint for other commands", () => {
+  test("buildEnoentErrorMessage points agy users to install + the gemini fallback env", () => {
     const msg = buildEnoentErrorMessage("agy");
     assert.match(msg, /Could not find the "agy"/);
+    assert.match(msg, /AGY_CLI_PATH/);
+    assert.match(msg, /GEMINI_MCP_BACKEND/); // how enterprise stays on gemini
     assert.doesNotMatch(msg, /@google\/gemini-cli/);
   });
 

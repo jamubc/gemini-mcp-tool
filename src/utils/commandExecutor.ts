@@ -3,7 +3,7 @@ import { existsSync } from "fs";
 import os from "os";
 import path from "path";
 import { Logger } from "./logger.js";
-import { CLI, ENV } from "../constants.js";
+import { CLI, ENV, RETIREMENT } from "../constants.js";
 
 // Quote a single argument for cmd.exe (used by spawn's shell:true on Windows).
 // Embedded quotes are doubled and backslash runs before a quote (or the closing
@@ -93,24 +93,28 @@ export function resolveCommandForExecution(command: string): string {
 // common cause is the MCP server not inheriting the user's interactive PATH.
 export function buildEnoentErrorMessage(command: string): string {
   const isWindows = process.platform === "win32";
+  const installAgy = isWindows
+    ? `install it from ${RETIREMENT.MIGRATION_URL}`
+    : `run \`${RETIREMENT.AGY_INSTALL_CMD}\``;
   const lines = [
     `Could not find the "${command}" executable.`,
     `The MCP server runs in its own process and may not inherit your shell's PATH.`,
     `• Verify it is installed and resolvable: \`${isWindows ? "where" : "which"} ${command}\`.`,
   ];
-  if (command === CLI.COMMANDS.GEMINI) {
+  if (command === CLI.COMMANDS.AGY) {
     lines.push(
-      `• Install it: \`npm install -g @google/gemini-cli\`.`,
+      `• Antigravity CLI (agy) is the Gemini CLI's successor and this tool's default backend since ${RETIREMENT.GEMINI_CLI_ISO}. To install it, ${installAgy}, then run \`agy\` once to sign in.`,
       isWindows
-        ? `• Or set ${ENV.GEMINI_CLI_PATH} to the full path of the gemini shim (e.g. C:\\path\\to\\gemini.cmd).`
-        : `• Or set ${ENV.GEMINI_CLI_PATH} to the full path of the gemini executable.`,
+        ? `• It installs under %LOCALAPPDATA%\\Antigravity\\; add that to PATH or set ${ENV.AGY_CLI_PATH} to agy.exe.`
+        : `• It installs to ~/.local/bin; add that to PATH or set ${ENV.AGY_CLI_PATH} to the agy binary.`,
+      `• On a supported Gemini tier (paid API key or Enterprise/Standard license)? Set ${ENV.BACKEND}=gemini to keep using the Gemini CLI instead.`,
+      `• More: ${RETIREMENT.MIGRATION_URL} and docs/migration/antigravity-cli.md`,
     );
-  } else if (command === CLI.COMMANDS.AGY) {
+  } else if (command === CLI.COMMANDS.GEMINI) {
     lines.push(
-      `• agy ships with Google Antigravity; install it from https://antigravity.google and authenticate once with \`agy -i\`.`,
-      isWindows
-        ? `• It installs to %LOCALAPPDATA%\\Antigravity\\; add that to PATH or set ${ENV.AGY_CLI_PATH} to the full path of agy.exe.`
-        : `• It installs to ~/.local/bin; add that to PATH or set ${ENV.AGY_CLI_PATH} to the full path of the agy binary.`,
+      `• The Gemini CLI stopped serving free, Pro, and Ultra users on ${RETIREMENT.GEMINI_CLI_ISO}. Migrate to the Antigravity CLI (agy), this tool's new default: ${installAgy}, then unset ${ENV.BACKEND}.`,
+      `• Enterprise/Standard license or paid API key? Your Gemini access is unaffected: reinstall the Gemini CLI or set ${ENV.GEMINI_CLI_PATH} to its full path.`,
+      `• More: ${RETIREMENT.MIGRATION_URL} and docs/migration/antigravity-cli.md`,
     );
   }
   return lines.join("\n");
