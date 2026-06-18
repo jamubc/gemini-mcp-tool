@@ -1,12 +1,13 @@
 import { Logger } from "../utils/logger.js";
-import { CLI, APPROVAL_MODES } from "../constants.js";
-import { executeCommand } from "../utils/commandExecutor.js";
+import { CLI, APPROVAL_MODES, ENV } from "../constants.js";
+import { executeCommand, COMMAND_TIMEOUT_MS } from "../utils/commandExecutor.js";
 import {
   inlineFileReferences,
   prepareChangeModePrompt,
 } from "../utils/geminiExecutor.js";
 import {
   conversationIdForCwd,
+  conversationFreshSince,
   newestConversationSince,
   readTranscriptResponse,
 } from "./agyTranscript.js";
@@ -65,6 +66,14 @@ export function buildAgyArgs(opts: BackendRunOptions): string[] {
   return args;
 }
 
+/** Track agy's --print-timeout (default 5m) to our cap. Override: AGY_PRINT_TIMEOUT. */
+export function agyPrintTimeoutArg(): string {
+  const override = process.env[ENV.AGY_PRINT_TIMEOUT]?.trim();
+  if (override) return override;
+  const seconds = Math.max(60, Math.floor(COMMAND_TIMEOUT_MS / 1000) - 60);
+  return `${seconds}s`;
+}
+
 /** The conversation id to read back, if we already know it from the args. */
 function explicitConversationId(opts: BackendRunOptions): string | undefined {
   if (opts.resume && opts.resume !== "latest") return opts.resume;
@@ -99,6 +108,7 @@ export const agyBackend: Backend = {
       // When the build supports it, ask for JSON so we read a clean answer off
       // stdout instead of scraping the transcript.
       if (caps.outputFormatJson) baseArgs.push("--output-format", "json");
+      if (caps.printTimeout) baseArgs.push("--print-timeout", agyPrintTimeoutArg());
 
       // changeMode/@file prompts carry whole inlined files, easily exceeding
       // the OS argv limits — route them via stdin, exactly as the gemini path
@@ -136,10 +146,14 @@ export const agyBackend: Backend = {
         if (fromPty) return fromPty;
       }
 
-      // 3) Transcript recovery: prefer an id we set, else discover it.
+      // 3) Transcript recovery. Trust an explicit/cwd conversation only if it was
+      // written during this run; a fast agy failure (e.g. dropped auth) must not
+      // surface a stale reply from a previous conversation in this cwd.
+      const explicitId = explicitConversationId(opts);
+      const cwdId = conversationIdForCwd(cwd);
       const id =
-        explicitConversationId(opts) ??
-        conversationIdForCwd(cwd) ??
+        (explicitId && conversationFreshSince(explicitId, startMs) ? explicitId : undefined) ??
+        (cwdId && conversationFreshSince(cwdId, startMs) ? cwdId : undefined) ??
         newestConversationSince(startMs);
       if (!id) {
         // Nothing recoverable: surface the print failure if there was one.

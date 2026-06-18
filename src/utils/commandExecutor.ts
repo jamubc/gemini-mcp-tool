@@ -116,11 +116,15 @@ export function buildEnoentErrorMessage(command: string): string {
   return lines.join("\n");
 }
 
-// A hung CLI must never wedge the long-lived MCP server: agy's print mode is
-// known to hang in some configurations, and the agy backend serializes calls
-// behind a queue, so one stuck child would block every later request. Large
-// analyses are documented to take up to ~15 minutes; default to a generous 20.
-export const COMMAND_TIMEOUT_MS = 20 * 60 * 1000;
+// Override with GEMINI_MCP_TIMEOUT (minutes).
+const DEFAULT_TIMEOUT_MINUTES = 45;
+function resolveCommandTimeoutMs(): number {
+  const raw = process.env[ENV.TIMEOUT_MINUTES]?.trim();
+  const minutes = raw ? Number(raw) : NaN;
+  if (Number.isFinite(minutes) && minutes > 0) return Math.round(minutes * 60 * 1000);
+  return DEFAULT_TIMEOUT_MINUTES * 60 * 1000;
+}
+export const COMMAND_TIMEOUT_MS = resolveCommandTimeoutMs();
 
 export async function executeCommand(
   command: string,

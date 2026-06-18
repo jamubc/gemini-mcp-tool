@@ -101,6 +101,8 @@ export const ENV = {
   AGY_CLI_PATH: "AGY_CLI_PATH", // explicit path to the agy (Antigravity CLI) executable
   BACKEND: "GEMINI_MCP_BACKEND", // active CLI backend: "gemini" (default) | "agy"/"antigravity"
   AGY_PTY: "AGY_MCP_PTY", // opt-in: recover agy -p stdout via a pseudo-terminal (POSIX only)
+  TIMEOUT_MINUTES: "GEMINI_MCP_TIMEOUT", // CLI run timeout in minutes (default 45)
+  AGY_PRINT_TIMEOUT: "AGY_PRINT_TIMEOUT", // agy --print-timeout override, e.g. "30m"
 } as const;
 
 // Migration milestones. Gemini CLI is retired for free/Pro/Ultra tiers on this

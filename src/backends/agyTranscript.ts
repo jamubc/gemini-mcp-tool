@@ -77,6 +77,15 @@ export function newestConversationSince(sinceMs: number): string | undefined {
   return best?.id;
 }
 
+/** Whether conversation `id`'s transcript was (re)written at or after `sinceMs`. */
+export function conversationFreshSince(id: string, sinceMs: number): boolean {
+  try {
+    return statSync(logsDir(id)).mtimeMs + 1 >= sinceMs;
+  } catch {
+    return false;
+  }
+}
+
 /** Extract DONE planner replies that follow the last user input. */
 export function extractReplies(entries: TranscriptEntry[]): string {
   let lastUserIdx = -1;

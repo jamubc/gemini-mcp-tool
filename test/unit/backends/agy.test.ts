@@ -1,7 +1,8 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { buildAgyArgs, buildAgyPrompt } from "../../../src/backends/agy.js";
-import { extractReplies } from "../../../src/backends/agyTranscript.js";
+import { buildAgyArgs, buildAgyPrompt, agyPrintTimeoutArg } from "../../../src/backends/agy.js";
+import { extractReplies, conversationFreshSince } from "../../../src/backends/agyTranscript.js";
+import { COMMAND_TIMEOUT_MS } from "../../../src/utils/commandExecutor.js";
 import { APPROVAL_MODES } from "../../../src/constants.js";
 
 describe("Backends: agy arg building", () => {
@@ -65,5 +66,27 @@ describe("Backends: agy transcript extraction", () => {
       { source: "MODEL", type: "OTHER", status: "DONE", content: "wrong type" },
     ];
     assert.equal(extractReplies(entries), "");
+  });
+
+  test("conversationFreshSince is false for an unknown conversation", () => {
+    assert.equal(conversationFreshSince("nonexistent-conversation-id", 1), false);
+  });
+});
+
+describe("Backends: agy print timeout", () => {
+  test("derives from the command timeout cap, 60s under it", () => {
+    const expected = `${Math.max(60, Math.floor(COMMAND_TIMEOUT_MS / 1000) - 60)}s`;
+    assert.equal(agyPrintTimeoutArg(), expected);
+  });
+
+  test("AGY_PRINT_TIMEOUT overrides the derived value", () => {
+    const prev = process.env.AGY_PRINT_TIMEOUT;
+    process.env.AGY_PRINT_TIMEOUT = "30m";
+    try {
+      assert.equal(agyPrintTimeoutArg(), "30m");
+    } finally {
+      if (prev === undefined) delete process.env.AGY_PRINT_TIMEOUT;
+      else process.env.AGY_PRINT_TIMEOUT = prev;
+    }
   });
 });
