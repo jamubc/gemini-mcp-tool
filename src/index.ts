@@ -40,56 +40,50 @@ const server = new Server(
   },
 );
 
-let isProcessing = false; let currentOperationName = ""; let latestOutput = "";
+// Progress notifications are ON by default. Some Claude Code versions disconnect a
+// stdio MCP server after a successful tools/call response when the server emits
+// progress notifications (anthropics/claude-code#53617). As an opt-out workaround,
+// set GEMINI_MCP_DISABLE_PROGRESS=1 (or =true) to suppress progress notifications.
+const PROGRESS_DISABLED =
+  process.env.GEMINI_MCP_DISABLE_PROGRESS === "1" ||
+  process.env.GEMINI_MCP_DISABLE_PROGRESS === "true";
 
-async function sendNotification(method: string, params: any) {
-  try {
-    await server.notification({ method, params });
-  } catch (error) {
-    Logger.error("notification failed: ", error);
-  }
+interface ProgressContext {
+  isProcessing: boolean;
+  operationName: string;
+  latestOutput: string;
+  messageIndex: number;
+  progress: number;
+  emittedProgress: boolean;
 }
 
-/**
- * @param progressToken The progress token provided by the client
- * @param progress The current progress value
- * @param total Optional total value
- * @param message Optional status message
- */
 async function sendProgressNotification(
   progressToken: string | number | undefined,
   progress: number,
   total?: number,
   message?: string
 ) {
-  if (!progressToken) return; // Only send if client requested progress
-  
+  if (!progressToken) return;
   try {
-    const params: any = {
-      progressToken,
-      progress
-    };
-    
-    if (total !== undefined) params.total = total; // future cache progress
+    const params: any = { progressToken, progress };
+    if (total !== undefined) params.total = total;
     if (message) params.message = message;
-    
-    await server.notification({
-      method: PROTOCOL.NOTIFICATIONS.PROGRESS,
-      params
-    });
+    await server.notification({ method: PROTOCOL.NOTIFICATIONS.PROGRESS, params });
   } catch (error) {
     Logger.error("Failed to send progress notification:", error);
   }
 }
 
-function startProgressUpdates(
-  operationName: string,
-  progressToken?: string | number
-) {
-  isProcessing = true;
-  currentOperationName = operationName;
-  latestOutput = ""; // Reset latest output
-  
+function startProgressUpdates(operationName: string, progressToken?: string | number) {
+  const ctx: ProgressContext = {
+    isProcessing: true,
+    operationName,
+    latestOutput: "",
+    messageIndex: 0,
+    progress: 0,
+    emittedProgress: false,
+  };
+
   const progressMessages = [
     `🧠 ${operationName} - Gemini is analyzing your request...`,
     `📊 ${operationName} - Processing files and generating insights...`,
@@ -97,63 +91,65 @@ function startProgressUpdates(
     `⏱️ ${operationName} - Large analysis in progress (this is normal for big requests)...`,
     `🔍 ${operationName} - Still working... Gemini takes time for quality results...`,
   ];
-  
-  let messageIndex = 0;
-  let progress = 0;
-  
-  // Send immediate acknowledgment if progress requested
-  if (progressToken) {
-    sendProgressNotification(
-      progressToken,
-      0,
-      undefined, // No total - indeterminate progress
-      `🔍 Starting ${operationName}`
-    );
-  }
-  
-  // Keep client alive with periodic updates
+
+  // Lazy progress: we deliberately do NOT send an immediate progress:0 ack. A fast
+  // tool (e.g. ping) finishes before the first interval tick and so emits no progress
+  // notifications at all — which is what avoids the #53617 client disconnect on quick
+  // calls. Progress only starts once a call actually runs past KEEPALIVE_INTERVAL,
+  // i.e. exactly the long operations that need the keepalive.
   const progressInterval = setInterval(async () => {
-    if (isProcessing && progressToken) {
-      // Simply increment progress value
-      progress += 1;
-      
-      // Include latest output if available
-      const baseMessage = progressMessages[messageIndex % progressMessages.length];
-      const outputPreview = latestOutput.slice(-150).trim(); // Last 150 chars
-      const message = outputPreview 
-        ? `${baseMessage}\n📝 Output: ...${outputPreview}`
-        : baseMessage;
-      
-      await sendProgressNotification(
-        progressToken,
-        progress,
-        undefined, // No total - indeterminate progress
-        message
-      );
-      messageIndex++;
-    } else if (!isProcessing) {
+    if (!ctx.isProcessing) {
+      clearInterval(progressInterval);
+      return;
+    }
+
+    // The only server-side lever on a client's in-flight request timeout is a
+    // notifications/progress carrying the client's progressToken: the MCP SDK
+    // resets the per-request timer in _onprogress for that token (when the client
+    // set resetTimeoutOnProgress). Logging notifications do not touch the timer,
+    // so without a token there is nothing useful to send here. This is precisely
+    // why a slow (e.g. 15-minute) changeMode survives only when the client opted
+    // into progress — see PROTOCOL.KEEPALIVE_INTERVAL and the docs on long ops.
+    if (!progressToken) return;
+
+    const baseMessage = progressMessages[ctx.messageIndex % progressMessages.length];
+    const outputPreview = ctx.latestOutput.slice(-150).trim();
+    const message = outputPreview ? `${baseMessage}\n📝 Output: ...${outputPreview}` : baseMessage;
+    ctx.messageIndex++;
+    ctx.progress += 1;
+
+    try {
+      await server.notification({
+        method: PROTOCOL.NOTIFICATIONS.PROGRESS,
+        params: { progressToken, progress: ctx.progress, message },
+      });
+      ctx.emittedProgress = true;
+    } catch (error) {
+      // Transport gone (e.g. EPIPE after the client went away): stop ticking so
+      // we neither leak this timer nor keep throwing on a dead pipe.
+      Logger.error("Keepalive progress notification failed; stopping updates:", error);
+      ctx.isProcessing = false;
       clearInterval(progressInterval);
     }
-  }, PROTOCOL.KEEPALIVE_INTERVAL); // Every 25 seconds
-  
-  return { interval: progressInterval, progressToken };
+  }, PROTOCOL.KEEPALIVE_INTERVAL);
+
+  return { interval: progressInterval, progressToken, ctx };
 }
 
-function stopProgressUpdates(
-  progressData: { interval: NodeJS.Timeout; progressToken?: string | number },
+async function stopProgressUpdates(
+  progressData: { interval: NodeJS.Timeout; progressToken?: string | number; ctx: ProgressContext },
   success: boolean = true
 ) {
-  const operationName = currentOperationName; // Store before clearing
-  isProcessing = false;
-  currentOperationName = "";
+  const operationName = progressData.ctx.operationName;
+  progressData.ctx.isProcessing = false;
   clearInterval(progressData.interval);
-  
-  // Send final progress notification if client requested progress
-  if (progressData.progressToken) {
-    sendProgressNotification(
-      progressData.progressToken,
-      100,
-      100,
+
+  // Only send a final progress notification if this call actually emitted progress
+  // (i.e. ran long enough to tick). Fast calls emit nothing, so no lone progress
+  // notification ever brackets their successful response — this is the #53617 guard.
+  if (progressData.progressToken && progressData.ctx.emittedProgress) {
+    await sendProgressNotification(
+      progressData.progressToken, 100, 100,
       success ? `✅ ${operationName} completed successfully` : `❌ ${operationName} failed`
     );
   }
@@ -169,25 +165,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
   const toolName: string = request.params.name;
 
   if (toolExists(toolName)) {
-    // Check if client requested progress updates
-    const progressToken = (request.params as any)._meta?.progressToken;
-    
+    // Check if client requested progress updates (unless opted out via env var)
+    const progressToken = PROGRESS_DISABLED
+      ? undefined
+      : (request.params as any)._meta?.progressToken;
+
     // Start progress updates if client requested them
     const progressData = startProgressUpdates(toolName, progressToken);
     
     try {
-      // Get prompt and other parameters from arguments with proper typing
       const args: ToolArguments = (request.params.arguments as ToolArguments) || {};
 
       Logger.toolInvocation(toolName, request.params.arguments);
 
-      // Execute the tool using the unified registry with progress callback
       const result = await executeTool(toolName, args, (newOutput) => {
-        latestOutput = newOutput;
+        progressData.ctx.latestOutput = newOutput;
       });
 
-      // Stop progress updates
-      stopProgressUpdates(progressData, true);
+      await stopProgressUpdates(progressData, true);
 
       return {
         content: [
@@ -199,8 +194,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
         isError: false,
       };
     } catch (error) {
-      // Stop progress updates on error
-      stopProgressUpdates(progressData, false);
+      await stopProgressUpdates(progressData, false);
       
       Logger.error(`Error in tool '${toolName}':`, error);
 
@@ -249,9 +243,20 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
   };
 });
 
+// A long-lived stdio bridge must not die from a stray async/stream error.
+// Without these guards a single unhandled rejection — or an EPIPE writing to
+// stdout after the client went away mid-call — terminates the process, which
+// Claude Code surfaces as the MCP server "disconnecting" after a handful of
+// calls (issue #64). Log to stderr and stay up; startup failures still exit.
+process.stdout.on("error", (err) => Logger.error("stdout stream error (ignored):", err));
+process.stderr.on("error", () => { /* nowhere safe left to log */ });
+process.on("unhandledRejection", (reason) => Logger.error("Unhandled rejection (server kept alive):", reason));
+process.on("uncaughtException", (error) => Logger.error("Uncaught exception (server kept alive):", error));
+
 // Start the server
 async function main() {
   Logger.debug("init gemini-mcp-tool");
   const transport = new StdioServerTransport(); await server.connect(transport);
   Logger.debug("gemini-mcp-tool listening on stdio");
-} main().catch((error) => {Logger.error("Fatal error:", error); process.exit(1); }); 
+}
+main().catch((error) => { Logger.error("Fatal error during startup:", error); process.exit(1); });

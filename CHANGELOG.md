@@ -15,6 +15,14 @@
 ### Fixed
 - agy: never recover a stale reply from a previous conversation when a print run fails fast (e.g. dropped auth); a transcript is trusted only when written during the run.
 
+### Fixed
+- **MCP disconnects after a successful call (#64).** Fast tools (e.g. `ping`) no longer emit any progress notifications: progress is now "lazy", starting only once a call runs past the keepalive interval, so quick calls never bracket their response with a progress notification — the trigger for the Claude Code disconnect tracked upstream in [anthropics/claude-code#53617](https://github.com/anthropics/claude-code/issues/53617). Long analyses still get keepalive progress and survive the 60s request timeout.
+- **Concurrent tool calls no longer cancel each other's keepalive.** Per-call progress state replaces the shared module globals, so finishing one call can't stop the progress timer of another in flight.
+- **Server stays up through stray async/stream errors.** Added `stdout`/`stderr` and `unhandledRejection`/`uncaughtException` guards so an `EPIPE` (client went away mid-write) or a stray rejection logs to stderr instead of killing the long-lived server. Startup failures still exit.
+
+### Added
+- **`GEMINI_MCP_DISABLE_PROGRESS`** — opt-out env var that suppresses all progress notifications, for Claude Code versions still affected by [#53617](https://github.com/anthropics/claude-code/issues/53617). Progress stays **on by default**. (absorbed from #80)
+
 ### Security
 - Remove unused `inquirer` production dependency — closes CVE-2026-44705 (path traversal in `tmp` via `external-editor`, HIGH/CWE-22)
 - Remove unused `ai` production dependency — closes CVE-2026-8769 (uncontrolled resource consumption in `@ai-sdk/provider-utils`, LOW/CWE-400)
