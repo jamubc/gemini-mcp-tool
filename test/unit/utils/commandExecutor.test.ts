@@ -80,4 +80,24 @@ describe("Node Utilities: Command Executor & Quoting", () => {
     const out = await executeCommand(process.execPath, ["-e", "console.log('  ok  ')"]);
     assert.equal(out, "ok");
   });
+
+  test("executeCommand surfaces stderr when a clean exit produced no stdout", async () => {
+    // agy hits its quota: exit 0, empty stdout, the reason on stderr. The real
+    // message must reach the caller, not a silent "".
+    await assert.rejects(
+      executeCommand(process.execPath, [
+        "-e",
+        "process.stderr.write('Individual quota reached'); process.exit(0)",
+      ]),
+      /Individual quota reached/,
+    );
+  });
+
+  test("executeCommand resolves stdout even when the child also writes to stderr", async () => {
+    const out = await executeCommand(process.execPath, [
+      "-e",
+      "process.stderr.write('a warning'); console.log('answer')",
+    ]);
+    assert.equal(out, "answer");
+  });
 });

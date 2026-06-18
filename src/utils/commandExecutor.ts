@@ -249,8 +249,16 @@ export async function executeCommand(
       isResolved = true;
       clearTimeout(timer);
       if (code === 0) {
+        const out = stdout.trim();
+        // Exit 0 but empty answer with text on stderr (agy quota/auth notices land
+        // here): surface the real reason instead of a silent "".
+        if (!out && stderr.trim()) {
+          Logger.commandComplete(startTime, code);
+          reject(new Error(stderr.trim()));
+          return;
+        }
         Logger.commandComplete(startTime, code, stdout.length);
-        resolve(stdout.trim());
+        resolve(out);
       } else {
         Logger.commandComplete(startTime, code);
         Logger.error(`Failed with exit code ${code}`);

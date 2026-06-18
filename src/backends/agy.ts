@@ -156,11 +156,12 @@ export const agyBackend: Backend = {
         (cwdId && conversationFreshSince(cwdId, startMs) ? cwdId : undefined) ??
         newestConversationSince(startMs);
       if (!id) {
-        // Nothing recoverable: surface the print failure if there was one.
+        // agy emitted an error of its own (quota, auth, ...): surface it verbatim.
         if (printError) throw printError;
+        // Truly silent: exit 0 with no stdout, stderr, or transcript.
         throw new Error(
-          `agy: produced no stdout and no conversation id was found for ${cwd}. ` +
-            "Run `agy -i` once to authenticate, then retry.",
+          `agy produced no output for ${cwd} (no stdout, stderr, or transcript). ` +
+            'Run `agy -p "hi"` directly to check for an expired login or exhausted quota.',
         );
       }
       return readTranscriptResponse(id);
