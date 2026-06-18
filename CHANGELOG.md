@@ -1,12 +1,25 @@
 # Changelog
 
-## [1.1.8] - 2026-06-01
+## [1.1.8] - 2026-06-18
+
+### Added
+- Antigravity CLI (`agy`) backend, ahead of the Gemini CLI retirement on 2026-06-18 for free/Pro/Ultra tiers. Select it with `GEMINI_MCP_BACKEND` (`gemini` | `agy`); unset defaults to `gemini` until the retirement date, then `agy` automatically. `ask-gemini` and `brainstorm` route through a pluggable backend layer (`src/backends/`).
+- `agy` output recovery for the 1.0.x empty `-p` stdout behaviour: clean JSON stdout, then plain stdout, then opt-in PTY (`AGY_MCP_PTY=1`, POSIX), then the on-disk transcript.
+- `AGY_CLI_PATH` to locate the `agy` binary, plus `agy`-aware install and login guidance when it is missing.
+- `GEMINI_MCP_TIMEOUT` (minutes) to configure the CLI run timeout; default raised to 45. `agy`'s `--print-timeout` derives from it so long agent runs are not capped at agy's 5m default. Override per backend with `AGY_PRINT_TIMEOUT`.
+
+### Changed
+- On `agy`, `model` is not forwarded (print mode is Gemini 3.5 Flash-only) and the Pro to Flash fallback is skipped, with a notice. `@file` references are inlined by us so the CVE-2026-0755 project-root guard stays in the data path. A `sandbox` request returns a notice that print-mode `agy` does not isolate tool execution.
+
+### Fixed
+- agy: never recover a stale reply from a previous conversation when a print run fails fast (e.g. dropped auth); a transcript is trusted only when written during the run.
 
 ### Security
 - Remove unused `inquirer` production dependency — closes CVE-2026-44705 (path traversal in `tmp` via `external-editor`, HIGH/CWE-22)
 - Remove unused `ai` production dependency — closes CVE-2026-8769 (uncontrolled resource consumption in `@ai-sdk/provider-utils`, LOW/CWE-400)
 - Upgrade `mermaid` dev dependency to `^11.15.0` — closes CVE-2026-41159, CVE-2026-41149, CVE-2026-41148 (CSS/HTML injection, MED) and auto-bumps `uuid` to ≥11.1.1 (CVE-2026-41907)
 - Add `overrides` for `postcss ^8.5.10` (CVE-2026-41305) and `dompurify ^3.4.0` (CVE-2026-41238/41239/41240)
+- Bump the `dompurify` override and lockfile to `3.4.11` (#101)
 
 ## [1.1.7] - 2026-05-31
 Reliability patch plus the project's first automated test suite. Hardens cross-platform execution (the Windows fixes and a few robustness guards) and adds a categorized `node:test` suite that gates CI. **No runtime or default-config changes vs 1.1.6** — the only new knob is the opt-in `GEMINI_CLI_PATH`.

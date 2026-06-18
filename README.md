@@ -21,7 +21,7 @@ This is a simple Model Context Protocol (MCP) server that allows AI assistants t
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@jamubc/gemini-mcp-tool/badge" alt="Gemini Tool MCP server" />
 </a>
 
-## TLDR: [![Claude](https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff)](#) + [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff)](#)
+## TLDR: [![Claude](https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff)](#) + [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff)](#) + [![Antigravity](https://img.shields.io/badge/Antigravity%20%28agy%29-4285F4?logo=google&logoColor=fff)](#)
 
 
 **Goal**: Use Gemini's powerful analysis capabilities directly in Claude Code to save tokens and analyze large files.
