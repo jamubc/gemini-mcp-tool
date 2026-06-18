@@ -117,6 +117,13 @@ export const RETIREMENT = {
   MIGRATION_URL: "https://goo.gle/gemini-cli-migration",
 } as const;
 
+// Warm residency: directory for persisting session state (residency.json).
+// Resolved relative to process.cwd(); must remain inside the project root.
+export const GEMINI_MCP_STATE_DIR = "GEMINI_MCP_STATE_DIR" as const;
+
+// Warm residency: maximum diff size (bytes) before falling back to full-workspace analysis.
+export const GEMINI_MCP_MAX_DELTA_BYTES = "GEMINI_MCP_MAX_DELTA_BYTES" as const;
+
 
 // (merged PromptArguments and ToolArguments)
 export interface ToolArguments {
