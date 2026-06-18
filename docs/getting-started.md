@@ -32,7 +32,7 @@
 Before installing, ensure you have:
 
 - **[Node.js](https://nodejs.org/)** v16.0.0 or higher
-- **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured on your system
+- A backend CLI: the **[Antigravity CLI](https://antigravity.google/product/antigravity-cli)** (`agy`, the default since 2026-06-18), or the **[Gemini CLI](https://github.com/google-gemini/gemini-cli)** for Enterprise/paid-API-key users (set `GEMINI_MCP_BACKEND=gemini`). See the [migration guide](/migration/antigravity-cli)
 - **[Claude Desktop](https://claude.ai/download)** or **[Claude Code](https://www.anthropic.com/claude-code)** with MCP support
 
 
@@ -122,7 +122,7 @@ Gemini MCP Tool works with 40+ MCP clients! Here are the common configuration pa
 </details>
 ### Generic Setup Steps
 
-1. **Install Prerequisites**: Ensure [Gemini CLI](https://github.com/google-gemini/gemini-cli) is installed
+1. **Install Prerequisites**: Ensure your backend CLI is installed: `agy` (the default) or `gemini` (Enterprise / paid API key). See the [migration guide](/migration/antigravity-cli)
 2. **Add Server Config**: Use the STDIO transport pattern above
 3. **Restart Client**: Most clients require restart after config changes
 4. **Test Connection**: Try `/gemini-cli:ping` or natural language commands
@@ -175,18 +175,19 @@ Don't see your MCP client listed? Gemini MCP Tool uses standard MCP protocol and
 
 ## Common Issues
 
-### "Command not found: gemini"
-Make sure you've installed the Gemini CLI:
+### "Command not found: agy" (or "gemini")
+`agy` is the default backend since 2026-06-18. Install it:
 ```bash
-npm install -g @google/gemini-cli
+curl -fsSL https://antigravity.google/cli/install.sh | bash   # macOS / Linux
 ```
+Then run `agy` once to sign in. If you set `GEMINI_MCP_BACKEND=gemini` (Enterprise / paid API key), install or fix the Gemini CLI instead. See the [migration guide](/migration/antigravity-cli).
 
 ### "MCP server not responding"
 0. run claude code --> /doctor
 1. Check your configuration file path
 2. Ensure JSON syntax is correct
 3. Restart your MCP client completely
-4. Verify Gemini CLI works: `gemini -help`
+4. Verify your backend CLI works: `agy -p "hi"` (or `gemini -help` on the Gemini backend)
 
 
 ### Client-Specific Issues
