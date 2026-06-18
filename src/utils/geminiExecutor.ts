@@ -15,6 +15,9 @@ import { chunkChangeModeEdits } from './changeModeChunker.js';
 import { cacheChunks, getChunks } from './chunkCache.js';
 
 const FILE_REF_PATTERN = /@(\S+)/g;
+// Inlining only: @ must start the prompt or follow whitespace, so user@host or
+// a@b aren't inlined. The guard above stays broad (it must reject any traversal).
+const FILE_REF_INLINE_PATTERN = /(?<=^|\s)@(\S+)/g;
 
 /**
  * Rejects @file references that resolve outside the working directory.
@@ -166,7 +169,7 @@ export function inlineFileReferences(prompt: string, root: string = process.cwd(
   }
   const escapesRoot = (p: string) =>
     p !== realRoot && !p.startsWith(realRoot + path.sep);
-  return prompt.replace(FILE_REF_PATTERN, (whole, ref: string) => {
+  return prompt.replace(FILE_REF_INLINE_PATTERN, (whole, ref: string) => {
     const resolved = path.resolve(normalizedRoot, ref);
     // Symlink-aware guard: assertSafeFileReferences is lexical (path.resolve),
     // so an in-root symlink could still point outside the root. Resolve the real

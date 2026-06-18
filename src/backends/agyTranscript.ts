@@ -175,8 +175,11 @@ function readSqliteResponse(dbPath: string): string {
       for (const row of rows) {
         for (const value of Object.values(row)) {
           if (typeof value !== "string") continue;
+          const trimmed = value.trim();
+          // Skip non-JSON cells without paying for a thrown exception each.
+          if (trimmed[0] !== "{" && trimmed[0] !== "[") continue;
           try {
-            const parsed = JSON.parse(value) as TranscriptEntry;
+            const parsed = JSON.parse(trimmed) as TranscriptEntry;
             if (parsed && (parsed.type || parsed.source)) entries.push(parsed);
           } catch {
             /* not a JSON cell */

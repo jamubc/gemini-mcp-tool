@@ -122,6 +122,7 @@ export function runAgyUnderPty(
       child = spawn("script", scriptArgs, {
         env: process.env,
         stdio: ["ignore", "pipe", "pipe"],
+        detached: true, // own process group, so the timeout can kill sh + agy too
       });
     } catch {
       resolve(""); // `script` not installed
@@ -151,7 +152,7 @@ export function runAgyUnderPty(
 
     const timer = setTimeout(() => {
       try {
-        child.kill("SIGKILL");
+        if (child.pid) process.kill(-child.pid, "SIGKILL"); // -pid = whole group
       } catch {
         /* already gone */
       }

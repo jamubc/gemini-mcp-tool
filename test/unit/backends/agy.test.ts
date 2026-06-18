@@ -45,6 +45,12 @@ describe("Backends: agy prompt building", () => {
     assert.match(out, /\[CHANGEMODE INSTRUCTIONS\]/);
     assert.match(out, /USER REQUEST:/);
   });
+
+  test("does not inline an email address as an @file reference", () => {
+    const out = buildAgyPrompt("email me at user@example.com about it", {});
+    assert.match(out, /user@example\.com/);
+    assert.doesNotMatch(out, /FILE NOT FOUND/);
+  });
 });
 
 describe("Backends: agy transcript extraction", () => {
