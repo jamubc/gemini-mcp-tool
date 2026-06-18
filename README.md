@@ -1,4 +1,3 @@
-
 # Gemini MCP Tool
 
 <div align="center">
@@ -21,24 +20,54 @@ This is a simple Model Context Protocol (MCP) server that allows AI assistants t
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@jamubc/gemini-mcp-tool/badge" alt="Gemini Tool MCP server" />
 </a>
 
-## TLDR: [![Claude](https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff)](#) + [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff)](#) + [![Antigravity](https://img.shields.io/badge/Antigravity%20%28agy%29-4285F4?logo=google&logoColor=fff)](#)
-
+## TLDR: [![Claude](https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff)](#) + [![Gemini](https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff)](#)([![Google Antigravity CLI](https://img.shields.io/badge/Antigravity%20%28agy%29-4285F4?logo=google&logoColor=fff)](#))
 
 **Goal**: Use Gemini's powerful analysis capabilities directly in Claude Code to save tokens and analyze large files.
 
 ## Prerequisites
+
+<details>
+<summary>🚀 <strong>Important: `gemini` to `agy` Migration Notice</strong></summary>
+
+Google is ending support for the Gemini CLI on **2026-06-18** for free, Pro, and Ultra users. **There is no grace period.** To prevent disruptions to your workflow, you must migrate to the new Antigravity CLI (`agy`) before this date:
+
+
+| Variable             | Purpose                                                              |
+| -------------------- | -------------------------------------------------------------------- |
+| `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to use the Antigravity CLI |
+| `AGY_CLI_PATH`       | Full path to the`agy` binary if it isn't on the server's PATH        |
+
+The `agy` backend is **experimental**: print-mode is Gemini 3.5 Flash-only, replies are
+read from `agy`'s stdout (with transcript recovery only when stdout is empty), and tool
+execution isn't sandboxed in `-p`. The
+tool emits a notice whenever a requested `model` or `sandbox` can't be honored. See
+[docs/migration/antigravity-cli.md](docs/migration/antigravity-cli.md) for the full
+analysis and migration plan.
+
+</details>
+
 
 Before using this tool, ensure you have:
 
 1. **[Node.js](https://nodejs.org/)** (v16.0.0 or higher)
 2. **[Google Gemini CLI](https://github.com/google-gemini/gemini-cli)** installed and configured
 
-
 ### One-Line Setup
 
 ```bash
 claude mcp add gemini-cli -- npx -y gemini-mcp-tool
 ```
+
+<details>
+<summary>For Windows users</summary>
+
+Use `-- y` instead of `-y`:
+
+```bash
+claude mcp add gemini-cli -- npx -- y gemini-mcp-tool
+```
+
+</details>
 
 ### Verify Installation
 
@@ -51,6 +80,7 @@ Type `/mcp` inside Claude Code to verify the gemini-cli MCP is active.
 If you already have it configured in Claude Desktop:
 
 1. Add to your Claude Desktop config:
+
 ```json
 "gemini-cli": {
   "command": "npx",
@@ -59,6 +89,7 @@ If you already have it configured in Claude Desktop:
 ```
 
 2. Import to Claude Code:
+
 ```bash
 claude mcp add-from-claude-desktop
 ```
@@ -104,22 +135,6 @@ If you installed globally, use this configuration instead:
   - **Linux**: `~/.config/claude/claude_desktop_config.json`
 
 After updating the configuration, restart your terminal session.
-
-### Backend selection (Gemini CLI → Antigravity `agy`)
-
-Google retires the Gemini CLI on **2026-06-18** for free/Pro/Ultra tiers. The CLI backend
-is pluggable so you can move at your own pace:
-
-| Variable | Purpose |
-| --- | --- |
-| `GEMINI_MCP_BACKEND` | `gemini` (default) or `agy`/`antigravity` to use the Antigravity CLI |
-| `AGY_CLI_PATH` | Full path to the `agy` binary if it isn't on the server's PATH |
-
-The `agy` backend is **experimental**: print-mode is Gemini 3.5 Flash-only, replies are
-recovered from `agy`'s transcript files, and tool execution isn't sandboxed in `-p`. The
-tool emits a notice whenever a requested `model` or `sandbox` can't be honored. See
-[docs/migration/antigravity-cli.md](docs/migration/antigravity-cli.md) for the full
-analysis and migration plan.
 
 ## Example Workflow
 

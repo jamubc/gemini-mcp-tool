@@ -1,14 +1,9 @@
 # Migrating from Gemini CLI to Antigravity CLI (`agy`)
 
-> Status: **Preliminary / RFC** — this is the opening analysis for the migration, not the
-> final implementation. It exists to map the terrain before we commit code.
->
-> Tracking discussion: [#90 — Google Ending Gemini CLI on June 18th, Gemini-mcp-tool
-> Migrating to Antigravity](https://github.com/jamubc/gemini-mcp-tool/discussions/90)
->
-> Related prior work: [PR #78 (v1.2.0)](https://github.com/jamubc/gemini-mcp-tool/pull/78)
-> already lands a pluggable backend layer and an **experimental** `agy` backend. This
-> document is the deeper analysis behind that scaffolding and the plan to harden it.
+> Status: **Active**. The migration from the Gemini CLI (`gemini`) to the Antigravity CLI
+> (`agy`) ships in `gemini-mcp-tool` 1.1.8. The `agy` backend becomes the default on
+> **2026-06-18**, the day Google retires the Gemini CLI for free, Pro, and Ultra users.
+> Tracking: [discussion #90](https://github.com/jamubc/gemini-mcp-tool/discussions/90).
 
 ## Why this exists
 
@@ -301,18 +296,21 @@ overrides. `backendSelection()` surfaces a notice on the post-retirement auto-sw
 one-time nudge to test `agy` in the final `RETIREMENT.WARN_WITHIN_DAYS` countdown. Standard/
 Enterprise/API-key users who retain `gemini` access just set `GEMINI_MCP_BACKEND=gemini`.
 
-## Configuration (added in this PR)
+## Configuration
 
 | Variable | Purpose |
 | --- | --- |
 | `GEMINI_MCP_BACKEND` | `gemini` or `agy`/`antigravity`; unset uses the date-aware default (Phase 4) |
 | `AGY_CLI_PATH` | Full path to the `agy` binary when it isn't on the server's PATH |
 | `AGY_MCP_PTY` | `1` to enable opt-in PTY stdout recovery for `agy -p` (POSIX only, Phase 3) |
+| `GEMINI_MCP_TIMEOUT` | Overall CLI run timeout in minutes (default 45); `agy`'s `--print-timeout` derives from it |
+| `AGY_PRINT_TIMEOUT` | Override `agy`'s `--print-timeout` directly (Go duration, e.g. `30m`) |
 
 `agy` is **experimental**: print-mode is Gemini 3.5 Flash-only, output is recovered via the
 Phase 3 ladder (clean JSON stdout → plain stdout → opt-in PTY → transcript), and tool
 execution is not sandboxed in `-p`. The tool surfaces a notice whenever a requested `model`
-or `sandbox` can't be honored.
+or `sandbox` can't be honored. When `agy` itself fails (an exhausted quota, a dropped
+login), its own error text is surfaced verbatim instead of an empty reply.
 
 ## Open questions
 
