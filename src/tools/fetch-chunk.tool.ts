@@ -12,9 +12,9 @@ const inputSchema = z.object({
 export const fetchChunkTool: UnifiedTool = {
   name: 'fetch-chunk',
   description: 'Retrieves cached chunks from a changeMode response. Use this to get subsequent chunks after receiving a partial changeMode response.',
-  
+
   zodSchema: inputSchema,
-  
+
   prompt: {
     description: 'Fetch the next chunk of a response',
     arguments: [
@@ -25,8 +25,13 @@ export const fetchChunkTool: UnifiedTool = {
       }
     ]
   },
-  
+
   category: 'utility',
+  annotations: {
+    title: "Fetch Chunk",
+    readOnlyHint: true,
+    idempotentHint: true,
+  },
   
   execute: async (args: any, onProgress?: (newOutput: string) => void): Promise<string> => {
     const { cacheKey, chunkIndex } = args;
