@@ -18,6 +18,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { Logger } from "./utils/logger.js";
 import { PROTOCOL, ToolArguments } from "./constants.js";
+import { createRequire } from "module";
 
 import { 
   getToolDefinitions, 
@@ -27,10 +28,13 @@ import {
   getPromptMessage 
 } from "./tools/index.js";
 
+// Clients show this in /mcp. Derived from package.json so it never goes stale.
+const PKG_VERSION = createRequire(import.meta.url)("../package.json").version as string;
+
 const server = new Server(
   {
     name: "gemini-cli-mcp",
-    version: "1.1.4",
+    version: PKG_VERSION,
   },{
     capabilities: {
       tools: {},

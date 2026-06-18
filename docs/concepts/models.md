@@ -2,11 +2,12 @@
 
 Choose the right Gemini model for your task.
 
-> **Heads up — backend matters.** Model selection below applies to the default **Gemini CLI**
-> backend. Google retires the Gemini CLI on **2026-06-18** for free/Pro/Ultra tiers; the
-> experimental **Antigravity CLI (`agy`)** backend runs print-mode as **Gemini 3.5 Flash only**
-> and ignores model selection. See the
-> [Antigravity migration guide](/migration/antigravity-cli) for details.
+> **Heads up: backend matters.** The settings below apply to the **Gemini CLI** backend. The
+> Gemini CLI was retired on **2026-06-18** for free/Pro/Ultra tiers, so this tool now defaults
+> to the **Antigravity CLI (`agy`)**, whose print mode is **Gemini 3.5 Flash only** and ignores
+> model selection. The Gemini CLI and these model options stay available to Enterprise and
+> paid-API-key users via `GEMINI_MCP_BACKEND=gemini`. See the
+> [Antigravity migration guide](/migration/antigravity-cli).
 
 ## Available Models
 
