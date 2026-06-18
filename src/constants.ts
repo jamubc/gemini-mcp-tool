@@ -9,6 +9,8 @@ export const ERROR_MESSAGES = {
   QUOTA_EXCEEDED_SHORT: "⚠️ Gemini 2.5 Pro daily quota exceeded. Please retry with model: 'gemini-2.5-flash'",
   TOOL_NOT_FOUND: "not found in registry",
   NO_PROMPT_PROVIDED: "Please provide a prompt for analysis. Use @ syntax to include files (e.g., '@largefile.js explain what this does') or ask general questions",
+  APPLY_EDITS_NO_EDITS: "No changeMode OLD/NEW edits found in the provided text. Ensure the input uses the changeMode format produced by ask-gemini with changeMode:true.",
+  APPLY_EDITS_VALIDATION_FAILED: "Edit validation failed — no files were written.",
 } as const;
 
 // Status messages
@@ -22,6 +24,10 @@ export const STATUS_MESSAGES = {
   PROCESSING_START: "🔍 Starting analysis (may take 5-15 minutes for large codebases)",
   PROCESSING_CONTINUE: "⏳ Still processing... Gemini is working on your request",
   PROCESSING_COMPLETE: "✅ Analysis completed successfully",
+  // apply-edits messages
+  APPLY_EDITS_DRY_RUN: "Dry-run preview (no files written). Re-call with dryRun:false, confirm:true to apply.",
+  APPLY_EDITS_CONFIRM_REQUIRED: "Set confirm:true to apply the changes shown above.",
+  APPLY_EDITS_SUCCESS: "All changes applied successfully.",
 } as const;
 
 // Models
