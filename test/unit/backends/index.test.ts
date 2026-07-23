@@ -63,7 +63,7 @@ describe("Backends: selection", () => {
   test("capability flags reflect each CLI's reality", () => {
     assert.equal(geminiBackend.supportsModelSelection, true);
     assert.equal(geminiBackend.sandboxIsolatesToolExecution, true);
-    // agy print-mode is Flash-only and does not isolate tool execution.
+    // agy's static flag is false; runWithBackend() overrides dynamically via probing.
     assert.equal(agyBackend.supportsModelSelection, false);
     assert.equal(agyBackend.sandboxIsolatesToolExecution, false);
   });

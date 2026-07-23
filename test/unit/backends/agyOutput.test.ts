@@ -17,18 +17,21 @@ describe("Backends: agy capability probing (Phase 3)", () => {
       "  --conversation <id>      resume a specific conversation",
       "  -c, --continue           continue the most recent conversation",
       "  --print-timeout <ms>     bound a headless run",
+      "  --model                  Model for the current CLI session",
     ].join("\n");
     const caps = parseAgyHelp(help);
     assert.equal(caps.outputFormatJson, true);
     assert.equal(caps.conversationId, true);
     assert.equal(caps.continueFlag, true);
     assert.equal(caps.printTimeout, true);
+    assert.equal(caps.modelSelection, true);
   });
 
   test("a 1.0.x help with no json mode yields the conservative defaults", () => {
     const caps = parseAgyHelp("Usage: agy\n  -p, --prompt <text>\n  -i  interactive login");
     assert.equal(caps.outputFormatJson, false);
     assert.equal(caps.printTimeout, false);
+    assert.equal(caps.modelSelection, false);
   });
 
   test("empty help is treated as no capabilities", () => {

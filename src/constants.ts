@@ -28,8 +28,8 @@ export const STATUS_MESSAGES = {
 export const MODELS = {
   PRO: "gemini-2.5-pro",
   FLASH: "gemini-2.5-flash",
-  // Antigravity CLI print-mode is hardcoded to Gemini 3.5 Flash (High). This is
-  // informational only — `agy -p` ignores `--model` (and hangs if forced).
+  // Antigravity CLI print-mode default when no --model is passed (1.0.x was
+  // hard-locked to this; ≥1.1 honours --model, detected via capability probing).
   AGY_PRINT_DEFAULT: "gemini-3.5-flash",
 } as const;
 

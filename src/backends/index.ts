@@ -3,6 +3,7 @@ import { Logger } from "../utils/logger.js";
 import type { Backend, BackendRunOptions } from "./types.js";
 import { geminiBackend } from "./gemini.js";
 import { agyBackend } from "./agy.js";
+import { probeAgyCapabilities } from "./agyCapabilities.js";
 
 export type { Backend, BackendRunOptions } from "./types.js";
 export { geminiBackend } from "./gemini.js";
@@ -100,7 +101,12 @@ export async function runWithBackend(
   const { backend, notices } = backendSelection();
   const effective: BackendRunOptions = { ...opts, onNotice: (m) => notices.push(m) };
 
-  if (effective.model && !backend.supportsModelSelection) {
+  // agy ≥1.1 gained --model support; probe the installed build before gating.
+  const modelSupported =
+    backend.supportsModelSelection ||
+    (backend.name === "agy" && (await probeAgyCapabilities()).modelSelection);
+
+  if (effective.model && !modelSupported) {
     notices.push(
       `Backend "${backend.name}" ignores model selection (print-mode is ${MODELS.AGY_PRINT_DEFAULT}-only); "${effective.model}" was not applied.`,
     );
