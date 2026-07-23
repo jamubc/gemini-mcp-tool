@@ -24,6 +24,8 @@ export interface AgyCapabilities {
   continueFlag: boolean;
   /** `--print-timeout` exists → headless runs can bound their own wait. */
   printTimeout: boolean;
+  /** `--model` exists → print-mode honours model selection (agy ≥1.1). */
+  modelSelection: boolean;
   /** Raw help text, kept for diagnostics. */
   raw: string;
 }
@@ -33,6 +35,7 @@ export const NO_AGY_CAPABILITIES: AgyCapabilities = {
   conversationId: false,
   continueFlag: false,
   printTimeout: false,
+  modelSelection: false,
   raw: "",
 };
 
@@ -45,6 +48,7 @@ export function parseAgyHelp(help: string): AgyCapabilities {
     conversationId: has(/--conversation\b/),
     continueFlag: has(/--continue\b/) || has(/(^|\s)-c\b/),
     printTimeout: has(/--print-timeout\b/),
+    modelSelection: has(/--model\b/),
     raw: help,
   };
 }

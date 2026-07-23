@@ -29,8 +29,8 @@ import type { Backend, BackendRunOptions } from "./types.js";
  *     on-disk transcript (agyTranscript.ts). A failed print run descends the
  *     ladder rather than aborting. As agy improves, capability probing shifts
  *     us up the ladder with no code change.
- *  2. Print-mode is hardcoded to Gemini 3.5 Flash; `--model` is ignored and
- *     hangs if forced. supportsModelSelection is false; we never pass --model.
+ *  2. Print-mode was hardcoded to Gemini 3.5 Flash in 1.0.x (`--model` hung).
+ *     agy ≥1.1 honours `--model` in print-mode; capability probing detects this.
  *  3. `@file` is not inlined by agy (it's agent-first). We inline files ourselves
  *     so the project-root guard and determinism survive — and because inlined
  *     prompts carry whole files, they ride on stdin to dodge OS argv limits.
@@ -62,7 +62,7 @@ export function buildAgyArgs(opts: BackendRunOptions): string[] {
   if (opts.approvalMode === APPROVAL_MODES.YOLO) {
     args.push("--dangerously-skip-permissions");
   }
-  // Print mode is hardcoded to Flash — deliberately NO --model (it hangs -p).
+  // --model is forwarded in run() when capability probing confirms support.
   return args;
 }
 
@@ -109,6 +109,7 @@ export const agyBackend: Backend = {
       // stdout instead of scraping the transcript.
       if (caps.outputFormatJson) baseArgs.push("--output-format", "json");
       if (caps.printTimeout) baseArgs.push("--print-timeout", agyPrintTimeoutArg());
+      if (caps.modelSelection && opts.model) baseArgs.push("--model", opts.model);
 
       // changeMode/@file prompts carry whole inlined files, easily exceeding
       // the OS argv limits — route them via stdin, exactly as the gemini path
