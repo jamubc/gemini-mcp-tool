@@ -1,5 +1,7 @@
 # Gemini MCP Tool
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Fjamubc%2Fgemini-mcp-tool.svg)](https://mcptoplist.com/server/glama%2Fjamubc%2Fgemini-mcp-tool)
+
 <div align="center">
 
 [![GitHub Release](https://img.shields.io/github/v/release/jamubc/gemini-mcp-tool?logo=github&label=GitHub)](https://github.com/jamubc/gemini-mcp-tool/releases)
